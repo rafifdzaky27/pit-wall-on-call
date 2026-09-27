@@ -496,6 +496,19 @@ On branch `drill/broken-readiness`, make `/readyz` always return 503 (and adjust
 
 ---
 
+### Game day record (2026-09-28)
+
+A PR (#12, `5d73169`) made `/readyz` always return 503 and was merged to `main`. The hypotheses were written in the PR before the merge.
+
+| # | Hypothesis | Result | Evidence |
+|---|---|---|---|
+| H1 | The smoke test rejects the broken release | ✅ | `smoke test failed for 5d73169…` |
+| H2 | `deploy.sh` rolls back to the previous release | ✅ | `rolling back to fd8bcf9…` → `rollback ok: fd8bcf9…` |
+| H3 | The deploy job goes red, and `public-smoke` does not run | ✅ | `Process completed with exit code 1` |
+| H4 | Players see no impact | ✅ | The public site served `fd8bcf9` (API and web) throughout |
+
+During rollback only `api` and `web` were recreated, and `postgres` stayed `Running`, so data was never touched. The drill was reverted through a normal PR, and that deploy went green.
+
 ## Rollback (executable)
 
 | Scope | Command |
