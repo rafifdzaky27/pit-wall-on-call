@@ -45,7 +45,7 @@ pit-wall-on-call CI (images in GHCR) ──► Step 9 first deploy
 |---|---|---|
 | OS + Docker | ~300 MB | ~4 GB |
 | postgres 17 (small data) | 60–150 MB | < 1 GB |
-| api (Node 22) | ~70 MB | image ~60 MB |
+| api (Node 22) | ~70 MB | image ~160 MB |
 | web (Caddy) + cloudflared | ~50 MB | ~110 MB |
 | umami (from M5) | ~200 MB | ~300 MB |
 | **Runtime total** | **~0.7–0.8 GB of 1.5 GB** | Logs are capped at 30 MB per service |
@@ -329,13 +329,15 @@ pitwall_ghcr_owner: rafifdzaky27
 **FILE:** `group_vars/pitwall/vault.yml`, created with inline-encrypted values (same format as `group_vars/all/vault.yml`):
 ```bash
 mkdir -p group_vars/pitwall
-openssl rand -hex 24 | ansible-vault encrypt_string --ask-vault-pass --stdin-name pitwall_postgres_password > group_vars/pitwall/vault.yml
+openssl rand -hex 24 | tr -d '
+' | ansible-vault encrypt_string --ask-vault-pass --stdin-name pitwall_postgres_password > group_vars/pitwall/vault.yml
 read -rsp "Paste tunnel token (hidden): " PITWALL_TT; echo
 printf '%s' "$PITWALL_TT" | ansible-vault encrypt_string --ask-vault-pass --stdin-name pitwall_tunnel_token >> group_vars/pitwall/vault.yml
 unset PITWALL_TT
 grep -E '^[a-z_]+:' group_vars/pitwall/vault.yml
 ```
-`read -s` hides the token while you paste it, and `unset` clears it from the shell. The vault password prompt reads from the terminal, not from the pipe. **EXPECTED:** exactly two lines: `pitwall_postgres_password: !vault |` and `pitwall_tunnel_token: !vault |`. Neither value is readable. Use the **same vault password** as `group_vars/all/vault.yml`.
+`tr -d '
+'` strips openssl's trailing newline so the password is exactly 48 characters (a newline would break a future `PGPASSWORD=`). `read -s` hides the token while you paste it, and `unset` clears it from the shell. The vault password prompt reads from the terminal, not from the pipe. **EXPECTED:** exactly two lines: `pitwall_postgres_password: !vault |` and `pitwall_tunnel_token: !vault |`. Neither value is readable. Use the **same vault password** as `group_vars/all/vault.yml`.
 
 ⚠️ Postgres reads `POSTGRES_PASSWORD` **only when the volume is first initialized**. Changing the vault value later does not rotate the DB password. Rotation is an explicit `ALTER USER` plus a vault change together.
 
@@ -436,7 +438,7 @@ On branch `drill/broken-readiness`, make `/readyz` always return 503 (and adjust
 
 | Scope | Command |
 |---|---|
-| Bad app release | Automatic: `deploy.sh` restores the previous tag. Manual: `ssh pitwall-deploy@192.168.18.25 /opt/pitwall/deploy.sh <previous-sha>` |
+| Bad app release | Automatic: `deploy.sh` restores the previous tag. Manual (the CI key lives only in GitHub, so use the admin path): `ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 'sudo -u pitwall-deploy /opt/pitwall/deploy.sh <previous-sha>'` |
 | Stop public exposure | Cloudflare → Tunnels → `pitwall-prod` → delete the published application (the VM keeps running privately) |
 | Revoke CI access | Remove the `tag:ci-pitwall` grant and revoke the OAuth client; delete `DEPLOY_SSH_KEY` |
 | Remove the host entirely | `terraform plan -destroy -target=proxmox_vm_qemu.pitwall -out=rm.tfplan` → review (**only** the pitwall VM) → `terraform apply rm.tfplan`; revert the inventory, role and group_vars commits |
