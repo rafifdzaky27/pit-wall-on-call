@@ -1,0 +1,116 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 var(--fs) / 1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p, ul, ol, dl, dd { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wordmark { font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
+.empty { color: var(--muted); }
+.hint { color: var(--muted); font-size: var(--fs-xs); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+kbd {
+  font: 500 var(--fs-xs) var(--mono);
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font: 500 var(--fs-sm) var(--font);
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.06s;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:active { transform: translateY(1px); background: var(--sunken); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.primary kbd { background: transparent; border-color: rgba(255, 255, 255, 0.45); color: inherit; }
+.btn:disabled { opacity: 0.42; cursor: not-allowed; transform: none; }
+.btn:disabled:hover { border-color: var(--border-strong); }
+.btn.primary:disabled:hover { background: var(--accent); border-color: var(--accent); }
+.btn-lg { font-size: var(--fs-md); padding: 11px 20px; }
+
+.tag {
+  display: inline-block;
+  font: 600 var(--fs-xs) / 1.5 var(--font);
+  letter-spacing: 0.04em;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tag.crit { background: var(--crit-soft); color: var(--crit); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.tag.ok { background: var(--ok-soft); color: var(--ok); }
+.tag.info { background: var(--accent-soft); color: var(--accent-text); }
+
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; }
+.seg button { font: 500 var(--fs-sm) var(--font); background: transparent; border: 0; color: var(--muted); padding: 6px 10px; cursor: pointer; }
+.seg button:hover { color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-text); }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.ph {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.ph h2, .ph h3 { font: inherit; }
+.pb { padding: var(--space-2) var(--space-3) var(--space-3); overflow: auto; min-height: 0; flex: 1; }
+.pf { padding: var(--space-3); border-top: 1px solid var(--border); }
+
+.overlay { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: var(--space-4); background: var(--scrim); }
+.card {
+  width: 100%;
+  max-width: 460px;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.card h2 { font-size: var(--fs-lg); font-weight: 600; }
+.card p { color: var(--muted); font-size: var(--fs-md); }
+.card .btn { justify-self: start; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation: none !important; }
+}
