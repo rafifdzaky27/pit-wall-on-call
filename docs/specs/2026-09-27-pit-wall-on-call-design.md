@@ -21,7 +21,7 @@ Junior DevOps/SRE engineers and people preparing for on-call interviews have no 
 - Run it as a real service: CI/CD, observability, an SLO, and backups with restore tests.
 
 ### Non-goals (v1)
-Accounts and login, payments, scenario editor, multiplayer, team or facilitator mode, fake terminal, mobile-optimized console, replay viewer UI.
+Accounts and login, payments, scenario editor, multiplayer, team or facilitator mode, fake terminal (until hard mode, D18), mobile-optimized console, replay viewer UI.
 
 ## 3. Decision log
 
@@ -43,6 +43,12 @@ Accounts and login, payments, scenario editor, multiplayer, team or facilitator 
 | D14 | Visual direction (2026-09-28) | "Variant 1": neutral observability console (IBM Plex, Grafana-like slate, blue accent), dark default plus light theme, **no motorsport theming and no decorative icons**. The product name stays as a name only. | Night telemetry; F1 broadcast language; Dense, Calm, Mono and Command variants |
 | D15 | Cold open (2026-09-28) | A playable cold open is part of gameplay: hotspot clues, acknowledge time and escalation feed the score | Pure atmosphere; cinematic only |
 | D16 | Cold open delivery (2026-09-28) | Engine paging rules land in M1; scene, audio and transitions land in a new milestone M1.5 | Everything in M1; defer to M4 |
+| D17 | Desktop OS (2026-09-28) | The game runs inside **PitOS**, a fictional GNOME-style Linux desktop, and the desktop is the landing page. The café scene (M1.6) zooms out of it. See `2026-09-28-pitos-desktop-design.md`. | A marketing landing page; macOS- or Windows-like shells |
+| D18 | Hard mode (2026-09-28) | A second difficulty adds a Terminal app: typed commands (`kubectl rollout undo …`) map to the same engine actions, so replay and scoring are unchanged. Leaderboards are separate per mode. This reverses D4 for hard mode only and ships in its own milestone. | Terminal as the only mode; no terminal |
+| D19 | Localization (2026-09-28) | The seed picks the city (Jakarta, Tokyo, Melbourne, Yogyakarta at launch), and everyone shares the daily's city. Local archetypes are recreated faithfully, but brand names and visuals are original. | Near-copies of real brands; per-player location |
+| D20 | HTTP realism (2026-09-28) | Symptoms appear as real status codes: server-default error pages in the Browser and a DevTools-like Network panel that always shows the number. | Generic "something went wrong" |
+| D21 | License (2026-09-28) | Code AGPL-3.0-only; game content, names and art all rights reserved (`NOTICE.md`). | MIT; no license |
+| D22 | Accounts and pricing (2026-09-28) | v1 keeps anonymous tokens (M2). Accounts come when cross-device progress or a paid tier needs them. Pricing is decided after launch data (§13). Working hypotheses: the daily stays free; paid archive and scenario packs; a team or facilitator mode as the B2B offer. | Decide pricing before launch |
 
 ## 4. Architecture
 
@@ -316,6 +322,7 @@ From the opportunity report:
 - Domain name and public URL.
 - Which homelab host or VM runs the stack, and its resources.
 - The offsite backup target (for example, Backblaze B2).
+- Pricing and packaging, after launch data (D22).
 
 ## 17. Revisions
 
