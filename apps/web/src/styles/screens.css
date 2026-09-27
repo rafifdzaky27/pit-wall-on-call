@@ -65,3 +65,24 @@
   .debrief-hero h1 { font-size: var(--fs-xl); }
   .debrief-actions .btn { flex: 1 1 100%; }
 }
+
+/* Landing */
+.landing { width: 100%; max-width: 880px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-7); display: grid; gap: var(--space-6); }
+.hero { display: grid; gap: var(--space-3); }
+.hero h1 { font-size: var(--fs-2xl); font-weight: 600; line-height: 1.1; }
+.lede { font-size: 18px; color: var(--muted); max-width: 36em; }
+.scenario-card { display: grid; gap: var(--space-3); padding: var(--space-5); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
+.scenario-card h2 { font-size: var(--fs-lg); font-weight: 600; }
+.scenario-card p { font-size: var(--fs-md); color: var(--muted); }
+.scenario-card .btn { justify-self: start; }
+.sc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: var(--muted); font-size: var(--fs-sm); }
+.note { padding: var(--space-3); border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius-sm); color: var(--text) !important; }
+.how h2 { font-size: var(--fs-xs); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--space-3); }
+.how ol { display: grid; gap: var(--space-3); }
+.how li { font-size: var(--fs-md); color: var(--muted); }
+.how b { color: var(--text); font-weight: 600; }
+@media (max-width: 480px) {
+  .hero h1 { font-size: var(--fs-xl); }
+  .lede { font-size: var(--fs-md); }
+  .scenario-card .btn { justify-self: stretch; }
+}
