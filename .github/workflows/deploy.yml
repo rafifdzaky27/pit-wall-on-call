@@ -86,7 +86,19 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "chmod +x /opt/pitwall/deploy.sh && /opt/pitwall/deploy.sh $GITHUB_SHA"
-      - name: public smoke test
+      - name: remove deploy key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  # Runs on a fresh runner that never joins the tailnet, so it sees the site the
+  # way a player does (public DNS, Cloudflare edge, tunnel). The deploy runner
+  # cannot do this: tailnet DNS overrides to the homelab resolvers, which
+  # tag:ci-pitwall is intentionally not allowed to reach.
+  public-smoke:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: public URL serves the new version
         run: |
           for _ in $(seq 1 10); do
             if curl -fsS https://pitwall.rafifdzaky.com/api/version | grep -q "$GITHUB_SHA"; then
@@ -96,6 +108,3 @@ jobs:
           done
           echo "public URL is not serving the new version" >&2
           exit 1
-      - name: remove deploy key
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
