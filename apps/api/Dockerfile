@@ -1,4 +1,4 @@
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 RUN npm install -g pnpm@10.12.2
 WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
@@ -7,7 +7,7 @@ COPY . .
 RUN pnpm install --offline --frozen-lockfile
 RUN pnpm --filter @pitwall/api build
 
-FROM node:22-alpine
+FROM node:26-alpine
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /repo/apps/api/dist ./dist
