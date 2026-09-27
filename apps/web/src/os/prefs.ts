@@ -1,5 +1,4 @@
-/** Replaced by the import from @pitwall/world in Task 2. */
-type CityId = "jakarta" | "yogyakarta" | "tokyo" | "melbourne";
+import type { CityId } from "@pitwall/world";
 
 export type Theme = "dark" | "light";
 export type WallpaperChoice = "auto" | CityId;
