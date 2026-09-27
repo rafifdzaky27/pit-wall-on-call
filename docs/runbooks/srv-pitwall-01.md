@@ -329,15 +329,13 @@ pitwall_ghcr_owner: rafifdzaky27
 **FILE:** `group_vars/pitwall/vault.yml`, created with inline-encrypted values (same format as `group_vars/all/vault.yml`):
 ```bash
 mkdir -p group_vars/pitwall
-openssl rand -hex 24 | tr -d '
-' | ansible-vault encrypt_string --ask-vault-pass --stdin-name pitwall_postgres_password > group_vars/pitwall/vault.yml
+openssl rand -hex 24 | tr -d '\n' | ansible-vault encrypt_string --ask-vault-pass --stdin-name pitwall_postgres_password > group_vars/pitwall/vault.yml
 read -rsp "Paste tunnel token (hidden): " PITWALL_TT; echo
 printf '%s' "$PITWALL_TT" | ansible-vault encrypt_string --ask-vault-pass --stdin-name pitwall_tunnel_token >> group_vars/pitwall/vault.yml
 unset PITWALL_TT
 grep -E '^[a-z_]+:' group_vars/pitwall/vault.yml
 ```
-`tr -d '
-'` strips openssl's trailing newline so the password is exactly 48 characters (a newline would break a future `PGPASSWORD=`). `read -s` hides the token while you paste it, and `unset` clears it from the shell. The vault password prompt reads from the terminal, not from the pipe. **EXPECTED:** exactly two lines: `pitwall_postgres_password: !vault |` and `pitwall_tunnel_token: !vault |`. Neither value is readable. Use the **same vault password** as `group_vars/all/vault.yml`.
+`tr -d '\n'` strips openssl's trailing newline so the password is exactly 48 characters (a newline would break a future `PGPASSWORD=`). `read -s` hides the token while you paste it, and `unset` clears it from the shell. The vault password prompt reads from the terminal, not from the pipe. **EXPECTED:** exactly two lines: `pitwall_postgres_password: !vault |` and `pitwall_tunnel_token: !vault |`. Neither value is readable. Use the **same vault password** as `group_vars/all/vault.yml`.
 
 ⚠️ Postgres reads `POSTGRES_PASSWORD` **only when the volume is first initialized**. Changing the vault value later does not rotate the DB password. Rotation is an explicit `ALTER USER` plus a vault change together.
 
