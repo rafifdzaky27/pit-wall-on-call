@@ -102,7 +102,7 @@ Each tick:
 6. Check the resolution condition, or the time limit (DNF).
 
 ### Burn cause tags
-- `undetected`: before the first alert
+- `undetected`: before the first alert (not produced in v1: the page fires at tick 0; see §17)
 - `unacknowledged`: the pager is ringing and the player has not acknowledged yet (D15)
 - `investigating`: after the alert, with no mitigation in place
 - `side_effect:<actionId>`: burn directly caused by a player action (for example, restart 503s)
@@ -143,7 +143,7 @@ export default defineScenario({
 });
 ```
 
-Action categories are `investigate` 🔍, `mitigate` 🩹, `fix` 🔧 and `communicate` 📣. Investigation (clicking a node, opening logs) is recorded as an action, is free in budget terms, and costs clock time.
+Action categories are `investigate`, `mitigate`, `fix` and `communicate`, shown as text labels (D14). Investigation is explicit per-service actions (for example "Check connection pool"): free in budget terms, but each costs clock time. Selecting a node on the map is UI only and is not recorded (§17).
 
 ### v1 lineup
 1. **The Slow Leak.** Bad deploy v142 leaks DB connections, and the pool is exhausted. *Red herring:* postgres is loudest. *Fix:* roll back the api. *Trap:* restarting api pods gives temporary relief, 15 s of 503s, and the leak returns.
@@ -165,7 +165,7 @@ Landing (Daily Incident + 3 scenarios + leaderboard) → Briefing (about 10 s) �
 - **Top bar:** severity, incident title, game clock, error budget burned (live).
 - **Left:** alert feed.
 - **Center:** a clickable **service map** (nodes colored by health) above **two focused metric panels**. Clicking a node focuses the panels on that service, filters the log stream to it, and shows its actions.
-- **Right:** actions for the selected service, plus always-visible global actions (post status update, escalate, declare resolved).
+- **Right:** actions for the selected service, plus always-visible global actions (post status update, ask the secondary on-call). A run resolves by itself once the fix holds for 10 s (§17).
 - **Bottom:** log stream, filtered to the selected service with a "clear filter" control.
 - Clues are spread across nodes on purpose. The loudest node is often not the root cause.
 
@@ -202,7 +202,7 @@ The console needs ≥1024px. Smaller screens get landing, leaderboard and debrie
 | GET | `/metrics` | Prometheus |
 
 ### Validation pipeline for `POST /api/runs`
-1. Zod schema: known `scenarioId`, known action IDs, strictly increasing ticks, ≤200 actions, body ≤64 KB.
+1. Zod schema: known `scenarioId`, known action IDs, non-decreasing integer ticks (several actions may share a tick), ≤200 actions, body ≤64 KB.
 2. `engineVersion` must equal the server's version, otherwise `409` ("a new version shipped, refresh").
 3. For daily mode, `seed` and `scenarioId` must match `/api/daily` for that date.
 4. Replay. An action that isn't available at its tick gives `422`.
@@ -316,3 +316,14 @@ From the opportunity report:
 - Domain name and public URL.
 - Which homelab host or VM runs the stack, and its resources.
 - The offsite backup target (for example, Backblaze B2).
+
+## 17. Revisions
+
+| Date | Change | Source |
+|---|---|---|
+| 2026-09-28 | `undetected` is not produced in v1: the page fires at tick 0, so there is no pre-alert window. | M1 plan P1 |
+| 2026-09-28 | No "declare resolved" action: a run resolves once its resolve condition holds for 10 s; `mitigated_at_tick` is the start of that stretch. | M1 plan P2 |
+| 2026-09-28 | Selecting a node is UI only. Investigation is explicit per-service actions that cost clock time. | M1 plan P3 |
+| 2026-09-28 | Action ticks must be non-decreasing (several actions may share a tick), replacing "strictly increasing" in §8. | M1 plan P4 |
+| 2026-09-28 | The player runs one timed action at a time; `ack` and `inspect` are instant and never blocked. | M1 plan P6 |
+| 2026-09-28 | Action categories are shown as text labels; the category emoji in §6 are dropped (D14). | M1 plan P7 |
