@@ -104,3 +104,43 @@ Shortcuts ignore key presses with Ctrl, Cmd or Alt held, and are shown as `<kbd>
 - Status is conveyed by text, not color alone.
 - The alert feed is an `aria-live="polite"` region. The page card is an `alertdialog`. The pause and error cards are dialogs whose primary button gets focus.
 - Every state is designed: empty (no alerts, no logs, nothing noted), running, paused, resolved, DNF and error.
+
+## 9. Shell (PitOS, M1.5)
+
+The desktop follows decision D17 and `docs/specs/2026-09-28-pitos-desktop-design.md`.
+
+### Layout tokens
+
+| Token | Value | Use |
+|---|---|---|
+| `--topbar-h` | 32px | Top bar height |
+| `--dock-h` | 72px | Space reserved for the dock (a 56px bar plus an 8px margin above and below) |
+| `--titlebar-h` | 36px | Window title bar |
+| `--radius-window` | 10px | Windows, notifications and the dock (0 when maximized) |
+| `--shadow-window` | layered shadow | Focused window elevation. Unfocused windows use `--shadow-window-rest`. |
+| `--topbar-bg` / `--topbar-text` | `#0b0c0f` / `#e6e9ee` | The top bar is near-black in both themes, as in GNOME |
+| `--app-*` | one colour per app | App icon squircles: monitoring blue, browser teal, chat violet, files amber, settings slate, trash grey, phone green |
+
+### Components and states
+
+| Component | States |
+|---|---|
+| Top bar | Activities (pressed while the overview is open), clock, tray: on-call pill (`On call · Primary`, or `Paged` in crit colour while paging), Phone button with a count badge, System menu |
+| Dock | Item: default, hover (raised 2px), pressed, focus ring, running (4px accent dot), badge (count on crit background, also in the accessible name). A tooltip with the app name appears on hover and focus. |
+| Window | Focused (title in `--text`, strong border, `--shadow-window`), unfocused (title in `--muted`, rest shadow), maximized (no radius or shadow), snapped left/right, minimized (hidden, still mounted). Controls: minimize, maximize/restore, close, each a labelled button with a line glyph. |
+| Notification | Default (dismissable), critical (3px crit left border, not dismissable, `alertdialog`). Actions are buttons. |
+| Overview | Scrim plus a grid of window cards (icon, title, "minimized" state). Empty: "No windows open. Pick an app from the dock." |
+| Widgets | `fortune`, world clock, sticky note: panels at 85% opacity over the wallpaper |
+| Lockscreen | Wallpaper, a 64px mono clock, and cards at 85% opacity. At 375px the cards take the full width minus 16px gutters. |
+
+### Cursors
+
+`apps/web/public/cursors/*.svg` holds an original set (arrow, pointer, text, grab, grabbing, resize, wait), used when `data-cursor="pitos"`. With "Use system cursor" on, `data-cursor="system"` uses the browser's own cursors.
+
+### Motion
+
+Windows open with a 120ms fade and scale from 0.98. The phone shakes while paging. Both are turned off by `prefers-reduced-motion` or Settings → Reduce motion (`data-motion="reduce"`).
+
+### Text size
+
+Settings → Larger text sets `data-text="large"`, which raises the type scale by 2px per step.
