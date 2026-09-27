@@ -204,10 +204,11 @@ srv-pitwall-01 ansible_host=192.168.18.25
 Accept the host key **after** matching its fingerprint through the Proxmox console. In the console, run `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`.
 ```bash
 ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 exit
+ssh-keygen -F 192.168.18.25 -l | grep -i ed25519
 ansible-inventory --graph
-ansible pitwall -m ansible.builtin.ping
+ansible pitwall -m ansible.builtin.ping --ask-vault-pass
 ```
-**EXPECTED:** `srv-pitwall-01` appears under `@pitwall`, and the ping returns `pong`.
+**EXPECTED:** the `ssh-keygen -F` fingerprint equals the console fingerprint, `srv-pitwall-01` appears under `@pitwall`, and the ping returns `pong`. `--ask-vault-pass` is needed even for a ping, because `group_vars/all/pihole_vault.yml` is a whole-file vault that is loaded for every host.
 **STOP:** on `Host key verification failed` or `unreachable`. Never disable host-key checking.
 
 ---
@@ -467,6 +468,7 @@ Audience: public players (web), Rafif (admin over LAN/tailnet), and CI (deploy o
 ## Known follow-ups
 - The `common` role in homelab-infra still allows SSH from *Anywhere* (the playbook's revised version scopes it to `trusted_admin_networks`). Apply the revised role across all hosts in a separate, planned change.
 - Hardening: an SSH forced command for `pitwall-deploy`, so the key can only run `deploy.sh`.
+- `group_vars/all/pihole_vault.yml` is loaded for every host, including this one. Move it to `group_vars/dns2/` so only the Pi-hole host receives Pi-hole secrets.
 - Backups (M5): `pg_dump` → restic → offsite, plus a restore test.
 
 ## Revision log
@@ -474,4 +476,5 @@ Audience: public players (web), Rafif (admin over LAN/tailnet), and CI (deploy o
 | EXPECTED | ACTUAL | ROOT CAUSE | FIX | PERMANENT REVISION |
 |---|---|---|---|---|
 | `terraform plan -out=pitwall.tfplan` writes a plan | "Too many command line arguments" | PowerShell splits an unquoted `-flag=value` containing a dot | `terraform plan '-out=pitwall.tfplan'` | All `-flag=value` arguments in this runbook are quoted |
+| `ansible pitwall -m ping` returns pong | `Attempting to decrypt but no vault secrets found` | `group_vars/all/pihole_vault.yml` is whole-file encrypted, so it is decrypted when vars load for any host | `--ask-vault-pass` | Step 3 uses `--ask-vault-pass`; follow-up: move Pi-hole secrets to `group_vars/dns2/` (least privilege) |
 | Plan authenticates to Proxmox | Prompt for `var.pm_token`, then `401 Authentication failed` | `TF_VAR_pm_token` not set in the session, and the secret was not at hand | Set it with `Read-Host -AsSecureString`; rotate the token if lost | A Step 2 preflight sets and checks the token (length 36) before planning |
