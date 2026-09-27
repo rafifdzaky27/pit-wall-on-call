@@ -1,0 +1,15 @@
+services:
+  api:
+    image: pitwall-api:local
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+  web:
+    image: pitwall-web:local
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        GIT_SHA: local
+    ports:
+      - "${WEB_PORT:-8080}:80"

@@ -19,7 +19,7 @@
 - No inbound ports on the homelab VM. Public traffic enters only through cloudflared.
 - **Never** use a self-hosted GitHub runner on the homelab (spec section 10).
 - Secrets live only in `/opt/pitwall/.env` on the host (mode 600) and in GitHub secrets. Never commit them.
-- Every commit message ends with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` when Claude authors it.
+- Commit messages and PR descriptions carry **no AI attribution trailers**.
 
 ## Review Focus
 
@@ -1236,6 +1236,8 @@ git commit -m "ci: deploy pipeline with tailscale ssh, smoke test and auto-rollb
 ---
 
 ### Task 6: Provision production + first deploy + rollback drill (Rafif-driven runbook)
+
+> **Superseded 2026-09-27:** after reading the homelab playbook, the host is provisioned the homelab way (Terraform root + Ansible roles, subnet-router SSH with a pinned deploy key, host `srv-pitwall-01` @ 192.168.18.25, separate Tunnel `pitwall-prod`). Follow **`docs/runbooks/srv-pitwall-01.md`**. The steps below are kept for history only.
 
 These steps involve your accounts (Proxmox, Tailscale, Cloudflare, GitHub). **Rafif performs the clicks and account changes.** Claude guides, checks outputs and fixes anything that breaks.
 
