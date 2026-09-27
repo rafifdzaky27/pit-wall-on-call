@@ -10,7 +10,7 @@
 
 Junior DevOps/SRE engineers and people preparing for on-call interviews have no safe, fun way to practice incident response. Teams run "Wheel of Misfortune" sessions by hand, and there are few polished simulators.
 
-**Pit Wall On-Call** is a browser game in which the player is on call during a live production incident. Alerts fire, dashboards mislead, logs hint at the cause, and the player must diagnose and act under real-time pressure, like a race engineer calling a pit stop. Afterward, a postmortem-style debrief shows where the error budget went.
+**Pit Wall On-Call** is a browser game in which the player is on call during a live production incident. Alerts fire, dashboards mislead, logs hint at the cause, and the player must diagnose and act under real-time pressure. Each incident opens with a short playable **cold open**: the player's product is working normally, it breaks, and the pager goes off wherever the player happens to be (see `2026-09-28-cold-open-design.md`). Afterward, a postmortem-style debrief shows where the error budget went.
 
 ## 2. Goals and non-goals
 
@@ -40,6 +40,9 @@ Accounts and login, payments, scenario editor, multiplayer, team or facilitator 
 | D11 | Ranking | First daily attempt only; later attempts are unranked practice | Best of unlimited; best of 3 |
 | D12 | Hosting | Everything on the homelab via Cloudflare Tunnel | VPS; split with web on CF Pages |
 | D13 | Device support | Desktop-first console (≥1024px); other screens responsive | Full mobile support |
+| D14 | Visual direction (2026-09-28) | "Variant 1": neutral observability console (IBM Plex, Grafana-like slate, blue accent), dark default plus light theme, **no motorsport theming and no decorative icons**. The product name stays as a name only. | Night telemetry; F1 broadcast language; Dense, Calm, Mono and Command variants |
+| D15 | Cold open (2026-09-28) | A playable cold open is part of gameplay: hotspot clues, acknowledge time and escalation feed the score | Pure atmosphere; cinematic only |
+| D16 | Cold open delivery (2026-09-28) | Engine paging rules land in M1; scene, audio and transitions land in a new milestone M1.5 | Everything in M1; defer to M4 |
 
 ## 4. Architecture
 
@@ -100,6 +103,7 @@ Each tick:
 
 ### Burn cause tags
 - `undetected`: before the first alert
+- `unacknowledged`: the pager is ringing and the player has not acknowledged yet (D15)
 - `investigating`: after the alert, with no mitigation in place
 - `side_effect:<actionId>`: burn directly caused by a player action (for example, restart 503s)
 - `mitigated_unfixed`: symptoms reduced, but the root cause is still active
@@ -169,7 +173,8 @@ Landing (Daily Incident + 3 scenarios + leaderboard) → Briefing (about 10 s) �
 - Headline tiles: budget burned, mitigated-at time, root cause found, today's rank.
 - A burn breakdown bar by cause tag.
 - A timeline of key actions (useful, wasted or harmful).
-- One "pit wall" radio lesson (scenario-authored, selected by what the player did).
+- One debrief lesson (scenario-authored, selected by what the player did).
+- Acknowledge time, whether escalation happened, and clues found in the cold open (for example "Clues found 1/2").
 
 ### Share card
 Plain text copied to the clipboard, with no spoilers:
