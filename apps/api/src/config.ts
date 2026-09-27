@@ -8,13 +8,18 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
   const databaseUrl = env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is required");
 
+  const invalid = new Error(
+    "DATABASE_URL is not a valid URL (URL-encode special characters in the password, or use a hex password)",
+  );
   let parsed: URL;
   try {
     parsed = new URL(databaseUrl);
+    // An unencoded "/" or "#" can still parse, but as host:port with no password.
+    if (!parsed.username || !parsed.password) throw invalid;
+    // postgres.js decodes the password; malformed %-escapes would crash it at connect time.
+    decodeURIComponent(parsed.password);
   } catch {
-    throw new Error(
-      "DATABASE_URL is not a valid URL (URL-encode special characters in the password, or use a hex password)",
-    );
+    throw invalid;
   }
   if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
     throw new Error("DATABASE_URL must use the postgres:// scheme");

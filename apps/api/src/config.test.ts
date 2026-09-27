@@ -28,6 +28,18 @@ describe("parseConfig", () => {
     ).toThrow(/not a valid URL/);
   });
 
+  it("rejects a password with an unencoded slash (parsed as host:port, no password)", () => {
+    expect(() =>
+      parseConfig({ DATABASE_URL: "postgres://pitwall:12345/abc@postgres:5432/pitwall" }),
+    ).toThrow(/URL-encode/);
+  });
+
+  it("rejects malformed percent-encoding in the password", () => {
+    expect(() =>
+      parseConfig({ DATABASE_URL: "postgres://pitwall:p%zz@postgres:5432/pitwall" }),
+    ).toThrow(/URL-encode/);
+  });
+
   it("rejects a non-postgres scheme", () => {
     expect(() => parseConfig({ DATABASE_URL: "mysql://u:p@db:3306/x" })).toThrow(
       /postgres:\/\//,
