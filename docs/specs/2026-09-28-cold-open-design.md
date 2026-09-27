@@ -66,7 +66,7 @@ coldOpen: {
   }
 }
 ```
-Each scenario must have **1–2 clues and 1–2 herrings**. A golden test asserts that every hotspot id exists in the named scene.
+Each scenario must have **1–3 clues and 1–2 herrings**. A golden test asserts that every hotspot id exists in the named scene.
 
 ## 6. The café scene (M1.5)
 
