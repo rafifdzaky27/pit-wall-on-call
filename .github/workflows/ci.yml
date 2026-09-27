@@ -23,8 +23,9 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - name: shellcheck
-        run: |
-          if [ -f infra/deploy.sh ]; then shellcheck infra/deploy.sh; fi
+        run: shellcheck infra/deploy.sh infra/test/deploy_test.sh
+      - name: deploy.sh behaviour tests
+        run: bash infra/test/deploy_test.sh
 
   docker:
     if: github.event_name == 'pull_request'

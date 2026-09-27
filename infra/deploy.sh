@@ -14,10 +14,10 @@ set_tag() {
   echo "TAG=$1" >> .env
 }
 
-# Pull first, with the tag passed only as a process env var, so a missing image
-# aborts (set -e) before .env or any running container changes.
+# Pull every service first, with the tag passed only as a process env var, so a
+# missing image aborts (set -e) before .env or any running container changes.
 pull() {
-  TAG="$1" docker compose pull api web
+  TAG="$1" docker compose pull
 }
 
 start() {
@@ -38,9 +38,10 @@ smoke_test() {
 
 echo "deploying ${NEW_TAG} (previous: ${PREV_TAG:-none})"
 pull "$NEW_TAG"
-start "$NEW_TAG"
 
-if smoke_test "$NEW_TAG"; then
+# start is inside the condition so a failing "compose up" also triggers rollback
+# (under set -e it would otherwise exit with .env on a never-healthy tag).
+if start "$NEW_TAG" && smoke_test "$NEW_TAG"; then
   echo "deploy ok: ${NEW_TAG}"
   docker image prune -f >/dev/null
   exit 0
@@ -53,8 +54,7 @@ if [[ -z "$PREV_TAG" || "$PREV_TAG" == "$NEW_TAG" ]]; then
 fi
 
 echo "rolling back to ${PREV_TAG}" >&2
-start "$PREV_TAG"
-if smoke_test "$PREV_TAG"; then
+if start "$PREV_TAG" && smoke_test "$PREV_TAG"; then
   echo "rollback ok: ${PREV_TAG}" >&2
 else
   echo "ROLLBACK ALSO UNHEALTHY: manual intervention needed" >&2
