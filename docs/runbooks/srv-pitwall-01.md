@@ -457,13 +457,21 @@ shred -u ~/.ssh/id_ed25519_pitwall_deploy
 Create a new OAuth client (Settings → Trust credentials: scope Auth Keys write, tag `tag:ci-pitwall`), set `TS_OAUTH_CLIENT_ID` and `TS_OAUTH_SECRET` in the environment (one command each), **revoke the old client**, and run the deploy workflow. The value never needs a human copy: if it is lost, rotate again.
 
 ### Check the Postgres password after any `.env` change
-Postgres reads `POSTGRES_PASSWORD` only when the volume is first created. If the Ansible "Render managed secrets" task reports `changed`, prove the running database still accepts the password in `.env` **before the next deploy**. A mismatch would break the api and its rollback, because both use the same `.env`.
+Postgres reads `POSTGRES_PASSWORD` only when the volume is first created. If the Ansible "Render managed secrets" task reports `changed`, prove the database still accepts the password in `.env` **before the next deploy**. A mismatch breaks the api as soon as it is recreated, and its rollback too, because both use the same `.env`.
+
+⚠️ Check over the **compose network**. Inside the postgres container, `127.0.0.1` and the local socket use `trust` auth (official image default), so a check there passes with any password.
 ```bash
 ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 'bash -s' <<'EOF'
-sudo -u pitwall-deploy sh -c 'cd /opt/pitwall && set -a && . ./.env && set +a && docker compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" postgres psql -h 127.0.0.1 -U pitwall -d pitwall -tAc "select 1"'
+sudo -u pitwall-deploy sh -c 'cd /opt/pitwall && set -a && . ./.env && set +a && docker compose run --rm --no-deps -e PGPASSWORD="$POSTGRES_PASSWORD" --entrypoint psql postgres -h postgres -U pitwall -d pitwall -tAc "select 1"'
 EOF
 ```
-**EXPECTED:** `1`. **STOP** on `password authentication failed`. The fix is `ALTER USER pitwall PASSWORD ...` so the database follows the vault, which is the source of truth.
+**EXPECTED:** `1`. **STOP** on `password authentication failed`, then make the database follow the vault (the source of truth). The password goes through stdin, so it is not printed and not visible in the process list:
+```bash
+ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 'bash -s' <<'EOF'
+sudo -u pitwall-deploy sh -c 'cd /opt/pitwall && set -a && . ./.env && set +a && printf "ALTER USER pitwall PASSWORD \047%s\047;\n" "$POSTGRES_PASSWORD" | docker compose exec -T postgres psql -U pitwall -d pitwall -v ON_ERROR_STOP=1 -q && echo "ALTER ok"'
+EOF
+```
+Then re-run the network check above, and `docker compose exec -T api wget -qO- http://127.0.0.1:8787/readyz` must return `{"status":"ready"}`.
 
 ---
 
@@ -527,4 +535,5 @@ Audience: public players (web), Rafif (admin over LAN/tailnet), and CI (deploy o
 | Paste the Step 8 block and each prompt receives its own value | The `TS_OAUTH_CLIENT_ID` prompt was waiting while the remaining pasted lines queued behind it; the OAuth secret had not been saved | Interactive `gh secret set` reads the terminal, so pasted lines become answers. GitHub secrets are write-only, so nothing could be recovered | Ctrl+C; rotated the OAuth client; set the values one command at a time | Step 8 separates interactive commands; rotation procedures added |
 | Rotation playbook run shows only the key task `changed` | `changed=3`: apt cache, the key, and the `.env` managed block | The apt cache refreshed (harmless); the cause of the `.env` block change was not captured (`no_log` hides the diff) | Proved the password in `.env` still opens the database (`select 1`) before the next deploy | "Check the Postgres password after any `.env` change" procedure |
 | Deploy secrets are protected by the environment's `main`-only rule | All six secrets were at repo level, readable by any branch workflow | Secrets were created before the environment existed | Moved to `production` (rotating the ones without a human copy) and deleted the repo-level copies | Step 8 uses `--env production` only |
+| Redeploy of the same SHA is green | `smoke test failed … no previous tag to roll back to`; `/api/version` 200 but `/readyz` 503 and 90 `password authentication failed` in postgres logs | The `.env` password no longer matched the DB (set at volume init). The earlier check used `psql -h 127.0.0.1` inside the postgres container, which is `trust` auth and passes with any password. The old api container hid it until pulled images forced a recreate | `ALTER USER` from `.env` over the local socket, verified over the compose network | The password check runs over the compose network; follow-up: log the readiness failure reason in the api |
 | Plan authenticates to Proxmox | Prompt for `var.pm_token`, then `401 Authentication failed` | `TF_VAR_pm_token` not set in the session, and the secret was not at hand | Set it with `Read-Host -AsSecureString`; rotate the token if lost | A Step 2 preflight sets and checks the token (length 36) before planning |
