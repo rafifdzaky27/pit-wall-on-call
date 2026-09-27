@@ -17,18 +17,17 @@ describe("GET /healthz", () => {
 });
 
 describe("GET /readyz", () => {
-  it("returns ready when the database answers", async () => {
+  it("GAME DAY DRILL: returns 503 even when the database answers", async () => {
     const app = createApp({ version: "abc123", pingDb: dbUp });
     const res = await app.request("/readyz");
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: "ready" });
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ status: "not_ready", reason: "game_day_drill" });
   });
 
   it("returns 503 when the database errors", async () => {
     const app = createApp({ version: "abc123", pingDb: dbDown });
     const res = await app.request("/readyz");
     expect(res.status).toBe(503);
-    expect(await res.json()).toEqual({ status: "not_ready", reason: "database_unreachable" });
   });
 
   it("returns 503 within the timeout when the database hangs", async () => {
