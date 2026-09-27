@@ -94,7 +94,7 @@
 .metric-value small { font: 400 var(--fs-sm) var(--font); color: var(--muted); margin-left: var(--space-1); }
 .metric-value.warn { color: var(--warn); }
 .metric-value.crit { color: var(--crit); }
-.spark { display: block; width: 100%; height: 96px; margin: var(--space-2) 0 var(--space-1); }
+.spark { display: block; width: 100%; height: 72px; margin: var(--space-2) 0 var(--space-1); }
 .spark .line { fill: none; stroke: var(--accent-text); stroke-width: 1.5; }
 .spark .thr { stroke-dasharray: 3 3; stroke-width: 1; }
 .spark .thr.warn { stroke: var(--warn); }
