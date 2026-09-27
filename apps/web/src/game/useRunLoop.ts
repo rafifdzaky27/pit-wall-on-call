@@ -36,6 +36,12 @@ export function useRunLoop(run: Run<State>, { active, onFinish, now = defaultNow
     const driver = new TickDriver(now);
     driver.start();
     driverRef.current = driver;
+    // The page can fire while the tab is already in the background (for example during the
+    // pre-page). No visibilitychange follows, so pause here instead of running unseen.
+    if (document.hidden) {
+      driver.pause();
+      setPaused(true);
+    }
 
     const id = window.setInterval(() => {
       const due = driver.due();

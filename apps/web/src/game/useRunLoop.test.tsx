@@ -47,6 +47,15 @@ describe("useRunLoop", () => {
     expect(result.current.snapshot.tick).toBe(10);
   });
 
+  it("starts paused when the tab is already hidden as the clock starts", () => {
+    const run = new Run<State>(slowLeak, 1);
+    act(() => setHidden(true));
+    const { result } = renderHook(() => useRunLoop(run, { active: true, onFinish: vi.fn(), now }));
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(result.current.paused).toBe(true);
+    expect(result.current.snapshot.tick).toBe(0);
+  });
+
   it("reports the result once when the run ends", () => {
     const run = new Run<State>(slowLeak, 1);
     run.dispatch(ACK);
