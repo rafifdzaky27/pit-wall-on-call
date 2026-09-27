@@ -2,7 +2,8 @@
 
 - **Status:** Approved in design review, 2026-09-28
 - **Parent spec:** `2026-09-27-pit-wall-on-call-design.md` (decisions D14–D16)
-- **Delivery:** engine rules in **M1**; scene, audio and transitions in **M1.5**; more scenes in **M4**
+- **Delivery:** engine rules in **M1**; café scene, audio and transitions in **M1.6** (after the PitOS desktop in M1.5); more scenes in **M4**
+- **Revision 2026-09-28:** the game now runs inside the PitOS desktop (`2026-09-28-pitos-desktop-design.md`, D17). Start shift on the desktop zooms out to the café, and the ack zooms back into the laptop. The `laptop.*` hotspots live in the desktop Chat app. `packages/scenes` is folded into `packages/world`, and brands and cities come from `resolveWorld(seed)` (D19).
 
 ## 1. Purpose
 
@@ -20,7 +21,7 @@ Every incident opens with a short, playable scene: the player's product is worki
 | C3 | Interaction | **Light**: a living scene of about 18 s with clickable hotspots | Watch only; full point-and-click exploration |
 | C4 | Audio | **Hybrid**: CC0 recordings for ambience, Web Audio synthesis for UI and pager cues | All synthesized; all recorded |
 | C5 | Rendering | **Scenes as data + an SVG renderer in React**, with an optional small `<canvas>` layer for particles only | Canvas/PixiJS; Lottie or video |
-| C6 | Delivery | Engine paging rules in M1 with a minimal ack UI; full scene, audio and transitions in M1.5 | All in M1; defer to M4 |
+| C6 | Delivery | Engine paging rules in M1 with a minimal ack UI; full scene, audio and transitions in M1.6 | All in M1; defer to M4 |
 
 ## 3. Flow and rules
 
@@ -68,7 +69,7 @@ coldOpen: {
 ```
 Each scenario must have **1–3 clues and 1–2 herrings**. A golden test asserts that every hotspot id exists in the named scene.
 
-## 6. The café scene (M1.5)
+## 6. The café scene (M1.6)
 
 - **Layers**, with light cursor parallax:
   - the street outside: passers-by with umbrellas, and headlights sweeping the window
@@ -81,9 +82,9 @@ Each scenario must have **1–3 clues and 1–2 herrings**. A golden test assert
   - weather: clear, overcast or rain
   - patron arrangement: 2–3 variants
   - the product brand on the laptop and in the mention
-- **The page:** the phone vibrates and slides slightly, and its screen shows "SEV2 · Checkout returning 5xx". Click the phone (or press **A**) to acknowledge. The camera then pushes into the laptop screen, which becomes the console.
+- **The page:** the phone vibrates and slides slightly, and its screen shows "SEV2 · Checkout returning 5xx". Click the phone (or press **A**) to acknowledge. The camera then pushes into the laptop screen, which becomes the console. The laptop screen is the PitOS desktop (desktop spec), which comes back with Monitoring open and focused.
 
-## 7. Audio (M1.5)
+## 7. Audio (M1.6)
 
 - One Web Audio context with three buses: **ambience**, **sfx** and **ui**. Master volume and mute persist per browser.
 - **Cues:**
@@ -106,9 +107,9 @@ Each scenario must have **1–3 clues and 1–2 herrings**. A golden test assert
 |---|---|---|
 | `packages/engine` | M1 | Paging phase (section 4) |
 | `packages/scenarios` | M1 | `coldOpen` data (section 5) |
-| `packages/scenes` (new) | M1.5 | `defineScene()`, and a pure, deterministic `resolveScene(scene, seed, coldOpen)` that returns a render model (palette, weather, patrons, hotspot content) |
-| `apps/web/cold-open` | M1 minimal / M1.5 full | M1: an ack card over a dimmed backdrop. M1.5: `SceneRenderer`, `Hotspot`, `PhonePager`, `CameraRig`, `ColdClose` |
-| `apps/web/audio` | M1.5 | `AudioEngine` (context, buses, low-pass duck, persisted mute), synthesized cues, ambience loader |
+| `packages/world` (from M1.5; café data added in M1.6) | M1.6 | `defineScene()`, and a pure, deterministic `resolveScene(scene, seed, coldOpen)` that returns a render model (palette, weather, patrons, hotspot content) |
+| `apps/web/cold-open` | M1 minimal / M1.6 full | M1: an ack card over a dimmed backdrop. M1.6: `SceneRenderer`, `Hotspot`, `PhonePager`, `CameraRig`, `ColdClose` |
+| `apps/web/audio` | M1.6 | `AudioEngine` (context, buses, low-pass duck, persisted mute), synthesized cues, ambience loader |
 
 **Data flow:** scenario + seed → `resolveScene` → render. Hotspot clicks and the ack become engine actions in the same action log the console uses, so replay, anti-cheat and the debrief all see them.
 
@@ -128,16 +129,16 @@ Each scenario must have **1–3 clues and 1–2 herrings**. A golden test assert
   - inspects are free before the page and cost time after it
   - `cluesFound` is correct
 - **scenarios (M1):** a golden test that hotspot ids exist in the scene, and clue/herring counts are within range.
-- **scenes (M1.5):**
+- **scenes (M1.6):**
   - `resolveScene` is deterministic per seed
   - the palette follows the time of day
   - cold-close thresholds at 3 and 8 min
-- **web (M1.5):**
+- **web (M1.6):**
   - hotspot accessible names and keyboard use
   - reduced motion disables camera animation
   - `AudioEngine` with a mocked AudioContext: buses and persisted mute
 - **Playwright:** Start shift → open the laptop hotspot → ack → the console is visible; the skip path.
 
-## 11. Out of scope for M1.5
+## 11. Out of scope for M1.6
 
 Office and 3 AM bedroom scenes (M4, with scenarios 2 and 3); the VPN/MFA "getting on" beat; voice lines; music; proactive self-detection before the page.
