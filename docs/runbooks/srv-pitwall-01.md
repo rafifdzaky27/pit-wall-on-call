@@ -155,10 +155,20 @@ resource "proxmox_vm_qemu" "pitwall" {
 }
 ```
 
+**PREFLIGHT (secret injection, P01 pattern):** the Proxmox token secret is never stored in a file. Set it once per PowerShell session without it landing in PSReadLine history:
+```powershell
+$s = Read-Host "Proxmox token secret" -AsSecureString
+$env:TF_VAR_pm_token = [System.Net.NetworkCredential]::new('', $s).Password
+Remove-Variable s
+$env:TF_VAR_pm_token.Length
+```
+**EXPECTED:** `36`. If Terraform prompts for `var.pm_token`, the variable is not set in this session. If the secret is lost, rotate it on the Proxmox host with `pveum user token remove terraform@pve tftoken` followed by `pveum user token add terraform@pve tftoken -privsep 0`. This is safe: with privsep 0 the permissions live on the user, and only Terraform uses the token.
+
+PowerShell splits an unquoted `-out=file.tfplan` at the dot ("Too many command line arguments"), so **quote every `-flag=value` argument**:
 ```powershell
 terraform fmt -recursive
 terraform validate
-terraform plan -out=pitwall.tfplan
+terraform plan '-out=pitwall.tfplan'
 terraform show pitwall.tfplan
 ```
 **BLAST RADIUS:** additive only, a new VM. Existing VMs are untouched *if* the plan says so.
@@ -439,7 +449,7 @@ On branch `drill/broken-readiness`, make `/readyz` always return 503 (and adjust
 | Bad app release | Automatic: `deploy.sh` restores the previous tag. Manual (the CI key lives only in GitHub, so use the admin path): `ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 'sudo -u pitwall-deploy /opt/pitwall/deploy.sh <previous-sha>'` |
 | Stop public exposure | Cloudflare → Tunnels → `pitwall-prod` → delete the published application (the VM keeps running privately) |
 | Revoke CI access | Remove the `tag:ci-pitwall` grant and revoke the OAuth client; delete `DEPLOY_SSH_KEY` |
-| Remove the host entirely | `terraform plan -destroy -target=proxmox_vm_qemu.pitwall -out=rm.tfplan` → review (**only** the pitwall VM) → `terraform apply rm.tfplan`; revert the inventory, role and group_vars commits |
+| Remove the host entirely | `terraform plan -destroy '-target=proxmox_vm_qemu.pitwall' '-out=rm.tfplan'` → review (**only** the pitwall VM) → `terraform apply rm.tfplan`; revert the inventory, role and group_vars commits |
 
 ## Final topology
 
@@ -463,4 +473,5 @@ Audience: public players (web), Rafif (admin over LAN/tailnet), and CI (deploy o
 
 | EXPECTED | ACTUAL | ROOT CAUSE | FIX | PERMANENT REVISION |
 |---|---|---|---|---|
-| | | | | |
+| `terraform plan -out=pitwall.tfplan` writes a plan | "Too many command line arguments" | PowerShell splits an unquoted `-flag=value` containing a dot | `terraform plan '-out=pitwall.tfplan'` | All `-flag=value` arguments in this runbook are quoted |
+| Plan authenticates to Proxmox | Prompt for `var.pm_token`, then `401 Authentication failed` | `TF_VAR_pm_token` not set in the session, and the secret was not at hand | Set it with `Read-Host -AsSecureString`; rotate the token if lost | A Step 2 preflight sets and checks the token (length 36) before planning |
