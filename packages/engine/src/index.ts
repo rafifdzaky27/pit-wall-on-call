@@ -4,3 +4,5 @@ export type * from "./types";
 export { defineScenario } from "./define";
 export { ScenarioError, validateScenario } from "./validate";
 export { ActionRejected, Run, type RejectReason } from "./run";
+export { replay } from "./replay";
+export { pickLesson } from "./lessons";
