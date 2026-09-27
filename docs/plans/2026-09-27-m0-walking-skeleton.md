@@ -1237,6 +1237,8 @@ git commit -m "ci: deploy pipeline with tailscale ssh, smoke test and auto-rollb
 
 ### Task 6: Provision production + first deploy + rollback drill (Rafif-driven runbook)
 
+> **Superseded 2026-09-27:** after reading the homelab playbook, the host is provisioned the homelab way (Terraform root + Ansible roles, subnet-router SSH with a pinned deploy key, host `srv-pitwall-01` @ 192.168.18.25, separate Tunnel `pitwall-prod`). Follow **`docs/runbooks/srv-pitwall-01.md`**. The steps below are kept for history only.
+
 These steps involve your accounts (Proxmox, Tailscale, Cloudflare, GitHub). **Rafif performs the clicks and account changes.** Claude guides, checks outputs and fixes anything that breaks.
 
 **Files:**
