@@ -396,29 +396,74 @@ git push
 
 ---
 
-## Step 8: GitHub secrets and settings (rafifdzaky27/pit-wall-on-call)
+## Step 8: GitHub secrets (environment `production` only)
 
-**RUN IN:** [WSL Ubuntu] with `gh` logged in. Values are read from files or stdin, so nothing is echoed.
+Deploy secrets live in the **`production` environment**, never at repo level. The environment only accepts deployments from `main`, so a workflow on any other branch cannot read them. GitHub secrets are **write-only**: nobody can read a value back, and a lost value is rotated, never recovered.
+
+**RUN IN:** [WSL Ubuntu] with `gh` logged in. **Run the interactive commands one at a time.** If a block is pasted, the lines after a prompt are read as the secret's value.
 ```bash
 R=rafifdzaky27/pit-wall-on-call
-gh secret set DEPLOY_SSH_KEY     -R $R < ~/.ssh/id_ed25519_pitwall_deploy
-ssh-keyscan -t ed25519 192.168.18.25 2>/dev/null > /tmp/pitwall_known_hosts
-ssh-keygen -lf /tmp/pitwall_known_hosts
-gh secret set DEPLOY_KNOWN_HOSTS -R $R < /tmp/pitwall_known_hosts
-gh secret set DEPLOY_HOST        -R $R --body 192.168.18.25
-gh secret set DEPLOY_USER        -R $R --body pitwall-deploy
-gh secret set TS_OAUTH_CLIENT_ID -R $R
-gh secret set TS_OAUTH_SECRET    -R $R
-gh secret list -R $R
+gh secret set DEPLOY_SSH_KEY -R $R --env production < ~/.ssh/id_ed25519_pitwall_deploy
+gh secret set DEPLOY_HOST    -R $R --env production --body 192.168.18.25
+gh secret set DEPLOY_USER    -R $R --env production --body pitwall-deploy
+ssh-keyscan -t ed25519 192.168.18.25 2>/dev/null > /tmp/pitwall_kh && ssh-keygen -lf /tmp/pitwall_kh
 ```
-**VERIFY:** the fingerprint printed by `ssh-keygen -lf /tmp/pitwall_known_hosts` must equal the console fingerprint from Step 3. **STOP** if it differs. The last two `gh secret set` commands prompt for the value with input hidden.
-**EXPECTED:** `gh secret list` shows all six names.
-
-Then remove the local private key. It now lives only in GitHub, and rotation means generating a new key:
+**VERIFY:** the fingerprint equals the console fingerprint from Step 3. **STOP** if it differs.
 ```bash
-shred -u ~/.ssh/id_ed25519_pitwall_deploy && rm -f /tmp/pitwall_known_hosts
+gh secret set DEPLOY_KNOWN_HOSTS -R $R --env production < /tmp/pitwall_kh && rm -f /tmp/pitwall_kh
 ```
-The GitHub environment `production` and branch protection on `main` (requiring check `check`) are applied from the pit-wall-on-call session.
+Interactive, **one command each**. Paste the value from the Tailscale page that shows the new OAuth client:
+```bash
+gh secret set TS_OAUTH_CLIENT_ID -R $R --env production
+```
+```bash
+gh secret set TS_OAUTH_SECRET -R $R --env production
+```
+```bash
+gh secret list -R $R --env production
+gh secret list -R $R
+shred -u ~/.ssh/id_ed25519_pitwall_deploy
+```
+**EXPECTED:** six names in the environment and **none** at repo level. The private key is gone from the workstation.
+
+The repository hardening (ruleset `protect-main`, the Actions allow-list with SHA pinning required, secret scanning with push protection, CodeQL, and Dependabot) is applied from the pit-wall-on-call session and recorded in its PRs.
+
+---
+
+## Rotation procedures
+
+### Rotate the CI deploy key
+Use this on suspected exposure, or after the private key is lost (the key only exists in GitHub). **Blast radius:** CI's SSH access only. The running game is unaffected, and deploys fail until the last step.
+
+**RUN IN:** [WSL Ubuntu], Ansible root with `ANSIBLE_CONFIG` exported.
+```bash
+rm -f ~/.ssh/id_ed25519_pitwall_deploy.pub
+ssh-keygen -t ed25519 -N "" -C "pitwall-deploy@github-actions $(date +%F)" -f ~/.ssh/id_ed25519_pitwall_deploy
+cp ~/.ssh/id_ed25519_pitwall_deploy.pub roles/pitwall_host/files/pitwall_deploy.pub
+ssh-keygen -lf roles/pitwall_host/files/pitwall_deploy.pub
+ansible-playbook playbooks/pitwall.yml --ask-vault-pass
+```
+**EXPECTED:** the "Authorize only the CI key" task is `changed`. It overwrites `authorized_keys`, so **the old key is revoked** here. `Update apt cache` may also show `changed`, which is harmless.
+```bash
+ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 'sudo wc -l /home/pitwall-deploy/.ssh/authorized_keys; sudo ssh-keygen -lf /home/pitwall-deploy/.ssh/authorized_keys'
+ssh -i ~/.ssh/id_ed25519_pitwall_deploy pitwall-deploy@192.168.18.25 'id -nG'
+ansible-playbook playbooks/pitwall.yml --ask-vault-pass
+gh secret set DEPLOY_SSH_KEY -R rafifdzaky27/pit-wall-on-call --env production < ~/.ssh/id_ed25519_pitwall_deploy
+shred -u ~/.ssh/id_ed25519_pitwall_deploy
+```
+**EXPECTED:** one key line with the new fingerprint, the new key logs in with group `docker`, and the second playbook run shows `changed=0`. Commit `roles/pitwall_host/files/pitwall_deploy.pub` in homelab-infra. Then run the deploy workflow from the Actions tab (Run workflow) as the end-to-end proof.
+
+### Rotate the Tailscale OAuth client
+Create a new OAuth client (Settings → Trust credentials: scope Auth Keys write, tag `tag:ci-pitwall`), set `TS_OAUTH_CLIENT_ID` and `TS_OAUTH_SECRET` in the environment (one command each), **revoke the old client**, and run the deploy workflow. The value never needs a human copy: if it is lost, rotate again.
+
+### Check the Postgres password after any `.env` change
+Postgres reads `POSTGRES_PASSWORD` only when the volume is first created. If the Ansible "Render managed secrets" task reports `changed`, prove the running database still accepts the password in `.env` **before the next deploy**. A mismatch would break the api and its rollback, because both use the same `.env`.
+```bash
+ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 'bash -s' <<'EOF'
+sudo -u pitwall-deploy sh -c 'cd /opt/pitwall && set -a && . ./.env && set +a && docker compose exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" postgres psql -h 127.0.0.1 -U pitwall -d pitwall -tAc "select 1"'
+EOF
+```
+**EXPECTED:** `1`. **STOP** on `password authentication failed`. The fix is `ALTER USER pitwall PASSWORD ...` so the database follows the vault, which is the source of truth.
 
 ---
 
@@ -468,6 +513,7 @@ Audience: public players (web), Rafif (admin over LAN/tailnet), and CI (deploy o
 ## Known follow-ups
 - The `common` role in homelab-infra still allows SSH from *Anywhere* (the playbook's revised version scopes it to `trusted_admin_networks`). Apply the revised role across all hosts in a separate, planned change.
 - Hardening: an SSH forced command for `pitwall-deploy`, so the key can only run `deploy.sh`.
+- homelab-infra `common` role uses `ansible_virtualization_type` (INJECT_FACTS_AS_VARS deprecation). Switch to `ansible_facts["virtualization_type"]` before ansible-core 2.24 removes it.
 - `group_vars/all/pihole_vault.yml` is loaded for every host, including this one. Move it to `group_vars/dns2/` so only the Pi-hole host receives Pi-hole secrets.
 - Backups (M5): `pg_dump` → restic → offsite, plus a restore test.
 
@@ -478,4 +524,7 @@ Audience: public players (web), Rafif (admin over LAN/tailnet), and CI (deploy o
 | `terraform plan -out=pitwall.tfplan` writes a plan | "Too many command line arguments" | PowerShell splits an unquoted `-flag=value` containing a dot | `terraform plan '-out=pitwall.tfplan'` | All `-flag=value` arguments in this runbook are quoted |
 | `ansible pitwall -m ping` returns pong | `Attempting to decrypt but no vault secrets found` | `group_vars/all/pihole_vault.yml` is whole-file encrypted, so it is decrypted when vars load for any host | `--ask-vault-pass` | Step 3 uses `--ask-vault-pass`; follow-up: move Pi-hole secrets to `group_vars/dns2/` (least privilege) |
 | First deploy job green end to end | `deploy.sh` reported `deploy ok` and the site was live, but the public smoke step failed with `Could not resolve host` | The runner was still on the tailnet. Tailnet DNS overrides to AdGuard/Pi-hole (192.168.18.11/.12), and the new policy deliberately gives `tag:ci-pitwall` only `.25:22`, so DNS was denied. Before, `* → *` hid this dependency | The public check moved to its own `public-smoke` job that never joins the tailnet | The public check runs from the internet's perspective. Note: `tag:ci` (portfolio) lost tailnet DNS in the same policy change |
+| Paste the Step 8 block and each prompt receives its own value | The `TS_OAUTH_CLIENT_ID` prompt was waiting while the remaining pasted lines queued behind it; the OAuth secret had not been saved | Interactive `gh secret set` reads the terminal, so pasted lines become answers. GitHub secrets are write-only, so nothing could be recovered | Ctrl+C; rotated the OAuth client; set the values one command at a time | Step 8 separates interactive commands; rotation procedures added |
+| Rotation playbook run shows only the key task `changed` | `changed=3`: apt cache, the key, and the `.env` managed block | The apt cache refreshed (harmless); the cause of the `.env` block change was not captured (`no_log` hides the diff) | Proved the password in `.env` still opens the database (`select 1`) before the next deploy | "Check the Postgres password after any `.env` change" procedure |
+| Deploy secrets are protected by the environment's `main`-only rule | All six secrets were at repo level, readable by any branch workflow | Secrets were created before the environment existed | Moved to `production` (rotating the ones without a human copy) and deleted the repo-level copies | Step 8 uses `--env production` only |
 | Plan authenticates to Proxmox | Prompt for `var.pm_token`, then `401 Authentication failed` | `TF_VAR_pm_token` not set in the session, and the secret was not at hand | Set it with `Read-Host -AsSecureString`; rotate the token if lost | A Step 2 preflight sets and checks the token (length 36) before planning |
