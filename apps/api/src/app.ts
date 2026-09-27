@@ -29,11 +29,6 @@ export function createApp({ version, pingDb, readinessTimeoutMs = 2000 }: AppDep
   app.get("/healthz", (c) => c.json({ status: "ok" }));
 
   app.get("/readyz", async (c) => {
-    // GAME DAY DRILL: readiness always fails, to prove deploy.sh rolls back.
-    // Revert this commit after the drill.
-    if (Date.now() > 0) {
-      return c.json({ status: "not_ready", reason: "game_day_drill" }, 503);
-    }
     try {
       await withTimeout(pingDb(), readinessTimeoutMs);
       return c.json({ status: "ready" });
