@@ -193,6 +193,7 @@ export class Run<S extends State> {
       details,
       alerts: this.alertStates.map((a) => ({ ...a })),
       budgetBurnedBp: this.budgetBurnedBp(),
+      errorRateBp: this.currentErrorBp(),
       inspected: [...this.inspected],
       cluesFound: [...this.cluesFound],
     };
@@ -289,6 +290,12 @@ export class Run<S extends State> {
     let total = 0;
     for (const units of this.burnUnits.values()) total += units;
     return Math.floor(total / this.scenario.slo.budgetRequests);
+  }
+
+  private currentErrorBp(): number {
+    const base = clampBp(this.scenario.errorRateBp(this.s));
+    const side = this.busy ? clampBp(this.actionDefs.get(this.busy.actionId)?.sideEffectBp ?? 0) : 0;
+    return Math.min(10_000, base + side);
   }
 
   private checkResolution(t: number): void {

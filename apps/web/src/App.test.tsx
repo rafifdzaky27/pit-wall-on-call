@@ -53,7 +53,7 @@ describe("App", () => {
     expect(screen.getByRole("alertdialog", { name: "Checkout returning 5xx" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Acknowledge/ }));
     expect(screen.getByRole("region", { name: "Alerts" })).toBeTruthy();
-    expect(screen.getByText(/Dimas: shipping the checkout refactor/)).toBeTruthy();
+    expect(screen.getByText(/shipping the checkout refactor/)).toBeTruthy();
 
     fireEvent.keyDown(window, { key: "p" });
     expect(screen.getByRole("dialog", { name: "Paused" })).toBeTruthy();

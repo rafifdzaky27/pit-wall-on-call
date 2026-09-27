@@ -1,0 +1,77 @@
+import { ACK, replay, Run, type State } from "@pitwall/engine";
+import { describe, expect, it } from "vitest";
+import { desktopFor, messageAuthor, messageText, symptomCode, visibleMessages } from "./desktop";
+import { SCENARIOS, slowLeak } from "./index";
+
+describe.each(SCENARIOS.map((s) => [s.id, s] as const))("%s desktop content", (_id, scenario) => {
+  const content = desktopFor(scenario.id);
+
+  it("links only to hotspots that exist and have an author", () => {
+    for (const m of content.chat) {
+      if ("hotspotId" in m) {
+        const h = scenario.coldOpen.hotspots[m.hotspotId];
+        expect(h, m.id).toBeDefined();
+        expect(h!.author, m.id).toBeDefined();
+      }
+    }
+  });
+
+  it("puts laptop.slack.<channel> hotspots in that channel", () => {
+    for (const m of content.chat) {
+      if ("hotspotId" in m && m.hotspotId.startsWith("laptop.slack.")) {
+        expect(m.channel).toBe(m.hotspotId.slice("laptop.slack.".length));
+      }
+    }
+  });
+
+  it("uses known channels, alerts and actions", () => {
+    const alerts = new Set(scenario.alerts.map((a) => a.id));
+    const actions = new Set(scenario.actions.map((a) => a.id));
+    for (const m of content.chat) {
+      expect(content.channels.includes(m.channel) || m.channel.startsWith("dm:"), m.id).toBe(true);
+      if (m.trigger.kind === "alert") expect(alerts.has(m.trigger.alertId), m.id).toBe(true);
+      if (m.trigger.kind === "action") expect(actions.has(m.trigger.actionId), m.id).toBe(true);
+    }
+  });
+
+  it("has unique message ids and sane request patterns", () => {
+    expect(new Set(content.chat.map((m) => m.id)).size).toBe(content.chat.length);
+    expect(content.requests.some((r) => r.failsWithSymptom)).toBe(true);
+    for (const r of content.requests) {
+      expect(r.weight).toBeGreaterThan(0);
+      expect(r.okMs[0]).toBeLessThanOrEqual(r.okMs[1]);
+      expect(r.failMs[0]).toBeLessThanOrEqual(r.failMs[1]);
+    }
+  });
+
+  it("maps its symptom to a real HTTP error code", () => {
+    expect([403, 429, 500, 502, 503, 504]).toContain(symptomCode(scenario));
+  });
+});
+
+describe("visibleMessages", () => {
+  const content = desktopFor(slowLeak.id);
+
+  it("shows only pre-page messages before the page", () => {
+    const run = new Run<State>(slowLeak, 1);
+    const ids = visibleMessages(content, { paged: false, timeline: run.timeline }).map((m) => m.id);
+    expect(ids).toContain("deploys.v142");
+    expect(ids).not.toContain("incidents.opened");
+  });
+
+  it("adds page, alert and action messages as they happen", () => {
+    const r = replay(slowLeak, 1, [
+      { tick: 20, actionId: ACK },
+      { tick: 20, actionId: "global.ask_secondary" },
+      { tick: 120, actionId: "checkout.rollback" },
+    ]);
+    const ids = visibleMessages(content, { paged: true, timeline: r.timeline }).map((m) => m.id);
+    expect(ids).toEqual(expect.arrayContaining(["incidents.opened", "incidents.support", "dm.secondary.deploy"]));
+  });
+
+  it("resolves hotspot-linked messages to the hotspot's author and text", () => {
+    const msg = content.chat.find((m) => m.id === "deploys.dimas")!;
+    expect(messageAuthor(msg, slowLeak)).toBe("deployer");
+    expect(messageText(msg, slowLeak)).toBe(slowLeak.coldOpen.hotspots["laptop.slack.deploys"]!.text);
+  });
+});
