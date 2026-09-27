@@ -1,7 +1,15 @@
 name: pitwall
 
+# Docker's default json-file driver never rotates; cap every service at 30 MB.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
+    logging: *logging
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -17,6 +25,7 @@ services:
       retries: 10
 
   api:
+    logging: *logging
     image: ghcr.io/${GHCR_OWNER:?set GHCR_OWNER in .env}/pitwall-api:${TAG:?set TAG}
     restart: unless-stopped
     environment:
@@ -27,12 +36,14 @@ services:
         condition: service_healthy
 
   web:
+    logging: *logging
     image: ghcr.io/${GHCR_OWNER}/pitwall-web:${TAG}
     restart: unless-stopped
     depends_on:
       - api
 
   cloudflared:
+    logging: *logging
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate run
