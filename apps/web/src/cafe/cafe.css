@@ -1,0 +1,58 @@
+/* The café scene (cold-open spec §6). Only transform and opacity animate. */
+.cafe { position: absolute; inset: 0; overflow: hidden; background: #1d1512; }
+.cafe-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* Only the loops that turn or grow about their own centre use their own box; everything else keeps the scene's coordinates. */
+.lamp-glow, .patron-head, .radio-grille { transform-box: fill-box; }
+
+/* Parallax: the street drifts most, the room a little, the table not at all. */
+.cafe .layer-far { transform: translate(calc(var(--px, 0) * -8px), calc(var(--py, 0) * -4px)); transition: transform 0.4s ease-out; }
+.cafe .layer-mid { transform: translate(calc(var(--px, 0) * -4px), calc(var(--py, 0) * -2px)); transition: transform 0.4s ease-out; }
+
+.walker-a { animation: cafe-walk-right 22s linear infinite; }
+.walker-b { animation: cafe-walk-left 31s linear infinite -9s; }
+@keyframes cafe-walk-right { from { transform: translateX(-60px); } to { transform: translateX(840px); } }
+@keyframes cafe-walk-left { from { transform: translateX(840px) scaleX(-1); } to { transform: translateX(-60px) scaleX(-1); } }
+
+.prop-scooter { animation: cafe-drive 18s linear infinite -4s; }
+.prop-becak { animation: cafe-drive 26s linear infinite -12s; }
+@keyframes cafe-drive { from { transform: translateX(-200px); } to { transform: translateX(900px); } }
+.tram { animation: cafe-tram 40s linear infinite -6s; }
+@keyframes cafe-tram { 0% { transform: translateX(800px); } 30%, 100% { transform: translateX(-460px); } }
+.headlights { animation: cafe-sweep 9s linear infinite; }
+@keyframes cafe-sweep { from { transform: translateX(-100px); } to { transform: translateX(900px); } }
+
+.rain-drop { animation: cafe-rain 1s linear infinite; }
+@keyframes cafe-rain { from { transform: translateY(0); } to { transform: translateY(470px); } }
+
+.steam { animation: cafe-steam 3s ease-in-out infinite; opacity: 0; }
+@keyframes cafe-steam { 0% { opacity: 0; transform: translateY(6px); } 40% { opacity: 0.35; } 100% { opacity: 0; transform: translateY(-26px); } }
+
+.lamp-glow { transform-origin: center; animation: cafe-breathe 6s ease-in-out infinite alternate; }
+@keyframes cafe-breathe { from { transform: scale(1); } to { transform: scale(1.05); } }
+.lit-window { animation: cafe-flicker 7s steps(1) infinite; }
+@keyframes cafe-flicker { 0%, 90% { opacity: 1; } 93% { opacity: 0.35; } 96%, 100% { opacity: 1; } }
+.vending-glow { animation: cafe-hum 4s ease-in-out infinite alternate; }
+@keyframes cafe-hum { from { opacity: 0.8; } to { opacity: 1; } }
+
+.patron-head { transform-origin: 50% 100%; animation: cafe-nod 7s ease-in-out infinite alternate; }
+@keyframes cafe-nod { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+.patron-arm { animation: cafe-sip 9s ease-in-out infinite; }
+@keyframes cafe-sip { 0%, 70%, 100% { transform: translateY(0); } 80%, 88% { transform: translateY(-12px); } }
+
+.phone.ringing > g { animation: cafe-buzz 2.5s linear infinite; }
+@keyframes cafe-buzz {
+  0%, 30%, 100% { transform: translate(1125px, 790px) rotate(-10deg) scale(1, 0.62); }
+  3%, 9%, 15%, 21% { transform: translate(1123px, 790px) rotate(-11deg) scale(1, 0.62); }
+  6%, 12%, 18%, 24% { transform: translate(1127px, 790px) rotate(-9deg) scale(1, 0.62); }
+}
+.phone-glow { transform-box: fill-box; transform-origin: center; animation: cafe-ring 2.5s ease-out infinite; }
+@keyframes cafe-ring { 0% { opacity: 0.45; transform: scale(0.8); } 40%, 100% { opacity: 0; transform: scale(1.25); } }
+.radio.playing .radio-grille { transform-origin: center; animation: cafe-beat 0.75s ease-in-out infinite; }
+@keyframes cafe-beat { 0%, 100% { transform: scale(1); } 20% { transform: scale(1.04); } }
+
+/* Paused: everything holds still (Review Focus 3). Reduced motion: nothing loops at all. */
+.cafe.paused *, .cafe.paused .layer-far, .cafe.paused .layer-mid { animation-play-state: paused !important; }
+[data-motion="reduce"] .cafe *, [data-motion="reduce"] .cafe .layer-far, [data-motion="reduce"] .cafe .layer-mid { animation: none !important; transform: none; transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cafe *, .cafe .layer-far, .cafe .layer-mid { animation: none !important; transition: none; }
+}
