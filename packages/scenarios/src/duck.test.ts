@@ -1,4 +1,4 @@
-import { ACK, replay } from "@pitwall/engine";
+import { ACK, replay, Run } from "@pitwall/engine";
 import { describe, expect, it } from "vitest";
 import { DUCK, DUCK_DONE } from "./duck";
 import { SCENARIOS } from "./index";
@@ -26,14 +26,15 @@ describe.each(SCENARIOS.map((s) => [s.id, s] as const))("%s: the rubber duck (M2
     expect(findings(4)).toBe(4);
   });
 
-  it("reveals the hints in order, then says it has nothing more", () => {
-    const duck = scenario.actions.find((a) => a.id === DUCK)!;
-    let s = scenario.setup({ next: () => 0.5, int: () => 0 } as never);
-    const said: string[] = [];
+  it("reveals the hints in order through the real engine, then says it has nothing more", () => {
+    // Through Run, not the action's functions: the engine applies effect before reveals (review I1).
+    const run = new Run(scenario, 1);
+    run.dispatch(ACK);
     for (let i = 0; i < scenario.hints!.length + 1; i++) {
-      said.push(...duck.reveals!(s));
-      s = duck.effect!(s);
+      run.dispatch(DUCK);
+      for (let t = 0; t < 300; t++) run.step();
     }
+    const said = run.logs.filter((l) => l.finding && l.text.startsWith("rubber duck:")).map((l) => l.text);
     expect(said).toEqual([...scenario.hints!, DUCK_DONE].map((h) => `rubber duck: "${h}"`));
   });
 });

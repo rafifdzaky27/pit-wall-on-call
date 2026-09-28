@@ -36,16 +36,28 @@ describe("the training shift (M2.5 spec §5)", () => {
     expect(step()).toMatch(/config history/);
     act(() => incident().dispatch("api.config"));
     seconds(4);
-    expect(step()).toMatch(/^Roll the config back/);
-    act(() => incident().dispatch("api.config_rollback"));
+    // Tell customers before fixing: the update is never blocked by a running rollback (review I3).
     expect(step()).toMatch(/status update/);
-    seconds(16);
     act(() => incident().dispatch("global.status_update"));
+    seconds(6);
+    expect(step()).toMatch(/roll the config back/);
+    act(() => incident().dispatch("api.config_rollback"));
     expect(step()).toMatch(/^Watch the fix hold/);
-    seconds(15);
+    seconds(27);
     expect(incident().phase).toBe("ended");
     expect(step()).toMatch(/shift report/);
     expect(loadPrefs().trainingDone).toBe(true);
+  });
+
+  it("never gets stuck: once the run is over, the report is the step, whatever was skipped (review I3)", () => {
+    const { incident } = renderOs(<CoachCard />);
+    act(() => incident().startTraining());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    act(() => incident().dispatch("api.config_rollback"));
+    seconds(27);
+    expect(incident().phase).toBe("ended");
+    expect(step()).toMatch(/shift report/);
   });
 
   it("Show me outlines the control for the current step", () => {

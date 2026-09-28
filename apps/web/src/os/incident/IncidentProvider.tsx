@@ -29,7 +29,7 @@ export interface IncidentApi {
   scenario: ScenarioDef<State>;
   content: DesktopContent;
   snapshot: Snapshot;
-  /** The tick the current status began (M2.5 plan A2); other statuses are absent. */
+  /** The tick each status was first entered this shift (M2.5 plan A2, review I2). */
   statusSince: Partial<Record<IncidentStatus, number>>;
   history: Record<string, number[]>;
   logs: readonly LogEntry[];
@@ -128,10 +128,11 @@ const Session = memo(function Session({ onApi, onStartTraining, startNow, seed, 
   }, []);
   const loop = useRunLoop(run, { active: phase === "paging" || phase === "active", onFinish, now });
   const { refresh } = loop;
-  // Remember when the current status began, for chat that reacts to how long it has lasted.
-  const began = useRef<{ status: IncidentStatus; tick: number }>({ status: loop.snapshot.status, tick: loop.snapshot.tick });
-  if (began.current.status !== loop.snapshot.status) began.current = { status: loop.snapshot.status, tick: loop.snapshot.tick };
-  const statusSince = { [began.current.status]: began.current.tick } as Partial<Record<IncidentStatus, number>>;
+  // The tick each status was first entered, kept for the whole shift: a teammate's message that
+  // reacted to "mitigated" must stay in the chat after the status moves on (M2.5 review I2).
+  const entered = useRef<Partial<Record<IncidentStatus, number>>>({});
+  if (entered.current[loop.snapshot.status] === undefined) entered.current = { ...entered.current, [loop.snapshot.status]: loop.snapshot.tick };
+  const statusSince = entered.current;
 
   useEffect(() => {
     if (phase !== "prepage") return;

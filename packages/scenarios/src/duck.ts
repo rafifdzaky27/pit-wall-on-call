@@ -16,6 +16,7 @@ export function duckAction<S extends State & { ducks: number }>(hints: readonly 
     durationS: 30,
     verdict: "useful",
     effect: (s) => ({ ...s, ducks: s.ducks + 1 }),
-    reveals: (s) => [`rubber duck: "${hints[s.ducks] ?? DUCK_DONE}"`],
+    // The engine applies the effect first, so this reveal reads the count after this duck.
+    reveals: (s) => [`rubber duck: "${hints[s.ducks - 1] ?? DUCK_DONE}"`],
   };
 }

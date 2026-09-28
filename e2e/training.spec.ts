@@ -23,9 +23,11 @@ test("a first-timer takes the coached training shift from the landing to the rep
   await expect(coach.getByRole("status")).toHaveText(/config history/);
   await page.locator('[data-coach="action:api.config"]').click();
   await page.clock.runFor(4_000);
+  // Tell customers first, then fix (the coach's order since the M2.5 review).
+  await page.locator('[data-coach="action:global.status_update"]').click();
+  await page.clock.runFor(6_000);
   await page.locator('[data-coach="action:api.config_rollback"]').click();
   await page.clock.runFor(16_000);
-  await page.locator('[data-coach="action:global.status_update"]').click();
   await page.clock.runFor(16_000);
   await page.clock.runFor(3_200);
   const report = page.getByRole("dialog", { name: "Shift report" });

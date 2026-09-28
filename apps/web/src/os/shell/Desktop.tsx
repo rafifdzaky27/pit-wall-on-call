@@ -112,7 +112,7 @@ export function Desktop() {
           const App = APP_COMPONENTS[w.appId as AppId];
           return (
             <Window key={w.id} win={w} area={wm.area} focused={w.id === focused} layer={layers.get(w.id) ?? 10} dispatch={dispatchWm} onDragChange={setDragging}>
-              <AppBoundary>
+              <AppBoundary autoReload={!running}>
                 <Suspense
                   fallback={
                     <p className="app-pad empty" aria-busy="true">

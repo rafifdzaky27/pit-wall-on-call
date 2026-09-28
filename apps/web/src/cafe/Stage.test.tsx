@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react
 import { afterEach, describe, expect, it } from "vitest";
 import { Desktop } from "../os/shell/Desktop";
 import { renderOs } from "../os/testing";
+import { motionGate } from "../game/motionGate";
 import { laptopFit } from "./camera";
 import { Stage } from "./Stage";
 
@@ -118,5 +119,19 @@ describe("Stage", () => {
     press("a");
     expect(incident().phase).toBe("active");
     expect(screenEl().hasAttribute("inert")).toBe(false);
+  });
+
+  it("a camera move that cannot animate never leaves the desktop frozen (M2.5 review)", () => {
+    const { incident } = renderOs(
+      <Stage>
+        <p>laptop screen</p>
+      </Stage>,
+    );
+    act(() => incident().start());
+    press("l");
+    // As if a zoom-in were cut short mid-move, with the gate still closed.
+    motionGate.set(true);
+    press("l");
+    expect(motionGate.moving).toBe(false);
   });
 });

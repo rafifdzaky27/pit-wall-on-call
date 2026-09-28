@@ -93,7 +93,8 @@ test.describe("flow (M2.5 spec §11)", () => {
     await openSettings();
     await expect(page.getByText("Couldn't load this app.")).toBeVisible();
     await expect(page.getByText("The simulation hit an error")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Start shift" }).first()).toBeVisible();
+    // The desktop itself keeps working (the Shift banner may already have hidden itself).
+    await expect(page.getByRole("main", { name: "Desktop" })).toBeVisible();
   });
 
   test("? opens Help, and its glossary explains the terms (M2.5 spec §4)", async ({ page }) => {

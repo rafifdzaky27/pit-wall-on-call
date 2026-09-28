@@ -46,6 +46,7 @@ export function ResultsCard() {
   const scenario = incident.scenario;
   // Training is never posted: its report points at the real shift instead (M2.5 spec §5).
   const drill = scenario.training === true;
+  const told = result.timeline.some((e) => e.kind === "action_start" && e.actionId === "global.status_update");
 
   const share = async () => {
     const text = shareText(scenario, result, window.location.origin);
@@ -70,9 +71,11 @@ export function ResultsCard() {
             <h2 className="results-title">{resolved ? (drill ? "Training complete" : `Resolved in ${formatClock(result.endTick)}`) : "Out of time"}</h2>
             {drill && (
               <p>
-                {resolved
-                  ? "You acknowledged, found what changed, undid it, watched it hold and told customers. Real shifts hide the cause better, and nobody coaches you."
-                  : "The clock ran out this time. Try the training again, or go straight to a real shift."}
+                {!resolved
+                  ? "The clock ran out this time. Try the training again, or go straight to a real shift."
+                  : told
+                    ? "You acknowledged, found what changed, undid it, watched it hold and told customers. Real shifts hide the cause better, and nobody coaches you."
+                    : "You acknowledged, found what changed, undid it and watched it hold. Next time, post a status update too: customers only know what you tell them."}
               </p>
             )}
             <dl className="results-tiles">

@@ -255,12 +255,14 @@ describe("determinism guards", () => {
 });
 
 describe("snapshot status (M2.5 spec §3)", () => {
+  // Here the patch brings errors under 1% while the cause stays, which is what "mitigated" means.
+  const hiding = defineScenario({ ...fixture, errorRateBp: (s) => (s.fixed ? 0 : s.patched ? 50 : 1000) });
   const until = (run: Run<Record<string, number>>, pred: () => boolean, max = 2000) => {
     for (let i = 0; i < max && !pred(); i++) run.step();
   };
 
   it("walks paging → investigating → mitigated → holding → resolved", () => {
-    const run = newRun();
+    const run = new Run(hiding, 1);
     expect(run.snapshot().status).toBe("paging");
     run.dispatch(ACK);
     expect(run.snapshot().status).toBe("investigating");
@@ -279,5 +281,16 @@ describe("snapshot status (M2.5 spec §3)", () => {
     run.dispatch(ACK);
     until(run, () => run.outcome !== "running", 5000);
     expect(run.snapshot().status).toBe("dnf");
+  });
+});
+
+describe("mitigated needs the symptoms down (M2.5 review)", () => {
+  it("a mitigation that leaves errors at 10% is still an investigation", () => {
+    const run = newRun();
+    run.dispatch(ACK);
+    run.dispatch("svc.patch");
+    steps(run, 20);
+    expect(run.snapshot().errorRateBp).toBe(1000);
+    expect(run.snapshot().status).toBe("investigating");
   });
 });

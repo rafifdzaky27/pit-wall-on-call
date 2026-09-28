@@ -42,16 +42,16 @@ export const TRAINING_STEPS: readonly CoachStep[] = [
     done: (i) => finished(i.timeline, "api.config"),
   },
   {
-    id: "rollback",
-    text: "Roll the config back to v11.",
-    target: '[data-coach="action:api.config_rollback"]',
-    done: (i) => started(i.timeline, "api.config_rollback"),
+    id: "status",
+    text: "Before you fix it, post a status update so customers know you're on it.",
+    target: '[data-coach="action:global.status_update"]',
+    done: (i) => finished(i.timeline, "global.status_update"),
   },
   {
-    id: "status",
-    text: "While it rolls back, post a status update so customers know.",
-    target: '[data-coach="action:global.status_update"]',
-    done: (i) => started(i.timeline, "global.status_update"),
+    id: "rollback",
+    text: "Now roll the config back to v11.",
+    target: '[data-coach="action:api.config_rollback"]',
+    done: (i) => started(i.timeline, "api.config_rollback"),
   },
   {
     id: "hold",
@@ -67,6 +67,8 @@ export const TRAINING_STEPS: readonly CoachStep[] = [
   },
 ];
 
+/** Once the run is over, only the report is left, whatever was skipped (M2.5 review I3). */
 export function currentStep(incident: IncidentApi): CoachStep | null {
+  if (incident.phase === "ended") return TRAINING_STEPS.at(-1)!;
   return TRAINING_STEPS.find((s) => !s.done(incident)) ?? null;
 }

@@ -83,4 +83,18 @@ describe("chunk failures after a deploy (M2.5 spec §10)", () => {
     );
     expect(screen.getByText("The simulation hit an error")).toBeTruthy();
   });
+
+  it("mid-shift, a missing chunk never reloads by itself: the window says so, and the player decides (review I4)", () => {
+    const reload = vi.spyOn(reloader, "reload").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <ErrorBoundary onReset={() => {}}>
+        <AppBoundary autoReload={false}>
+          <Throws error={chunkError()} />
+        </AppBoundary>
+      </ErrorBoundary>,
+    );
+    expect(reload).not.toHaveBeenCalled();
+    expect(screen.getByText("Couldn't load this app. Reloading ends this shift.")).toBeTruthy();
+  });
 });

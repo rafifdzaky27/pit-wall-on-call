@@ -98,3 +98,50 @@ describe("the cold close lead-in (M2.5 spec §11)", () => {
     expect(seen).toBe(true);
   });
 });
+
+describe("Review Focus 2 and 5 (M2.5 review I5)", () => {
+  it("New shift straight from the report keeps the Stage and lands on an empty desktop", async () => {
+    let seed = 0;
+    render(<App newSeed={() => ++seed} />);
+    const before = stage();
+    await playAndFix(46);
+    seconds(4);
+    const report = await until(() => screen.getByRole("dialog", { name: "Shift report" }));
+    fireEvent.click(within(report).getByRole("button", { name: "New shift" }));
+    seconds(2);
+    expect(stage()).toBe(before);
+    expect(windows()).toHaveLength(0);
+    expect(document.querySelector("[data-testid=stage-screen]")!.hasAttribute("inert")).toBe(false);
+  });
+
+  it("after the training (never posted), the real shift is posted", async () => {
+    localStorage.setItem("pitwall.player", JSON.stringify({ playerId: "0c1f2e3d-0000-4000-8000-0000abcd1234", handle: "rafif", tag: "1234", token: `pw_${"a".repeat(43)}` }));
+    const posted = { runId: "r1", mode: "practice", flagged: false, score: { outcome: "resolved", budgetBurnedBp: 1, mitigatedAtTick: 1, endTick: 1 }, board: { rank: 1, total: 1, best: true } };
+    const fetch = vi.fn(async (url: string) => new Response(JSON.stringify(url === "/api/runs" ? posted : { board: "practice", scenarioId: "x", total: 0, entries: [], you: null }), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetch);
+    let seed = 0;
+    render(<App newSeed={() => ++seed} />);
+    // Training first: ack, roll the config back, let it hold.
+    fireEvent.click(screen.getAllByRole("button", { name: "Training shift (about 3 min)" })[0]!);
+    fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
+    fireEvent.keyDown(window, { key: "a" });
+    await until(() => screen.getByRole("region", { name: "Monitoring" }));
+    fireEvent.keyDown(window, { key: "2" });
+    fireEvent.click(await until(() => screen.getByRole("button", { name: /Roll back config to v11/ })));
+    seconds(30);
+    seconds(4);
+    const posts = () => fetch.mock.calls.filter(([url]) => url === "/api/runs");
+    expect(posts()).toHaveLength(0);
+    const report = await until(() => screen.getByRole("dialog", { name: "Shift report" }));
+    fireEvent.click(within(report).getByRole("button", { name: "Start a real shift" }));
+    seconds(2);
+    await playAndFix(46);
+    await act(async () => {
+      await new Promise((r) => setImmediate(r));
+    });
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(String((posts()[0] as unknown as [string, RequestInit])[1].body)).scenarioId).toBe("db-pool-exhaustion");
+    vi.unstubAllGlobals();
+  });
+});
+

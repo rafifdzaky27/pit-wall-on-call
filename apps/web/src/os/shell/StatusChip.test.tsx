@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderOs } from "../testing";
 import { useNoticeFeed } from "./noticeFeed";
+import { visibleFor } from "../apps/chat/unread";
 import { StatusChip } from "./StatusChip";
 
 beforeEach(() => vi.useFakeTimers());
@@ -62,5 +63,21 @@ describe("the status chip (M2.5 spec §3)", () => {
     expect(notice?.title).toBe("Incident still open");
     expect(notice?.body).toBe("Symptoms are down, but the incident is still open. Is the cause fixed, or only its effect?");
     expect(incident().statusSince.mitigated).toBeTypeOf("number");
+  });
+
+  it("the secondary's nudge stays in the DM after the status moves on (review I2)", () => {
+    const { incident } = renderOs(<StatusChip />);
+    act(() => incident().start());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    act(() => incident().dispatch("checkout.restart"));
+    seconds(16);
+    seconds(21);
+    const nudge = () => visibleFor(incident()).some((m) => m.id === "dm.secondary.mitigated");
+    expect(nudge()).toBe(true);
+    act(() => incident().dispatch("checkout.rollback"));
+    seconds(35);
+    expect(incident().snapshot.status).not.toBe("mitigated");
+    expect(nudge()).toBe(true);
   });
 });

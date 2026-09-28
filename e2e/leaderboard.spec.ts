@@ -34,7 +34,8 @@ test.describe("the runs API contract (M2)", () => {
     await expect(board.getByText("Pick a handle to post this shift to the practice leaderboard.")).toBeVisible();
     await board.getByRole("textbox", { name: "Handle" }).fill(handle);
     await board.getByRole("button", { name: "Post score" }).click();
-    await expect(board.getByText(/^New best: #\d+ of \d+ on the practice leaderboard\.$/)).toBeVisible();
+    // A real round trip to the shared e2e API; under a parallel suite it can take longer than 5 s.
+    await expect(board.getByText(/^New best: #\d+ of \d+ on the practice leaderboard\.$/)).toBeVisible({ timeout: 15_000 });
 
     const shown = await page.getByRole("list", { name: "Score" }).locator(".tile", { hasText: "Error budget burned" }).locator(".tile-v").textContent();
     const res = await request.get("/api/leaderboard?scenario=db-pool-exhaustion");

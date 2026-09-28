@@ -117,6 +117,9 @@ describe("the shift report (M2.5 spec §6)", () => {
     act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
     await opened();
     expect(within(card()).getByRole("heading", { level: 2 }).textContent).toBe("Training complete");
+    // No status update was posted in this run, so the report does not claim one (review I3).
+    expect(card().textContent).not.toContain("told customers");
+    expect(card().textContent).toContain("Next time, post a status update");
     expect(within(card()).queryByRole("region", { name: "Leaderboard" })).toBeNull();
     expect(within(card()).queryByRole("button", { name: "Share" })).toBeNull();
     fireEvent.click(within(card()).getByRole("button", { name: "Start a real shift" }));

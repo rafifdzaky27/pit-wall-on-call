@@ -13,6 +13,7 @@ import { CafeFallback } from "./CafeFallback";
 import { cameraReducer, INITIAL_CAMERA, laptopFit, type View } from "./camera";
 import { CameraContext, type CameraApi } from "./CameraContext";
 import { ColdClose } from "./ColdClose";
+import { ReportBoundary } from "./ReportBoundary";
 import { useViewport } from "./useViewport";
 
 /** The café's art, sound and hotspots load on Start shift, apart from the main chunk (cold-open spec §9). */
@@ -71,6 +72,12 @@ export function Stage({ children }: { children: ReactNode }) {
   const fit = laptopFit(size.w, size.h);
   const inCafe = camera.view === "cafe";
 
+  // Fetch the report's chunk as the shift starts: a stale tab then fails before anything is at stake,
+  // and the report renders without suspending when the run ends (M2.5 review I4).
+  useEffect(() => {
+    if (incident.phase === "prepage") void Promise.resolve(loadResults()).catch(() => undefined);
+  }, [incident.phase]);
+
   // "Fix confirmed" shows on the laptop only in the pause before the cold close (M2.5 spec §11).
   const [leadIn, setLeadIn] = useState(false);
   useEffect(() => {
@@ -102,8 +109,11 @@ export function Stage({ children }: { children: ReactNode }) {
       setCafeShown(true);
       const a = animation(worldEl, [{ transform: outOf }, { transform: "none" }], { duration, easing: EASE_IN_OUT });
       moving.current = a;
-      if (!a) focusAfter("cafe");
-      else {
+      if (!a) {
+        // No animation (reduced motion): a cut, and nothing left holding the desktop's renders.
+        motionGate.set(false);
+        focusAfter("cafe");
+      } else {
         motionGate.set(true);
         a.finished.then(
           () => {
@@ -184,9 +194,11 @@ export function Stage({ children }: { children: ReactNode }) {
         )}
         {/* Outside the world transform, so it is sized by the viewport, not the scene. */}
         {incident.phase === "ended" && inCafe && (
-          <Suspense fallback={null}>
-            <ResultsCard />
-          </Suspense>
+          <ReportBoundary onRead={api.enterLaptop}>
+            <Suspense fallback={null}>
+              <ResultsCard />
+            </Suspense>
+          </ReportBoundary>
         )}
         <CoachCard />
         <PausedOverlay />

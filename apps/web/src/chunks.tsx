@@ -49,7 +49,13 @@ export function Reloading() {
  * Around each window's app: a chunk that still fails after the reload is reported inside that window,
  * and the run goes on. Any other error is the app's own bug and goes up to the crash guard.
  */
-export class AppBoundary extends Component<{ children: ReactNode }, { error: Error | null; refused: boolean }> {
+interface AppBoundaryProps {
+  children: ReactNode;
+  /** False mid-shift: a reload would throw the run away, so the player decides (M2.5 review I4). */
+  autoReload?: boolean;
+}
+
+export class AppBoundary extends Component<AppBoundaryProps, { error: Error | null; refused: boolean }> {
   state = { error: null as Error | null, refused: false };
 
   static getDerivedStateFromError(error: Error) {
@@ -57,17 +63,18 @@ export class AppBoundary extends Component<{ children: ReactNode }, { error: Err
   }
 
   componentDidCatch(error: Error) {
-    if (isChunkError(error) && !reloadOnce()) this.setState({ refused: true });
+    if (!isChunkError(error)) return;
+    if (this.props.autoReload === false || !reloadOnce()) this.setState({ refused: true });
   }
 
   render() {
     const { error, refused } = this.state;
     if (!error) return this.props.children;
     if (!isChunkError(error)) throw error;
-    if (!refused) return <p className="app-pad empty">Loading the new version…</p>;
+    if (!refused && this.props.autoReload !== false) return <p className="app-pad empty">Loading the new version…</p>;
     return (
       <div className="app-pad empty">
-        <p>Couldn't load this app.</p>
+        <p>{this.props.autoReload === false ? "Couldn't load this app. Reloading ends this shift." : "Couldn't load this app."}</p>
         <button type="button" className="btn" onClick={() => reloader.reload()}>
           Reload
         </button>
