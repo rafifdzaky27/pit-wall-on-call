@@ -99,7 +99,7 @@ export const training = defineScenario<Training>({
       available: (s) => s.statusPosted === 0,
       effect: (s) => ({ ...s, statusPosted: 1 }),
       reveals: () => [`status page: "Some checkouts are failing. We have found the cause and are fixing it."`] },
-    { id: "global.ask_secondary", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful",
+    { id: "global.ask_secondary", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
       reveals: () => [`{secondary} (secondary): "{deployer} pushed a config change a few minutes ago. Worth a look."`] },
     duckAction<Training>(TRAINING_HINTS),
   ],

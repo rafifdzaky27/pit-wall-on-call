@@ -149,7 +149,7 @@ export const slowLeak = defineScenario<SlowLeak>({
       effect: (s) => ({ ...s, statusPosted: 1 }),
       reveals: () => [`status page: "Investigating elevated checkout errors"`] },
     duckAction<SlowLeak>(SLOW_LEAK_HINTS),
-    { id: "global.ask_secondary", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful",
+    { id: "global.ask_secondary", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
       reveals: () => [`{secondary} (secondary): "{deployer} shipped v142 about an hour ago. Could that be it?"`] },
   ],
   rootCauseActionIds: ["checkout.rollback"],

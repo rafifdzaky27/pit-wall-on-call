@@ -1,4 +1,5 @@
-export const ENGINE_VERSION = "1.0.0";
+/** 1.1.0: asynchronous actions (M2.5 plan B1). Logs valid under 1.0.0 replay identically. */
+export const ENGINE_VERSION = "1.1.0";
 export const TICK_MS = 100;
 export const TICKS_PER_SECOND = 10;
 /** 60 s without an ack pages the secondary (cold-open spec §3). */

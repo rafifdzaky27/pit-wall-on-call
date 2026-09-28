@@ -115,7 +115,8 @@ export function ChatApp() {
   const label = channelLabel(current, world);
   const dm = current.startsWith("dm:") ? (current.slice(3) as Person) : null;
   const info = dm ? null : content.channelInfo[current];
-  const typing = typingFor(content, snapshot.busy?.actionId ?? null).filter((t) => t.channel === current);
+  const running = [...(snapshot.busy ? [snapshot.busy.actionId] : []), ...snapshot.pending.map((p) => p.actionId)];
+  const typing = typingFor(content, running).filter((t) => t.channel === current);
   const thread = items.find((i) => i.id === threadId && i.msg?.thread);
 
   const send = (e?: FormEvent) => {

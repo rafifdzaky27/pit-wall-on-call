@@ -73,6 +73,11 @@ export interface ActionDef<S extends State> {
   /** Finding lines added to the log when the action completes. */
   reveals?(s: S): string[];
   available?(s: S): boolean;
+  /**
+   * Runs in the background (a question to a teammate): it never blocks other actions, and its
+   * effect and reveals land when its time is up (M2.5 plan B1).
+   */
+  async?: boolean;
 }
 
 export interface HotspotDef {
@@ -174,6 +179,8 @@ export interface Snapshot {
   ackTick: number | null;
   escalated: boolean;
   busy: BusyState | null;
+  /** Asynchronous actions still running, in the order they started. */
+  pending: BusyState[];
   metrics: Record<string, number>;
   health: Record<string, Health>;
   details: Record<string, string>;

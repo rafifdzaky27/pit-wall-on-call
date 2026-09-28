@@ -24,7 +24,8 @@ export type RejectReason =
   | "already_acknowledged"
   | "busy"
   | "unavailable"
-  | "out_of_order";
+  | "out_of_order"
+  | "pending";
 
 export class ActionRejected extends Error {
   name = "ActionRejected";
@@ -80,6 +81,7 @@ export class Run<S extends State> {
   private ackTick: number | null = null;
   private escalated = false;
   private busy: BusyState | null = null;
+  private pending: BusyState[] = [];
   private readonly completed = new Set<string>();
   private readonly burnUnits = new Map<string, number>();
   private readonly alertStates: AlertState[] = [];
@@ -119,7 +121,9 @@ export class Run<S extends State> {
     const def = this.actionDefs.get(actionId);
     if (!def) return "unknown_action";
     if (!this.acked) return "not_acknowledged";
-    if (this.busy) return "busy";
+    if (def.async) {
+      if (this.pending.some((p) => p.actionId === actionId)) return "pending";
+    } else if (this.busy) return "busy";
     if (def.available && !def.available(this.s)) return "unavailable";
     return null;
   }
@@ -147,7 +151,9 @@ export class Run<S extends State> {
       return;
     }
     const def = this.actionDefs.get(actionId)!;
-    this.busy = { actionId, startTick: tick, endTick: tick + def.durationS * TICKS_PER_SECOND };
+    const state = { actionId, startTick: tick, endTick: tick + def.durationS * TICKS_PER_SECOND };
+    if (def.async) this.pending.push(state);
+    else this.busy = state;
     this.timeline.push({ tick, kind: "action_start", actionId });
   }
 
@@ -160,7 +166,13 @@ export class Run<S extends State> {
     assertIntegers(this.s, `dynamics at tick ${t}`);
 
     const running = this.busy;
-    if (running && t === running.endTick - 1) this.complete(running, t);
+    if (running && t === running.endTick - 1) {
+      this.complete(running, t);
+      this.busy = null;
+    }
+    // Background actions finish after the foreground one on the same tick, in the order they started.
+    for (const p of this.pending.filter((p) => t === p.endTick - 1)) this.complete(p, t);
+    this.pending = this.pending.filter((p) => t < p.endTick - 1);
 
     this.metricValues = this.sampleMetrics();
     this.evaluateAlerts(t);
@@ -192,6 +204,7 @@ export class Run<S extends State> {
       ackTick: this.ackTick,
       escalated: this.escalated,
       busy: this.busy ? { ...this.busy } : null,
+      pending: this.pending.map((p) => ({ ...p })),
       metrics: { ...this.metricValues },
       health: this.scenario.health(this.s),
       details,
@@ -245,7 +258,6 @@ export class Run<S extends State> {
     }
     for (const line of def.reveals?.(this.s) ?? []) this.pushLog(t, def.serviceId ?? "global", "INFO", line, true);
     this.completed.add(def.id);
-    this.busy = null;
     this.timeline.push({ tick: t, kind: "action_done", actionId: def.id });
   }
 

@@ -35,6 +35,7 @@ export const fixture = defineScenario<Fx>({
     { id: "svc.fix", label: "Fix", serviceId: "svc", category: "fix", durationS: 1, verdict: "useful", effect: (s) => ({ ...s, fixed: 1 }), available: (s) => s.fixed === 0 },
     { id: "svc.break", label: "Break", serviceId: "svc", category: "mitigate", durationS: 1, verdict: "harmful", sideEffectBp: 5000 },
     { id: "svc.patch", label: "Patch", serviceId: "svc", category: "mitigate", durationS: 1, verdict: "wasted", effect: (s) => ({ ...s, patched: 1 }) },
+    { id: "ask", label: "Ask a teammate", serviceId: null, category: "investigate", durationS: 5, verdict: "useful", async: true, reveals: (s) => [`teammate answered at level ${s.level}`] },
     { id: "status", label: "Post status", serviceId: null, category: "communicate", durationS: 1, verdict: "useful", reveals: () => ["status posted"] },
   ],
   rootCauseActionIds: ["svc.fix"],

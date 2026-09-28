@@ -102,8 +102,10 @@ describe("typingFor", () => {
   const content = desktopFor(slowLeak.id);
 
   it("shows who is typing while the action that sends their message runs", () => {
-    expect(typingFor(content, "global.ask_secondary")).toEqual([{ channel: "dm:secondary", author: "secondary" }]);
-    expect(typingFor(content, "checkout.rollback")).toEqual([]);
-    expect(typingFor(content, null)).toEqual([]);
+    expect(typingFor(content, ["global.ask_secondary"])).toEqual([{ channel: "dm:secondary", author: "secondary" }]);
+    expect(typingFor(content, ["checkout.rollback"])).toEqual([]);
+    expect(typingFor(content, [])).toEqual([]);
+    // Several at once: the foreground action and any teammates still answering (M2.5 plan B1).
+    expect(typingFor(content, ["checkout.rollback", "global.ask_secondary"])).toHaveLength(1);
   });
 });
