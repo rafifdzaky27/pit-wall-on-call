@@ -28,7 +28,9 @@ describe("cameraReducer", () => {
     const closing = run([{ type: "phase", to: "prepage" }, { type: "phase", to: "active" }, { type: "phase", to: "ended" }]);
     expect(closing).toEqual({ view: "cafe", started: true, closing: true });
     expect(run([{ type: "enterLaptop" }], closing)).toEqual({ view: "desktop", started: true, closing: false });
-    expect(run([{ type: "phase", to: "idle" }], closing)).toEqual(INITIAL_CAMERA);
+    // New shift keeps the café and returns to the laptop (M2.5 spec §11); before any start it is the initial camera.
+    expect(run([{ type: "phase", to: "idle" }], closing)).toEqual({ view: "desktop", started: true, closing: false });
+    expect(run([{ type: "phase", to: "idle" }])).toEqual(INITIAL_CAMERA);
   });
 });
 

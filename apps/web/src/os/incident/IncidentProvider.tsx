@@ -14,7 +14,7 @@ import {
 } from "@pitwall/engine";
 import { desktopFor, slowLeak, type DesktopContent } from "@pitwall/scenarios";
 import { resolveWorld, type World } from "@pitwall/world";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, Fragment, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRunLoop } from "../../game/useRunLoop";
 
 /** Cold-open spec §3: about 18 s of free pre-page before the pager fires. */
@@ -65,19 +65,31 @@ interface ProviderProps {
   now?: () => number;
 }
 
-/** One practice shift at a time. A new shift remounts the session, so no timer or loop survives it. */
+/**
+ * One practice shift at a time. A new shift remounts the session, so no timer or loop survives it.
+ * The session reports its API up to here, so the children do not remount with it: the camera and the
+ * café stay (M2.5 spec §11). What must start over per shift sits in a `ShiftScope`.
+ */
 export function IncidentProvider({ children, scenario = slowLeak, newSeed = randomSeed, prepageMs = PREPAGE_MS, now }: ProviderProps) {
   const [seed, setSeed] = useState(newSeed);
+  const [api, setApi] = useState<IncidentApi | null>(null);
   const newShift = useCallback(() => setSeed(newSeed()), [newSeed]);
   return (
-    <Session key={seed} seed={seed} scenario={scenario} prepageMs={prepageMs} now={now} onNewShift={newShift}>
-      {children}
-    </Session>
+    <>
+      <Session key={seed} seed={seed} scenario={scenario} prepageMs={prepageMs} now={now} onNewShift={newShift} onApi={setApi} />
+      {api && <IncidentContext.Provider value={api}>{children}</IncidentContext.Provider>}
+    </>
   );
 }
 
+/** Children that start over on every shift: the OS, its windows and its apps. */
+export function ShiftScope({ children }: { children: ReactNode }) {
+  const { seed } = useIncident();
+  return <Fragment key={seed}>{children}</Fragment>;
+}
+
 interface SessionProps {
-  children: ReactNode;
+  onApi: (api: IncidentApi) => void;
   seed: number;
   scenario: ScenarioDef<State>;
   prepageMs: number;
@@ -85,7 +97,8 @@ interface SessionProps {
   onNewShift: () => void;
 }
 
-function Session({ children, seed, scenario, prepageMs, now, onNewShift }: SessionProps) {
+/** Memoised: the hub re-renders on every reported API, and must not re-render the session back (M2.5 plan A4). */
+const Session = memo(function Session({ onApi, seed, scenario, prepageMs, now, onNewShift }: SessionProps) {
   const [run] = useState(() => new Run(scenario, seed));
   const [phase, setPhase] = useState<IncidentPhase>("idle");
   const [result, setResult] = useState<RunResult | null>(null);
@@ -156,5 +169,7 @@ function Session({ children, seed, scenario, prepageMs, now, onNewShift }: Sessi
     [phase, seed, world, scenario, content, loop, run, result, dispatch, onNewShift],
   );
 
-  return <IncidentContext.Provider value={api}>{children}</IncidentContext.Provider>;
-}
+  // Before paint, so the tree above never shows a frame of the previous shift's state.
+  useLayoutEffect(() => onApi(api), [api, onApi]);
+  return null;
+});

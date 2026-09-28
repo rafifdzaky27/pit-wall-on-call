@@ -1,4 +1,6 @@
 import { Component, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
+import { formatClock } from "../game/format";
+import { motionGate } from "../game/motionGate";
 import { useIncident } from "../os/incident/IncidentProvider";
 import { animation, DUR, EASE_IN_OUT } from "../os/motion";
 import { usePrefs } from "../os/PrefsProvider";
@@ -27,6 +29,8 @@ class CafeBoundary extends Component<{ children: ReactNode }, { failed: boolean 
 
 /** The resolved chord plays over the postmortem opening before the camera pulls back (cold-open spec §3). */
 export const COLD_CLOSE_DELAY_MS = 1500;
+/** The cold close pulls back slower than a look up, so the ending reads as an ending (M2.5 spec §11). */
+export const CLOSE_MOVE_MS = 1200;
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -58,12 +62,19 @@ export function Stage({ children }: { children: ReactNode }) {
   const fit = laptopFit(size.w, size.h);
   const inCafe = camera.view === "cafe";
 
+  // "Fix confirmed" shows on the laptop only in the pause before the cold close (M2.5 spec §11).
+  const [leadIn, setLeadIn] = useState(false);
   useEffect(() => {
     if (incident.phase !== "ended") {
+      setLeadIn(false);
       dispatch({ type: "phase", to: incident.phase });
       return;
     }
-    const id = window.setTimeout(() => dispatch({ type: "phase", to: "ended" }), COLD_CLOSE_DELAY_MS);
+    setLeadIn(true);
+    const id = window.setTimeout(() => {
+      setLeadIn(false);
+      dispatch({ type: "phase", to: "ended" });
+    }, COLD_CLOSE_DELAY_MS);
     return () => window.clearTimeout(id);
   }, [incident.phase]);
 
@@ -75,26 +86,34 @@ export function Stage({ children }: { children: ReactNode }) {
     shown.current = camera.view;
     moving.current?.cancel();
     moving.current = null;
+    const duration = camera.closing ? CLOSE_MOVE_MS : DUR.camera;
     const into = `translate(${fit.x}px, ${fit.y}px) scale(${fit.k})`;
     const outOf = `scale(${1 / fit.k}) translate(${-fit.x}px, ${-fit.y}px)`;
     if (camera.view === "cafe") {
       setCafeShown(true);
-      const a = animation(worldEl, [{ transform: outOf }, { transform: "none" }], { duration: DUR.camera, easing: EASE_IN_OUT });
+      const a = animation(worldEl, [{ transform: outOf }, { transform: "none" }], { duration, easing: EASE_IN_OUT });
       moving.current = a;
       if (!a) focusAfter("cafe");
-      else
+      else {
+        motionGate.set(true);
         a.finished.then(
-          () => focusAfter("cafe"),
+          () => {
+            if (moving.current === a) motionGate.set(false);
+            focusAfter("cafe");
+          },
           () => undefined,
         );
+      }
       return;
     }
     // Zooming in keeps the desktop in the laptop until the move ends, then drops every transform.
     screenEl.style.transform = into;
-    const a = animation(worldEl, [{ transform: "none" }, { transform: outOf }], { duration: DUR.camera, easing: EASE_IN_OUT, fill: "forwards" });
+    const a = animation(worldEl, [{ transform: "none" }, { transform: outOf }], { duration, easing: EASE_IN_OUT, fill: "forwards" });
+    if (a) motionGate.set(true);
     const settle = () => {
       if (moving.current !== a) return;
       moving.current = null;
+      motionGate.set(false);
       a?.cancel();
       screenEl.style.transform = "";
       setCafeShown(false);
@@ -104,6 +123,11 @@ export function Stage({ children }: { children: ReactNode }) {
     if (!a) settle();
     else a.finished.then(settle, () => undefined);
   }, [camera.view]);
+
+  // A cancelled move (unmount) must not leave the desktop frozen.
+  useEffect(() => () => motionGate.set(false), []);
+
+  const confirmed = leadIn && incident.phase === "ended" && camera.view === "desktop" ? incident.result : null;
 
   const api = useMemo<CameraApi>(
     () => ({
@@ -124,7 +148,10 @@ export function Stage({ children }: { children: ReactNode }) {
             <div className="stage-cafe" role="region" aria-label="Café" hidden={!cafeShown && !inCafe} inert={!inCafe} aria-hidden={!inCafe}>
               <CafeBoundary>
                 <Suspense fallback={<CafeFallback />}>
-                  <CafeView />
+                  {/* A new shift's city fades in (M2.5 spec §11). */}
+                  <div className="cafe-shift" key={incident.seed}>
+                    <CafeView />
+                  </div>
                 </Suspense>
               </CafeBoundary>
               <CafeControls />
@@ -141,6 +168,11 @@ export function Stage({ children }: { children: ReactNode }) {
             {children}
           </div>
         </div>
+        {confirmed && (
+          <p className="fix-confirmed" role="status">
+            {confirmed.outcome === "resolved" ? `Fix confirmed · resolved in ${formatClock(confirmed.endTick)}` : `Out of time · ${formatClock(confirmed.endTick)}`}
+          </p>
+        )}
         <PausedOverlay />
       </div>
     </CameraContext.Provider>

@@ -2,6 +2,7 @@ import type { Run, RunResult, State } from "@pitwall/engine";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TickDriver } from "./clock";
 import { MetricHistory } from "./history";
+import { motionGate } from "./motionGate";
 
 export interface RunLoopOptions {
   active: boolean;
@@ -50,7 +51,8 @@ export function useRunLoop(run: Run<State>, { active, onFinish, now = defaultNow
       for (let i = 0; i < due && run.outcome === "running"; i++) run.step();
       const snapshot = run.snapshot();
       history.record(snapshot.tick, snapshot.metrics);
-      setView({ snapshot, history: history.snapshot() });
+      // The last tick always renders, so the end of a run is never held back by the camera.
+      if (!motionGate.moving || run.outcome !== "running") setView({ snapshot, history: history.snapshot() });
       if (run.outcome !== "running") {
         window.clearInterval(id);
         onFinishRef.current(run.result());
@@ -64,10 +66,12 @@ export function useRunLoop(run: Run<State>, { active, onFinish, now = defaultNow
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
+    const unsettle = motionGate.onSettle(() => setView({ snapshot: run.snapshot(), history: history.snapshot() }));
 
     return () => {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisibility);
+      unsettle();
       driverRef.current = null;
     };
   }, [active, run, history, now, intervalMs]);
