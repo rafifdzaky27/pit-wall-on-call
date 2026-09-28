@@ -24,3 +24,7 @@ Brands, companies and people that appear in the game are fictional. Any resembla
 ## Third-party photos
 
 The store photos in `apps/web/public/store/` are by the photographers listed in [`apps/web/public/store/CREDITS.md`](apps/web/public/store/CREDITS.md), from Unsplash, under the [Unsplash License](https://unsplash.com/license). They are not covered by the AGPL and are not part of the reserved game content.
+
+## Third-party sounds
+
+The café recordings in `apps/web/public/audio/` come from Wikimedia Commons. "Cafe ambiance" by Marble Toast is CC0 1.0, and "Rain against the window" by cori is in the public domain. Details and trims are in [`apps/web/public/audio/CREDITS.md`](apps/web/public/audio/CREDITS.md). Both recordings are free of conditions, and they are not covered by the AGPL. Every other sound is synthesized in code.
