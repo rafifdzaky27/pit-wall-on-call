@@ -1,5 +1,5 @@
 import { CITIES } from "@pitwall/world";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { fetchApiVersion } from "../../../api";
 import photos from "../../../content/store-photos.json";
 import { LogoMark } from "../../brand/Logo";
@@ -8,6 +8,8 @@ import type { WallpaperChoice } from "../../prefs";
 import { usePrefs } from "../../PrefsProvider";
 import { useOs, type SettingsPageId } from "../../shell/OsContext";
 import { audio, type Cue } from "../../audio/engine";
+import { AccountPage } from "./AccountPage";
+import { Group, Row } from "./rows";
 import "./settings.css";
 
 const PAGES: { id: SettingsPageId; label: string; keywords: string }[] = [
@@ -16,6 +18,7 @@ const PAGES: { id: SettingsPageId; label: string; keywords: string }[] = [
   { id: "accessibility", label: "Accessibility", keywords: "motion animation larger text cursor shortcuts" },
   { id: "display", label: "Display", keywords: "full screen fullscreen" },
   { id: "keyboard", label: "Keyboard", keywords: "shortcuts keys" },
+  { id: "account", label: "Account", keywords: "handle leaderboard name player" },
   { id: "about", label: "About", keywords: "version build api license credits photos" },
 ];
 
@@ -46,27 +49,6 @@ const SHORTCUTS: [string, string][] = [
   ["P", "Pause or resume the incident"],
   ["1–9, Esc", "Select a service, clear the log filter (Monitoring)"],
 ];
-
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="group" aria-label={title}>
-      <h3 className="group-title">{title}</h3>
-      <div className="boxed">{children}</div>
-    </section>
-  );
-}
-
-function Row({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
-  return (
-    <div className="row">
-      <div className="row-text">
-        <span className="row-title">{title}</span>
-        {subtitle && <span className="row-sub">{subtitle}</span>}
-      </div>
-      {children && <div className="row-control">{children}</div>}
-    </div>
-  );
-}
 
 function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (on: boolean) => void }) {
   return <input type="checkbox" role="switch" className="switch" aria-label={label} checked={checked} onChange={(e) => onChange(e.target.checked)} />;
@@ -236,6 +218,8 @@ export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?:
             </table>
           </Group>
         )}
+
+        {page === "account" && <AccountPage />}
 
         {page === "about" && (
           <>

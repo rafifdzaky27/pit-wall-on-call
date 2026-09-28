@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { loadPlayer, savePlayer } from "../../../net/player";
 import { loadPrefs } from "../../prefs";
 import { audio } from "../../audio/engine";
 import { renderOs } from "../../testing";
@@ -95,5 +96,64 @@ describe("SettingsApp", () => {
     const { os } = renderOs(<SettingsApp fetchVersion={ok} />);
     act(() => os().openSettings("about"));
     expect(screen.getByRole("heading", { level: 2, name: "About" })).toBeTruthy();
+  });
+});
+
+describe("Settings: Account (M2)", () => {
+  const PLAYER = { playerId: "0c1f2e3d-0000-4000-8000-0000abcd1234", handle: "rafif", tag: "1234", token: `pw_${"a".repeat(43)}` };
+  const ok = async () => "abc";
+  const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+  const account = (os: () => { openSettings: (p: "account") => void }) => act(() => os().openSettings("account"));
+
+  it("without a handle, says how to get one", () => {
+    const { os } = renderOs(<SettingsApp fetchVersion={ok} />);
+    account(os);
+    expect(screen.getByRole("heading", { level: 2, name: "Account" })).toBeTruthy();
+    expect(screen.getByText("You have no leaderboard handle yet. Finish a shift and post it from its postmortem.")).toBeTruthy();
+  });
+
+  it("shows the handle and renames it", async () => {
+    savePlayer(PLAYER);
+    const fetch = vi.fn(async () => json(200, { playerId: PLAYER.playerId, handle: "rafif_2", tag: "1234" }));
+    vi.stubGlobal("fetch", fetch);
+    const { os } = renderOs(<SettingsApp fetchVersion={ok} />);
+    account(os);
+    expect(screen.getByText("rafif#1234")).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "Handle" }), { target: { value: "rafif_2" } });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
+    expect(fetch).toHaveBeenCalledWith("/api/players/me", expect.objectContaining({ method: "PATCH" }));
+    expect(loadPlayer()?.handle).toBe("rafif_2");
+    expect(screen.getByText("rafif_2#1234")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Saved.");
+  });
+
+  it("asks for a different handle when the server rejects it", async () => {
+    savePlayer(PLAYER);
+    vi.stubGlobal("fetch", vi.fn(async () => json(400, { error: { code: "handle_rejected", message: "", requestId: "r" } })));
+    const { os } = renderOs(<SettingsApp fetchVersion={ok} />);
+    account(os);
+    fireEvent.change(screen.getByRole("textbox", { name: "Handle" }), { target: { value: "kontol" } });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
+    expect(screen.getByText("Pick a different handle.")).toBeTruthy();
+    expect(loadPlayer()?.handle).toBe("rafif");
+  });
+
+  it("Remove from this device forgets the player", () => {
+    savePlayer(PLAYER);
+    const { os } = renderOs(<SettingsApp fetchVersion={ok} />);
+    account(os);
+    fireEvent.click(screen.getByRole("button", { name: "Remove from this device" }));
+    expect(loadPlayer()).toBeNull();
+    expect(screen.getByText("You have no leaderboard handle yet. Finish a shift and post it from its postmortem.")).toBeTruthy();
+  });
+
+  it.each(["account", "handle", "leaderboard"])("search finds Account by %s", (word) => {
+    renderOs(<SettingsApp fetchVersion={ok} />);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search settings" }), { target: { value: word } });
+    expect(within(screen.getByRole("navigation", { name: "Settings pages" })).getByRole("button", { name: "Account" })).toBeTruthy();
   });
 });

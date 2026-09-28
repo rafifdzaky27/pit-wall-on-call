@@ -195,6 +195,7 @@
 .lock-card { width: 100%; display: grid; gap: var(--space-3); padding: var(--space-5); border-radius: var(--radius-window); background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--border); }
 .lock-card .tag, .lock-card .btn { justify-self: start; }
 .lock-card h1 { font-size: var(--fs-xl); font-weight: 600; }
+.lock-board { width: 100%; overflow: hidden; border-radius: var(--radius-window); border: 1px solid var(--border); }
 @media (max-width: 480px) {
   .lock-clock { font-size: 48px; }
   .lock-content { padding-top: var(--space-6); }
