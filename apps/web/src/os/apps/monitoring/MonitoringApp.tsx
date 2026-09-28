@@ -2,9 +2,11 @@ import { Console } from "../../../console/Console";
 import { useIncident } from "../../incident/IncidentProvider";
 import { usePrefs } from "../../PrefsProvider";
 import { useOs } from "../../shell/OsContext";
+import { useStartShift } from "../../useStartShift";
 
 function CalmView() {
   const incident = useIncident();
+  const startShift = useStartShift();
   const idle = incident.phase === "idle";
   return (
     <div className="app-pad mon-calm">
@@ -26,7 +28,7 @@ function CalmView() {
         ))}
       </ul>
       {idle ? (
-        <button type="button" className="btn primary btn-lg" onClick={incident.start}>
+        <button type="button" className="btn primary btn-lg" onClick={startShift}>
           Start shift
         </button>
       ) : (

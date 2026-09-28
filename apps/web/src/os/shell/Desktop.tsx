@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { unreadCount } from "../apps/chat/unread";
 import type { AppId } from "../apps/ids";
 import { APP_COMPONENTS } from "../apps/registry";
@@ -6,9 +6,12 @@ import { Wallpaper } from "../brand/Wallpaper";
 import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useShortcuts } from "../useShortcuts";
+import { useSoundCues } from "../useSoundCues";
+import { useStartShift } from "../useStartShift";
 import { DesktopIcons } from "./DesktopIcons";
 import { Dock } from "./Dock";
 import { Lockscreen } from "./Lockscreen";
+import { useNoticeFeed } from "./noticeFeed";
 import { Notifications } from "./Notifications";
 import { useOs } from "./OsContext";
 import { Overview } from "./Overview";
@@ -19,12 +22,16 @@ import { Window } from "./Window";
 
 export function Desktop() {
   const incident = useIncident();
-  const { wm, dispatchWm, openApp, read } = useOs();
+  const { wm, dispatchWm, openApp, read, setDragging } = useOs();
   const { prefs } = usePrefs();
   const [overview, setOverview] = useState(false);
   const [locked, setLocked] = useState(false);
+  const startShift = useStartShift();
   const focused = wm.focusedId;
   const running = incident.phase === "paging" || incident.phase === "active";
+
+  useNoticeFeed(startShift);
+  useSoundCues(locked);
 
   // Each phase brings the right app forward (desktop spec §6).
   const previous = useRef(incident.phase);
@@ -63,6 +70,9 @@ export function Desktop() {
     prefs.singleKeyShortcuts && !locked,
   );
 
+  // z-index by rank keeps every window between 10 and 999, below the dock (polish spec S24).
+  const layers = useMemo(() => new Map([...wm.windows].sort((a, b) => a.z - b.z).map((w, i) => [w.id, 10 + i])), [wm.windows]);
+
   const lock = () => {
     if (running && !incident.paused) incident.pause();
     setLocked(true);
@@ -82,7 +92,7 @@ export function Desktop() {
         {wm.windows.map((w) => {
           const App = APP_COMPONENTS[w.appId as AppId];
           return (
-            <Window key={w.id} win={w} area={wm.area} focused={w.id === focused} dispatch={dispatchWm}>
+            <Window key={w.id} win={w} area={wm.area} focused={w.id === focused} layer={layers.get(w.id) ?? 10} dispatch={dispatchWm} onDragChange={setDragging}>
               <Suspense
                 fallback={
                   <p className="app-pad empty" aria-busy="true">
@@ -97,7 +107,7 @@ export function Desktop() {
         })}
       </main>
       <Notifications />
-      <Dock unread={unreadCount(incident, read)} />
+      <Dock unread={unreadCount(incident, read)} forceShow={overview} />
       {overview && <Overview onClose={() => setOverview(false)} />}
       <PausedOverlay />
     </div>

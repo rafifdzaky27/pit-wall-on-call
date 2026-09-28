@@ -2,6 +2,7 @@ import { mulberry32, streamSeed } from "@pitwall/engine";
 import { CITIES, type Brand, type City, type ColleagueRole, type CurrencyCode } from "./cities";
 
 export * from "./cities";
+export * from "./catalog";
 
 export interface World {
   city: City;
@@ -26,6 +27,7 @@ export function formatPrice(minor: number, currency: CurrencyCode): string {
 
 const TOKENS: Record<string, (w: World) => string> = {
   brand: (w) => w.brand.name,
+  domain: (w) => w.brand.domain,
   deployer: (w) => w.colleagues.deployer,
   secondary: (w) => w.colleagues.secondary,
   infra: (w) => w.colleagues.infra,

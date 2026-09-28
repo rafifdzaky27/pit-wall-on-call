@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CITIES, fillWorld, formatPrice, resolveWorld } from "./index";
+import { CITIES, fillWorld, formatPrice, resolveWorld, STORE_COPY } from "./index";
 
 describe("resolveWorld", () => {
   it("is deterministic per seed", () => {
@@ -19,12 +19,33 @@ describe("resolveWorld", () => {
 });
 
 describe("city data", () => {
-  it.each(CITIES.map((c) => [c.id, c] as const))("%s is complete", (_id, city) => {
-    expect(city.brand.products.length).toBeGreaterThanOrEqual(3);
-    expect(city.brand.domain).toMatch(/^[a-z0-9-]+(\.[a-z]{2,})+$/);
+  it.each(CITIES.map((c) => [c.id, c] as const))("%s is complete", (id, city) => {
+    const { brand } = city;
+    expect(brand.products.length).toBeGreaterThanOrEqual(3);
+    expect(brand.domain).toMatch(/^[a-z0-9-]+(\.[a-z]{2,})+$/);
     expect(Object.values(city.colleagues).every((n) => n.length > 0)).toBe(true);
     expect(() => new Intl.DateTimeFormat("en", { timeZone: city.timeZone })).not.toThrow();
-    for (const p of city.brand.products) expect(Number.isInteger(p.price) && p.price > 0).toBe(true);
+    expect(STORE_COPY[brand.locale]).toBeDefined();
+    expect(brand.categories.length).toBeGreaterThanOrEqual(3);
+    expect(brand.banner.image).toBe(`${id}-banner`);
+    for (const p of brand.products) {
+      expect(Number.isInteger(p.price) && p.price > 0).toBe(true);
+      if (p.was !== undefined) expect(p.was).toBeGreaterThan(p.price);
+      expect(p.image.startsWith(`${id}-`)).toBe(true);
+      expect(p.rating).toBeGreaterThanOrEqual(1);
+      expect(p.rating).toBeLessThanOrEqual(5);
+      expect(Number.isInteger(p.sold)).toBe(true);
+    }
+  });
+});
+
+describe("store copy", () => {
+  it("formats ratings and sales the way each market does", () => {
+    expect(STORE_COPY["id-ID"].rating(4.8, 2100)).toBe("★ 4,8 · 2,1 rb terjual");
+    expect(STORE_COPY["id-ID"].rating(5, 96)).toBe("★ 5,0 · 96 terjual");
+    expect(STORE_COPY["id-ID"].rating(4.9, 12000)).toBe("★ 4,9 · 12 rb terjual");
+    expect(STORE_COPY["ja-JP"].rating(4.8, 1204)).toBe("★4.8（1,204件）");
+    expect(STORE_COPY["en-AU"].rating(4.7, 312)).toBe("★ 4.7 (312 reviews)");
   });
 });
 
@@ -41,9 +62,9 @@ describe("formatPrice", () => {
 describe("fillWorld", () => {
   it("fills brand and colleague tokens, and leaves unknown tokens alone", () => {
     const world = resolveWorld(1);
-    const text = fillWorld("{deployer} and {secondary} at {brand}; {infra}, {support}, {nope}", world);
+    const text = fillWorld("{deployer} and {secondary} at {brand} ({domain}); {infra}, {support}, {nope}", world);
     expect(text).toBe(
-      `${world.colleagues.deployer} and ${world.colleagues.secondary} at ${world.brand.name}; ${world.colleagues.infra}, ${world.colleagues.support}, {nope}`,
+      `${world.colleagues.deployer} and ${world.colleagues.secondary} at ${world.brand.name} (${world.brand.domain}); ${world.colleagues.infra}, ${world.colleagues.support}, {nope}`,
     );
   });
 });

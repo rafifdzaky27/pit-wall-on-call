@@ -4,7 +4,7 @@ import { useOs } from "./OsContext";
 
 export function Overview({ onClose }: { onClose: () => void }) {
   const { wm, dispatchWm } = useOs();
-  const windows = [...wm.windows].sort((a, b) => b.z - a.z);
+  const windows = wm.windows.filter((w) => !w.closing).sort((a, b) => b.z - a.z);
   return (
     <div className="overview" role="dialog" aria-modal="true" aria-label="Overview">
       {windows.length === 0 ? (
@@ -16,6 +16,7 @@ export function Overview({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 className="overview-card"
+                style={{ animationDelay: `${i * 30}ms` }}
                 autoFocus={i === 0}
                 onClick={() => {
                   dispatchWm({ type: "focus", id: w.id });

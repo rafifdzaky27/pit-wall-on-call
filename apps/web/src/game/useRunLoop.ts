@@ -17,6 +17,7 @@ export function useRunLoop(run: Run<State>, { active, onFinish, now = defaultNow
   const [history] = useState(() => {
     const h = new MetricHistory();
     const snap = run.snapshot();
+    h.prefill(snap.metrics);
     h.record(snap.tick, snap.metrics);
     return h;
   });

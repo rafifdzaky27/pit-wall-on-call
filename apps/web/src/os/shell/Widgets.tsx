@@ -1,23 +1,6 @@
 import { CITIES } from "@pitwall/world";
-import { useState } from "react";
-import { FACTS } from "../../content/aboutRafif";
 import { usePrefs } from "../PrefsProvider";
 import { useNow } from "../useNow";
-
-export function Fortune() {
-  const [index, setIndex] = useState(() => Math.floor(Math.random() * FACTS.length));
-  return (
-    <section className="widget fortune" aria-label="fortune">
-      <p className="widget-h mono">$ fortune</p>
-      <p className="fortune-text" aria-live="polite">
-        {FACTS[index]}
-      </p>
-      <button type="button" className="btn" onClick={() => setIndex((index + 1) % FACTS.length)}>
-        Another
-      </button>
-    </section>
-  );
-}
 
 export function WorldClock() {
   const now = useNow();
@@ -48,7 +31,6 @@ export function Widgets() {
   return (
     <div className="widgets">
       <StickyNote />
-      <Fortune />
       <WorldClock />
     </div>
   );

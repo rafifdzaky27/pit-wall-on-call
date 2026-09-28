@@ -1,6 +1,6 @@
 import { ACK, replay, Run, type State } from "@pitwall/engine";
 import { describe, expect, it } from "vitest";
-import { desktopFor, messageAuthor, messageText, symptomCode, visibleMessages } from "./desktop";
+import { desktopFor, messageAuthor, messageText, symptomCode, typingFor, visibleMessages } from "./desktop";
 import { SCENARIOS, slowLeak } from "./index";
 
 describe.each(SCENARIOS.map((s) => [s.id, s] as const))("%s desktop content", (_id, scenario) => {
@@ -44,6 +44,20 @@ describe.each(SCENARIOS.map((s) => [s.id, s] as const))("%s desktop content", (_
     }
   });
 
+  it("describes every channel and keeps chat metadata consistent", () => {
+    for (const ch of content.channels) expect(content.channelInfo[ch], ch).toMatchObject({ topic: expect.any(String) });
+    for (const m of content.chat) {
+      for (const r of m.reactions ?? []) {
+        expect(r.emoji.length, m.id).toBeGreaterThan(0);
+        expect(r.by.length, m.id).toBeGreaterThan(0);
+      }
+      for (const reply of m.thread ?? []) {
+        if (m.minutesAgo !== undefined) expect(reply.minutesAgo, m.id).toBeLessThanOrEqual(m.minutesAgo);
+      }
+      if (m.card) expect(["deployer", "secondary", "infra", "support"], m.id).toContain(m.card.by);
+    }
+  });
+
   it("maps its symptom to a real HTTP error code", () => {
     expect([403, 429, 500, 502, 503, 504]).toContain(symptomCode(scenario));
   });
@@ -73,5 +87,15 @@ describe("visibleMessages", () => {
     const msg = content.chat.find((m) => m.id === "deploys.dimas")!;
     expect(messageAuthor(msg, slowLeak)).toBe("deployer");
     expect(messageText(msg, slowLeak)).toBe(slowLeak.coldOpen.hotspots["laptop.slack.deploys"]!.text);
+  });
+});
+
+describe("typingFor", () => {
+  const content = desktopFor(slowLeak.id);
+
+  it("shows who is typing while the action that sends their message runs", () => {
+    expect(typingFor(content, "global.ask_secondary")).toEqual([{ channel: "dm:secondary", author: "secondary" }]);
+    expect(typingFor(content, "checkout.rollback")).toEqual([]);
+    expect(typingFor(content, null)).toEqual([]);
   });
 });

@@ -11,6 +11,11 @@ export interface Prefs {
   singleKeyShortcuts: boolean;
   wallpaper: WallpaperChoice;
   sticky: string;
+  /** 0–100 (polish spec §7). */
+  volume: number;
+  muted: boolean;
+  /** Start shift requests full screen (polish spec S13). */
+  fullscreenOnStart: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -21,12 +26,15 @@ export const DEFAULT_PREFS: Prefs = {
   singleKeyShortcuts: true,
   wallpaper: "auto",
   sticky: "Start here: open Monitoring from the dock.",
+  volume: 70,
+  muted: false,
+  fullscreenOnStart: true,
 };
 
 const KEY = "pitwall.prefs";
 const LEGACY_THEME_KEY = "pitwall.theme";
 const WALLPAPERS: readonly string[] = ["auto", "jakarta", "yogyakarta", "tokyo", "melbourne"];
-const FLAGS = ["reduceMotion", "largeText", "systemCursor", "singleKeyShortcuts"] as const;
+const FLAGS = ["reduceMotion", "largeText", "systemCursor", "singleKeyShortcuts", "muted", "fullscreenOnStart"] as const;
 
 function sanitize(raw: unknown): Prefs {
   const prefs = { ...DEFAULT_PREFS };
@@ -39,6 +47,7 @@ function sanitize(raw: unknown): Prefs {
   }
   if (typeof r.wallpaper === "string" && WALLPAPERS.includes(r.wallpaper)) prefs.wallpaper = r.wallpaper as WallpaperChoice;
   if (typeof r.sticky === "string") prefs.sticky = r.sticky.slice(0, 2000);
+  if (typeof r.volume === "number" && Number.isFinite(r.volume)) prefs.volume = Math.round(Math.min(100, Math.max(0, r.volume)));
   return prefs;
 }
 

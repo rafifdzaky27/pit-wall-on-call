@@ -1,0 +1,83 @@
+import { act, cleanup, fireEvent, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { loadPrefs } from "../prefs";
+import { renderOs } from "../testing";
+import { TopBar } from "./TopBar";
+
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+  delete (document.documentElement as { requestFullscreen?: unknown }).requestFullscreen;
+});
+
+const setup = (onLock = vi.fn()) => ({ onLock, ...renderOs(<TopBar overview={false} onActivities={() => {}} onLock={onLock} />) });
+
+describe("TopBar", () => {
+  it("opens one menu at a time", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "Phone" }));
+    expect(screen.getByRole("dialog", { name: "Phone notifications" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    expect(screen.getByRole("group", { name: "Quick settings" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Phone notifications" })).toBeNull();
+  });
+
+  it("closes the menu with Esc or a click outside the top bar", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("group", { name: "Quick settings" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("group", { name: "Quick settings" })).toBeNull();
+  });
+
+  it("quick settings change the volume, mute and theme", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.change(screen.getByRole("slider", { name: "Volume" }), { target: { value: "40" } });
+    expect(loadPrefs().volume).toBe(40);
+    fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+    expect(loadPrefs().muted).toBe(true);
+    expect((screen.getByRole("slider", { name: "Volume" }) as HTMLInputElement).value).toBe("0");
+    fireEvent.click(screen.getByRole("button", { name: "Light" }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+  });
+
+  it("offers Full screen only where the browser supports it", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    expect(screen.queryByRole("button", { name: /Full screen/ })).toBeNull();
+    cleanup();
+    const request = vi.fn(async () => undefined);
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.click(screen.getByRole("button", { name: /Full screen/ }));
+    expect(request).toHaveBeenCalled();
+  });
+
+  it("About PitOS opens Settings on its About page, and Lock locks", () => {
+    const { os, onLock } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.click(screen.getByRole("button", { name: "About PitOS" }));
+    expect(os().settingsPage).toBe("about");
+    expect(os().wm.windows.map((w) => w.appId)).toEqual(["settings"]);
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lock" }));
+    expect(onLock).toHaveBeenCalled();
+  });
+
+  it("the clock shows unread notifications and opens the calendar, which marks them read and can clear them", () => {
+    const { os } = setup();
+    act(() => os().pushNotice({ id: "n", app: "Chat", title: "Laras", body: "check v142?", actions: [] }));
+    const clock = screen.getByRole("button", { name: /unread notifications/ });
+    fireEvent.click(clock);
+    const cal = screen.getByRole("dialog", { name: "Calendar and notifications" });
+    expect(cal.textContent).toContain("check v142?");
+    expect(cal.querySelector('[aria-current="date"]')).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /unread notifications/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(cal.textContent).toContain("No notifications");
+  });
+});

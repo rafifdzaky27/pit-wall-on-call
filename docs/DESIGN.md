@@ -105,41 +105,86 @@ Shortcuts ignore key presses with Ctrl, Cmd or Alt held, and are shown as `<kbd>
 - The alert feed is an `aria-live="polite"` region. The page card is an `alertdialog`. The pause and error cards are dialogs whose primary button gets focus.
 - Every state is designed: empty (no alerts, no logs, nothing noted), running, paused, resolved, DNF and error.
 
-## 9. Shell (PitOS, M1.5)
+## 9. Shell (PitOS, M1.5 and M1.5.1)
 
-The desktop follows decision D17 and `docs/specs/2026-09-28-pitos-desktop-design.md`.
+The desktop follows decision D17, `docs/specs/2026-09-28-pitos-desktop-design.md` and its revision `docs/specs/2026-09-28-pitos-polish-design.md`.
 
 ### Layout tokens
 
 | Token | Value | Use |
 |---|---|---|
 | `--topbar-h` | 32px | Top bar height |
-| `--dock-h` | 72px | Space reserved for the dock (a 56px bar plus an 8px margin above and below) |
 | `--titlebar-h` | 36px | Window title bar |
-| `--radius-window` | 10px | Windows, notifications and the dock (0 when maximized) |
+| `--radius-window` | 10px | Windows, notifications, menus and the dock (0 when maximized or snapped) |
 | `--shadow-window` | layered shadow | Focused window elevation. Unfocused windows use `--shadow-window-rest`. |
 | `--topbar-bg` / `--topbar-text` | `#0b0c0f` / `#e6e9ee` | The top bar is near-black in both themes, as in GNOME |
 | `--app-*` | one colour per app | App icon squircles: monitoring blue, browser teal, chat violet, files amber, settings slate, trash grey, phone green |
+| `--avatar-1` … `--avatar-8` | muted hues | Chat avatars, picked per name |
+
+Windows use the whole screen below the top bar; the dock (a 56px bar with an 8px margin, 64px in all) floats over them and hides when covered.
+
+### Layers
+
+| Layer | z-index |
+|---|---|
+| Windows | 10–999, by rank in the stack |
+| Dock | 1000 (1450 while the overview is open) |
+| Banners | 1200 |
+| Top bar and its menus | 1300 |
+| Overview | 1400 |
+| Paused overlay | 1500 |
+| Lockscreen | 1600 |
 
 ### Components and states
 
 | Component | States |
 |---|---|
-| Top bar | Activities (pressed while the overview is open), clock, tray: on-call pill (`On call · Primary`, or `Paged` in crit colour while paging), Phone button with a count badge, System menu |
-| Dock | Item: default, hover (raised 2px), pressed, focus ring, running (4px accent dot), badge (count on crit background, also in the accessible name). A tooltip with the app name appears on hover and focus. |
-| Window | Focused (title in `--text`, strong border, `--shadow-window`), unfocused (title in `--muted`, rest shadow), maximized (no radius or shadow), snapped left/right, minimized (hidden, still mounted). Controls: minimize, maximize/restore, close, each a labelled button with a line glyph. |
-| Notification | Default (dismissable), critical (3px crit left border, not dismissable, `alertdialog`). Actions are buttons. |
-| Overview | Scrim plus a grid of window cards (icon, title, "minimized" state). Empty: "No windows open. Pick an app from the dock." |
-| Widgets | `fortune`, world clock, sticky note: panels at 85% opacity over the wallpaper |
-| Lockscreen | Wallpaper, a 64px mono clock, and cards at 85% opacity. At 375px the cards take the full width minus 16px gutters. |
+| Top bar | Activities (pressed while the overview is open); clock with an unread dot, which opens the calendar; tray: on-call pill (`On call · Primary`, or `Paged` in crit colour while paging), Phone with a count badge, System (volume and power glyphs). Only one menu is open at a time; Esc or an outside click closes it. |
+| Quick settings | Volume slider with mute, Dark/Light segmented control across the full width, Full screen toggle (only where supported), Settings, About PitOS, Lock |
+| Calendar | Notification list (time, source, actions, Clear; "No notifications" when empty) and the month grid with today marked |
+| Dock | Item: default, hover (raised 2px), pressed, focus ring, running (4px accent dot), badge (count on crit background, also in the accessible name). The tooltip shows on hover and focus and hides once the item is clicked. Intellihide: hidden while a window covers it; revealed by resting on the bottom edge (150 ms), a swipe up, keyboard focus, the overview or a window drag; hides again 400 ms after the pointer leaves. |
+| Window | Focused, unfocused, maximized, snapped left/right, minimized (hidden, still mounted), closing (exit motion, then removed). Eight resize handles (6px edges, 14px corners) with matching cursors; a per-app minimum size; new windows cascade 32px from near the centre; dragging a maximized window restores it under the pointer. |
+| Notification | Banner: slides in, hides after 8 s into the calendar list, held while hovered or focused, dismiss button. Critical page: 3px crit left border, `alertdialog`, never hides by itself. |
+| Overview | Scrim plus a grid of window cards that scale in (icon, title, "minimized"). Empty: "No windows open. Pick an app from the dock." The dock shows above it. |
+| Widgets | Sticky note, world clock: panels at 85% opacity over the wallpaper |
+| Lockscreen | Wallpaper, a 64px mono clock, and the shift card at 88% opacity. At 375px the card takes the full width minus 16px gutters. |
+
+App stylesheets live next to each app (`os/apps/<app>/<app>.css`) and load with its lazy chunk. Because they then apply to the whole page, an app only defines classes it alone uses; `os/apps/css-scope.test.ts` enforces this.
 
 ### Cursors
 
-`apps/web/public/cursors/*.svg` holds an original set (arrow, pointer, text, grab, grabbing, resize, wait), used when `data-cursor="pitos"`. With "Use system cursor" on, `data-cursor="system"` uses the browser's own cursors.
+`apps/web/public/cursors/*.svg` holds an original set: arrow, pointer, text, grab, grabbing, wait, and resize in four directions (`resize` for nwse, `resize-ns`, `resize-ew`, `resize-nesw`). They are used when `data-cursor="pitos"`. With "Use system cursor" on, `data-cursor="system"` uses the browser's own cursors.
 
 ### Motion
 
-Windows open with a 120ms fade and scale from 0.98. The phone shakes while paging. Both are turned off by `prefers-reduced-motion` or Settings → Reduce motion (`data-motion="reduce"`).
+| Token | Value |
+|---|---|
+| `--motion-fast` | 120ms |
+| `--motion-base` | 180ms |
+| `--motion-slow` | 240ms |
+| `--ease-out` | `cubic-bezier(0.2, 0, 0, 1)` |
+| `--ease-in` | `cubic-bezier(0.3, 0, 1, 1)` |
+
+Only `transform` and `opacity` animate. Window motion runs through the Web Animations API (`os/motion.ts`); everything else is CSS on these tokens.
+
+| Element | Motion |
+|---|---|
+| Window open / close | Fade and scale from / to 0.96 (base, ease-out / fast, ease-in) |
+| Minimize / restore | Shrink into / grow out of the app's dock icon (slow) |
+| Maximize, restore, snap | FLIP from the old frame (base) |
+| Overview | Scrim fades, cards scale in with a 30ms stagger (slow) |
+| Dock | Slides by `translateY` (base) |
+| Menus | Fade and move 4px (fast) |
+| Banners | Slide down from the top bar (base) |
+| Chat | New messages fade in; the thread pane slides in |
+| Browser | A loading bar under the toolbar; reload becomes stop while loading |
+| Phone | Shakes while paging |
+
+Settings → Reduce motion (`data-motion="reduce"`) and `prefers-reduced-motion` set every duration to 0 and turn off the phone shake and the loading bar sweep.
+
+### Sound
+
+All sounds are synthesized with WebAudio (`os/sound.ts`): pager (repeats every 2.5 s until acknowledged), ack, chat message, notification, resolved and budget exhausted. Volume and mute are in quick settings and Settings → Sound. Nothing plays while paused, locked or with the tab hidden.
 
 ### Text size
 

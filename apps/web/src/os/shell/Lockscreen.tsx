@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { FACTS, FAVORITES } from "../../content/aboutRafif";
 import { LogoMark } from "../brand/Logo";
 import { Wallpaper } from "../brand/Wallpaper";
 import { useIncident } from "../incident/IncidentProvider";
@@ -8,8 +6,6 @@ import { useNow } from "../useNow";
 export function Lockscreen({ onUnlock }: { onUnlock?: () => void }) {
   const { world } = useIncident();
   const now = useNow();
-  const [pick, setPick] = useState(0);
-  const [all, setAll] = useState(false);
   const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(now);
   const date = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(now);
 
@@ -34,25 +30,6 @@ export function Lockscreen({ onUnlock }: { onUnlock?: () => void }) {
             </button>
           ) : (
             <p className="note">The incident console needs a screen at least 1024 px wide. Open this page on a laptop or desktop to play.</p>
-          )}
-        </section>
-        <section className="lock-card" aria-labelledby="lock-about-h">
-          <h2 id="lock-about-h">About the developer</h2>
-          <p>{FACTS[FAVORITES[pick]!]}</p>
-          <div className="lock-actions">
-            <button type="button" className="btn" onClick={() => setPick((pick + 1) % FAVORITES.length)}>
-              Another fact
-            </button>
-            <button type="button" className="btn" aria-expanded={all} onClick={() => setAll(!all)}>
-              {all ? "Hide the list" : "All 20 facts"}
-            </button>
-          </div>
-          {all && (
-            <ol className="lock-facts">
-              {FACTS.map((f) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ol>
           )}
         </section>
       </main>

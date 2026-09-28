@@ -1,13 +1,21 @@
 export type CityId = "jakarta" | "yogyakarta" | "tokyo" | "melbourne";
 export type CurrencyCode = "IDR" | "JPY" | "AUD";
 export type ColleagueRole = "deployer" | "secondary" | "infra" | "support";
+export type Locale = "id-ID" | "ja-JP" | "en-AU";
 
 export interface Product {
   id: string;
   name: string;
   /** Minor units: rupiah, yen, or Australian cents. */
   price: number;
+  /** The struck-through price before the discount, in the same units. */
+  was?: number;
   blurb: string;
+  /** Photo file in /store without the extension, "<city>-<key>". */
+  image: string;
+  rating: number;
+  /** Units sold (Indonesian marketplaces) or reviews (elsewhere). */
+  sold: number;
 }
 
 export interface Brand {
@@ -15,7 +23,10 @@ export interface Brand {
   domain: string;
   tagline: string;
   kind: string;
+  locale: Locale;
   colors: { primary: string; paper: string; ink: string };
+  categories: string[];
+  banner: { image: string; headline: string; sub: string };
   products: Product[];
 }
 
@@ -29,8 +40,8 @@ export interface City {
   colleagues: Record<ColleagueRole, string>;
 }
 
-// Every brand here is fictional (spec D19). Names and domains are checked against real
-// companies in their market before a release; see the M1.5 plan, Task 2.
+// Every brand here is fictional (spec D19). Names and domains were checked against real companies
+// in their market (M1.5 plan, Task 2). Products follow the free Unsplash photos in /store (polish plan R8).
 export const CITIES: readonly City[] = [
   {
     id: "jakarta",
@@ -43,11 +54,14 @@ export const CITIES: readonly City[] = [
       domain: "tokoriya.co.id",
       tagline: "Belanja hari ini, sampai hari ini.",
       kind: "Marketplace",
+      locale: "id-ID",
       colors: { primary: "#d2452f", paper: "#fff8f2", ink: "#2b1b16" },
+      categories: ["Makanan & Minuman", "Fashion", "Rumah Tangga", "Elektronik", "Kecantikan"],
+      banner: { image: "jakarta-banner", headline: "Gajian Sale: diskon sampai 50%", sub: "Gratis ongkir se-Jabodetabek untuk belanja di atas Rp100.000" },
       products: [
-        { id: "kopi", name: "Kopi Susu Gula Aren 1L", price: 89000, blurb: "Siap minum, simpan dingin" },
-        { id: "sambal", name: "Sambal Bawang Botol 200g", price: 32000, blurb: "Pedas level 3" },
-        { id: "batik", name: "Kemeja Batik Tulis", price: 459000, blurb: "Katun primisima, lengan pendek" },
+        { id: "kopi", name: "Kopi Susu Gula Aren 1L", price: 89000, was: 109000, blurb: "Siap minum, simpan dingin", image: "jakarta-kopi", rating: 4.8, sold: 2100 },
+        { id: "sambal", name: "Sambal Bawang Botol 200g", price: 32000, blurb: "Pedas level 3", image: "jakarta-sambal", rating: 4.9, sold: 12400 },
+        { id: "batik", name: "Kain Batik Cap Kawung 2 m", price: 185000, was: 230000, blurb: "Katun primisima, motif kawung", image: "jakarta-batik", rating: 4.7, sold: 860 },
       ],
     },
     colleagues: { deployer: "Dimas", secondary: "Sekar", infra: "Rizky", support: "Putri" },
@@ -63,11 +77,14 @@ export const CITIES: readonly City[] = [
       domain: "guyubkriya.id",
       tagline: "Karya tangan lokal, dikirim ke seluruh Indonesia.",
       kind: "Marketplace UMKM",
+      locale: "id-ID",
       colors: { primary: "#7a4a1f", paper: "#fbf6ec", ink: "#2e2116" },
+      categories: ["Batik", "Kerajinan", "Kuliner Khas", "Aksesoris"],
+      banner: { image: "yogyakarta-banner", headline: "Karya perajin Jogja, langsung dari bengkelnya", sub: "Setiap pembelian mendukung lebih dari 120 UMKM di DIY" },
       products: [
-        { id: "bakpia", name: "Bakpia Kacang Hijau isi 20", price: 45000, blurb: "Dipanggang pagi ini" },
-        { id: "gudeg", name: "Gudeg Kaleng", price: 38000, blurb: "Tahan 12 bulan" },
-        { id: "anyaman", name: "Tas Anyaman Pandan", price: 175000, blurb: "Dianyam tangan di Bantul" },
+        { id: "gudeg", name: "Paket Gudeg Komplit", price: 65000, blurb: "Gudeg, krecek, telur dan ayam kampung", image: "yogyakarta-gudeg", rating: 4.8, sold: 3200 },
+        { id: "anyaman", name: "Tas Anyaman Pandan", price: 175000, was: 210000, blurb: "Dianyam tangan di Bantul", image: "yogyakarta-anyaman", rating: 4.9, sold: 540 },
+        { id: "parang", name: "Kain Batik Tulis Parang 2 m", price: 450000, blurb: "Pewarna alami, dibuat tiga minggu", image: "yogyakarta-parang", rating: 5, sold: 96 },
       ],
     },
     colleagues: { deployer: "Bayu", secondary: "Laras", infra: "Galih", support: "Wulan" },
@@ -81,13 +98,16 @@ export const CITIES: readonly City[] = [
     brand: {
       name: "Yoimichi Market",
       domain: "yoimichi-market.jp",
-      tagline: "Everyday tools for a quieter home.",
+      tagline: "静かな暮らしのための道具",
       kind: "Online store",
+      locale: "ja-JP",
       colors: { primary: "#2f4a3a", paper: "#f6f3ec", ink: "#1f2320" },
+      categories: ["キッチン", "インテリア", "お茶", "バス用品", "ギフト"],
+      banner: { image: "tokyo-banner", headline: "秋の暮らし支度フェア", sub: "5,000円以上のご注文で送料無料" },
       products: [
-        { id: "kettle", name: "Cast Iron Kettle 1.2L", price: 12800, blurb: "Made in Iwate" },
-        { id: "stool", name: "Hinoki Bath Stool", price: 6800, blurb: "Untreated cypress" },
-        { id: "matcha", name: "Matcha Starter Set", price: 4200, blurb: "Whisk, bowl and 30g tin" },
+        { id: "kettle", name: "南部鉄器 鉄瓶 1.2L", price: 12800, blurb: "盛岡の工房で鋳造", image: "tokyo-kettle", rating: 4.8, sold: 1204 },
+        { id: "stool", name: "オーク スツール", price: 6800, was: 8200, blurb: "北海道産オーク無垢材", image: "tokyo-stool", rating: 4.6, sold: 318 },
+        { id: "matcha", name: "抹茶スターターセット", price: 4200, blurb: "茶筅・茶碗・抹茶30g", image: "tokyo-matcha", rating: 4.9, sold: 2045 },
       ],
     },
     colleagues: { deployer: "Kenji", secondary: "Aiko", infra: "Takumi", support: "Haruka" },
@@ -103,11 +123,14 @@ export const CITIES: readonly City[] = [
       domain: "tramandco.com.au",
       tagline: "Good things for small apartments.",
       kind: "Online store",
+      locale: "en-AU",
       colors: { primary: "#1f5f8b", paper: "#f4f6f8", ink: "#16222b" },
+      categories: ["Kitchen", "Living", "Wear", "Carry", "Gifts"],
+      banner: { image: "melbourne-banner", headline: "Spring edit: 20% off homewares", sub: "Free delivery over $80 Australia-wide" },
       products: [
-        { id: "beanie", name: "Merino Beanie", price: 3900, blurb: "Knitted in Victoria" },
-        { id: "cup", name: "Reusable Ceramic Cup", price: 2800, blurb: "340 ml, fits under most group heads" },
-        { id: "tote", name: "Market Tote", price: 4500, blurb: "Waxed canvas" },
+        { id: "beanie", name: "Merino Beanie", price: 3900, blurb: "Knitted in Victoria", image: "melbourne-beanie", rating: 4.7, sold: 312 },
+        { id: "cup", name: "Reusable Ceramic Cup", price: 2800, was: 3500, blurb: "340 ml, fits under most group heads", image: "melbourne-cup", rating: 4.8, sold: 1180 },
+        { id: "tote", name: "Market Tote", price: 4500, blurb: "Waxed canvas", image: "melbourne-tote", rating: 4.6, sold: 204 },
       ],
     },
     colleagues: { deployer: "Josh", secondary: "Priya", infra: "Liam", support: "Chloe" },
