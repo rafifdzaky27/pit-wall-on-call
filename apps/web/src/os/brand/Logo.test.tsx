@@ -17,7 +17,9 @@ describe("LogoMark", () => {
     const web = resolve(__dirname, "../../..");
     const html = readFileSync(resolve(web, "index.html"), "utf8");
     expect(html).toContain('rel="icon" href="/favicon.svg"');
-    expect(html).toContain('property="og:image" content="/og.png"');
+    // Link-preview crawlers (Slack, WhatsApp, X, Facebook) need absolute URLs.
+    expect(html).toContain('property="og:image" content="https://pitwall.rafifdzaky.com/og.png"');
+    expect(html).toContain('property="og:url" content="https://pitwall.rafifdzaky.com/"');
     expect(readFileSync(resolve(web, "public/favicon.svg"), "utf8")).toContain("<svg");
   });
 });
