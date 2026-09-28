@@ -7,6 +7,7 @@ import { useOs } from "../../shell/OsContext";
 import { useNow } from "../../useNow";
 import "./chat.css";
 import { avatarIndex, dayLabel, groupHeads, initials, relative, sameDay } from "./model";
+import { complete, HELP_LINES, PAGE_ACTION, parseCommand, STATUS_ACTION } from "./commands";
 import { authorName, channelLabel, isBot, isMention, visibleFor } from "./unread";
 
 const PEOPLE: readonly Person[] = ["secondary", "deployer", "infra", "support"];
@@ -71,6 +72,10 @@ export function ChatApp() {
   const [draft, setDraft] = useState("");
   const [mine, setMine] = useState<ReadonlySet<string>>(() => new Set());
   const [threadId, setThreadId] = useState<string | null>(null);
+  /** An ephemeral line above the composer: /help, or why a command could not run. */
+  const [note, setNote] = useState<string | null>(null);
+  const replyTimers = useRef<number[]>([]);
+  useEffect(() => () => replyTimers.current.forEach((id) => window.clearTimeout(id)), []);
 
   const log = useRef<HTMLOListElement>(null);
   const shownIn = useRef<string | null>(null);
@@ -119,14 +124,92 @@ export function ChatApp() {
   const typing = typingFor(content, running).filter((t) => t.channel === current);
   const thread = items.find((i) => i.id === threadId && i.msg?.thread);
 
+  const post = (channel: string, author: Item["author"], text: string) => {
+    const at = Date.now();
+    const name = author === "you" ? "You" : authorName(author, world);
+    setSent((s) => ({ ...s, [channel]: [...(s[channel] ?? []), { id: `${author}-${at}-${(s[channel] ?? []).length}`, author, name, text, at }] }));
+  };
+
+  /** Why an action cannot run now, in the chat's words; null when it can (M2.5 spec §7). */
+  const refusal = (actionId: string): string | null => {
+    switch (incident.check(actionId)) {
+      case null:
+        return null;
+      case "not_acknowledged":
+        return "Acknowledge the page first.";
+      case "pending":
+        return "Still waiting for their answer.";
+      case "busy":
+        return "Wait for the running action to finish.";
+      case "unavailable":
+        return "That's already done.";
+      case "finished":
+        return "The incident is over.";
+      default:
+        return "That can't be done right now.";
+    }
+  };
+
+  /** A teammate question from a chip or /ask: your message goes to their DM, then they answer. */
+  const ask = (actionId: string): boolean => {
+    const def = scenario.actions.find((a) => a.id === actionId);
+    if (!def?.ask) return false;
+    const why = refusal(actionId);
+    if (why) {
+      setNote(why);
+      return false;
+    }
+    post(`dm:${def.ask.to}`, "you", def.ask.prompt);
+    incident.dispatch(actionId);
+    setNote(current === `dm:${def.ask.to}` ? null : `Asked ${world.colleagues[def.ask.to as Person]} in a direct message.`);
+    return true;
+  };
+
   const send = (e?: FormEvent) => {
     e?.preventDefault();
     const text = draft.trim();
     if (!text) return;
-    const at = Date.now();
-    setSent((s) => ({ ...s, [current]: [...(s[current] ?? []), { id: `you-${at}-${(s[current] ?? []).length}`, author: "you", name: "You", text, at }] }));
+    const cmd = parseCommand(text, { scenario, world });
+    if (cmd.kind === "help") {
+      setNote(HELP_LINES.join("\n"));
+      setDraft("");
+      return;
+    }
+    if (cmd.kind === "error") {
+      setNote(cmd.message);
+      return;
+    }
+    if (cmd.kind === "ask") {
+      if (ask(cmd.actionId)) setDraft("");
+      return;
+    }
+    if (cmd.kind === "status" || cmd.kind === "page") {
+      const actionId = cmd.kind === "status" ? STATUS_ACTION : PAGE_ACTION;
+      const why = refusal(actionId);
+      if (why) {
+        setNote(why);
+        return;
+      }
+      if (cmd.kind === "status") post("incidents", "you", `Status update: ${cmd.text}`);
+      else post("dm:secondary", "you", "can you jump in? paging you on this one");
+      incident.dispatch(actionId);
+      setNote(null);
+      setDraft("");
+      return;
+    }
+    post(current, "you", text);
     setDraft("");
+    setNote(null);
+    // Teammates only answer what they can; free text gets an honest reply (M2.5 plan B5).
+    if (dm) {
+      const who = dm;
+      const channel = current;
+      replyTimers.current.push(window.setTimeout(() => post(channel, who, "Not sure what you mean. Try /help, or one of the suggestions below."), 5000));
+    }
   };
+
+  const asked = (actionId: string) => incident.timeline.some((e) => e.kind === "action_start" && e.actionId === actionId);
+  const chips = dm ? scenario.actions.filter((a) => a.ask?.to === dm && !asked(a.id)) : [];
 
   const toggleReaction = (key: string) =>
     setMine((prev) => {
@@ -278,6 +361,30 @@ export function ChatApp() {
         <p className="chat-typing" aria-live="polite">
           {typing.length > 0 ? `${authorName(typing[0]!.author, world)} is typing…` : ""}
         </p>
+        {chips.length > 0 && (
+          <div className="chat-chips" role="group" aria-label="Suggested questions">
+            {chips.map((a) => (
+              <button key={a.id} type="button" className="chat-chip" onClick={() => ask(a.id)}>
+                {a.ask!.prompt}
+              </button>
+            ))}
+          </div>
+        )}
+        {current === "incidents" && (
+          <div className="chat-chips" role="group" aria-label="Suggested actions">
+            <button type="button" className="chat-chip" onClick={() => setDraft("/status ")}>
+              Write a status update…
+            </button>
+            <button type="button" className="chat-chip" onClick={() => setDraft("/page @secondary")}>
+              Page my secondary
+            </button>
+          </div>
+        )}
+        {note && (
+          <p className="chat-note" role="status" aria-label="Chat note">
+            {note}
+          </p>
+        )}
         <form className="composer" onSubmit={send}>
           <textarea
             aria-label={`Message ${label}`}
@@ -290,12 +397,19 @@ export function ChatApp() {
                 e.preventDefault();
                 send();
               }
+              if (e.key === "Tab" && draft.startsWith("/")) {
+                const next = complete(draft, { scenario, world });
+                if (next) {
+                  e.preventDefault();
+                  setDraft(next);
+                }
+              }
             }}
           />
           <button type="submit" className="btn primary" disabled={!draft.trim()}>
             Send
           </button>
-          <p className="composer-hint">Enter to send · Shift + Enter for a new line</p>
+          <p className="composer-hint">Enter to send · / for commands (Tab completes) · /help</p>
         </form>
       </section>
 
