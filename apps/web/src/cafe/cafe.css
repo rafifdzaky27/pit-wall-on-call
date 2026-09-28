@@ -150,7 +150,7 @@
 .phone-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .phone-card-app { display: inline-flex; align-items: center; gap: 6px; color: #6b5a4a; font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .phone-card-app i { display: inline-block; width: 16px; height: 16px; border-radius: 5px; background: linear-gradient(#e0584a, #b3262e); }
-.phone-card-app.chat i { background: linear-gradient(#6a8ae0, #3b5ab0); }
+.phone-card-app.mention i { background: linear-gradient(#6a8ae0, #3b5ab0); }
 .phone-card-when { color: #8a7a6a; font-size: var(--fs-xs); }
 .phone-card.phone-page { gap: 6px; }
 .phone-empty { margin: 24px 0; text-align: center; opacity: 0.85; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4); }

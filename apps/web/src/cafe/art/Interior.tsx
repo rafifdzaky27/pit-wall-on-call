@@ -627,7 +627,7 @@ function Glass({ model }: { model: SceneModel }) {
   );
 }
 
-function WindowFrame({ model, t }: { model: SceneModel; t: Tone }) {
+function WindowFrame({ t }: { t: Tone }) {
   const { x, y, w, h } = WINDOW;
   return (
     <Prop name="window-frame" className="window-frame">
@@ -662,7 +662,7 @@ export const Walls = memo(function Walls({ model, brand, cityName, hhmm, paged }
     <g className="walls layer-wall" data-layer="walls">
       <WallSurface model={model} t={t} />
       <Glass model={model} />
-      <WindowFrame model={model} t={t} />
+      <WindowFrame t={t} />
       <g className="interior">
         <Ceiling model={model} t={t} />
         <LeftWall model={model} t={t} />

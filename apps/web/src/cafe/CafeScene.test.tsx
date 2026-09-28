@@ -150,6 +150,12 @@ describe("café motion (M2.5 spec §12)", () => {
     expect(cafeCss).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.cafe \*[^}]*animation:\s*none/);
   });
 
+  it("holds the art's loops while the camera moves, so a zoom never rasters them frame by frame", () => {
+    const { container } = scene(1, { moving: true });
+    expect(container.querySelector(".cafe")!.classList.contains("moving")).toBe(true);
+    expect(rules(cafeCss).some((r) => r.sel.includes(".cafe.moving .cafe-art *") && /animation-play-state:\s*paused/.test(r.body))).toBe(true);
+  });
+
   it("gives transform-box only to the animated loops, never to every group (M1.6 lesson)", () => {
     for (const r of rules(cafeCss)) if (/transform-box/.test(r.body)) for (const sel of r.sel.split(",")) expect(sel.trim(), sel).not.toMatch(/(\*|^g$|^svg$|^\.cafe$|\bg$)/);
   });

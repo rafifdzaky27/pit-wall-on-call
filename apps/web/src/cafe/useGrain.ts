@@ -15,7 +15,7 @@ function grainTile(): string | null {
   for (let i = 0; i < img.data.length; i += 4) {
     const v = Math.random() < 0.5 ? 0 : 255;
     img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-    img.data[i + 3] = Math.floor(Math.random() * 255);
+    img.data[i + 3] = Math.floor(Math.random() * 160);
   }
   ctx.putImageData(img, 0, 0);
   tile = canvas.toDataURL("image/png");
@@ -26,7 +26,7 @@ function grainTile(): string | null {
 export function useGrain(ref: RefObject<HTMLElement | null>): void {
   useEffect(() => {
     const image = ref.current?.querySelector("#cf-noise image");
-    let url: string | null = null;
+    let url: string | null;
     try {
       url = grainTile();
     } catch {

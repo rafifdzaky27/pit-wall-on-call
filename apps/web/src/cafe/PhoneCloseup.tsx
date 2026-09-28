@@ -122,7 +122,7 @@ export function PhoneCloseup({ onClose }: { onClose: () => void }) {
             {items.map(([id, h]) => (
               <div key={id} className="phone-card">
                 <div className="phone-card-head">
-                  <span className="phone-card-app chat">
+                  <span className="phone-card-app mention">
                     <i aria-hidden="true" />
                     {h.label}
                   </span>

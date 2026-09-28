@@ -63,7 +63,7 @@ export default function CafeScene({ seed, close, ringing, page, radioOn, paused,
         <Lights model={model} />
         {/* Vignette and grain are part of the art (raster once with it), not overlay layers composited every frame. */}
         <rect x={-40} y={-40} width={1680} height={980} fill="url(#cf-vignette)" pointerEvents="none" />
-        <rect className="cafe-grain" x={-40} y={-40} width={1680} height={980} fill="url(#cf-noise)" opacity={0.1} pointerEvents="none" />
+        <rect className="cafe-grain" x={-40} y={-40} width={1680} height={980} fill="url(#cf-noise)" opacity={0.05} pointerEvents="none" />
       </svg>
       {children}
     </div>
