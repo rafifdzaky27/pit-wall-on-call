@@ -17,7 +17,9 @@ describe("loading the café", () => {
       </Stage>,
     );
     act(() => incident().start());
-    expect(await screen.findByRole("img", { name: /^A café in / })).toBeTruthy();
+    // The first import of the café chunk is transformed on demand; under a full parallel `pnpm test`
+    // (API tests on Postgres included) that can take longer than findBy's default 1 s.
+    expect(await screen.findByRole("img", { name: /^A café in / }, { timeout: 5000 })).toBeTruthy();
   });
 
   it("keeps the game playable on a plain backdrop when the café cannot load (Review Focus 5)", async () => {
