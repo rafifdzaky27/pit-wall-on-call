@@ -44,6 +44,10 @@ describe("parseRunBody", () => {
     expect(codeOf(overrides === null ? [] : perfectRun(overrides as Record<string, unknown>))).toBe("400 schema");
   });
 
+  it("refuses a training shift: training is never posted (M2.5 spec D4)", () => {
+    expect(codeOf(perfectRun({ scenarioId: "training-config-push", actions: [{ tick: 0, actionId: "ack" }] }))).toBe("400 schema");
+  });
+
   it("answers a stale engine version with 409, even when its actions are unknown here", () => {
     expect(codeOf(perfectRun({ engineVersion: "0.9.0", actions: [{ tick: 0, actionId: "future.action" }] }))).toBe("409 stale_version");
   });

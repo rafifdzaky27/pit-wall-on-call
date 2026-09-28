@@ -126,6 +126,8 @@ export interface ScenarioDef<S extends State> {
   hints?: string[];
   /** For actions that only hide the symptom: what they did, for the postmortem (M2.5 spec §3). */
   maskNotes?: Record<string, string>;
+  /** The guided training shift: never posted to the leaderboard (M2.5 spec §5, D4). */
+  training?: boolean;
   coldOpen: ColdOpenDef;
   /** First match wins; the last lesson must match everything. */
   lessons: LessonDef[];

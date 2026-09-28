@@ -56,6 +56,7 @@ export function parseRunBody(json: unknown): RunBody {
   const body = parsed.data;
   const scenario = getScenario(body.scenarioId);
   if (!scenario) throw schemaError(`Unknown scenario ${body.scenarioId}.`);
+  if (scenario.training) throw schemaError("Training shifts are not posted.");
 
   const known = new Set<string>([ACK, ...scenario.actions.map((a) => a.id), ...Object.keys(scenario.coldOpen.hotspots).map((h) => `${INSPECT_PREFIX}${h}`)]);
   let last = 0;
