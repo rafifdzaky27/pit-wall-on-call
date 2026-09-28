@@ -1,6 +1,6 @@
 # Pit Wall On-Call: Cold Open Design Spec
 
-- **Status:** Approved in design review, 2026-09-28. The M1.6 refresh (below) is waiting for review.
+- **Status:** Approved in design review, 2026-09-28. The M1.6 refresh was approved in #20 and is implemented in M1.6. The execution rulings are in `docs/plans/2026-09-28-m1.6-cafe-cold-open.md`.
 - **Parent spec:** `2026-09-27-pit-wall-on-call-design.md` (decisions D14–D16)
 - **Delivery:** engine rules in **M1**; café scene, audio and transitions in **M1.6** (after the PitOS desktop in M1.5 and its polish in M1.5.1); more scenes in **M4**
 - **Revision 2026-09-28:** the game now runs inside the PitOS desktop (`2026-09-28-pitos-desktop-design.md`, D17). Start shift on the desktop zooms out to the café, and the ack zooms back into the laptop. The `laptop.*` hotspots live in the desktop Chat app. `packages/scenes` is folded into `packages/world`, and brands and cities come from `resolveWorld(seed)` (D19).

@@ -12,16 +12,27 @@ Start shift goes full screen and the pager rings (synthesized with WebAudio, no 
 
 ## What a run looks like
 
-1. **Before the page.** Your shift starts on the desktop, in a city picked by the seed: Jakarta, Yogyakarta, Tokyo or Melbourne. You get a few free seconds. Chat's `#deploys` and `#infra` channels, and later a mention on your phone, may hold clues, or may not.
-2. **The page.** The phone buzzes and a critical notification appears. The Browser shows what customers see: a real `502 Bad Gateway` page, and a DevTools-style Network panel that lists every request with its status code. The incident clock starts, every second before you acknowledge (`A`) burns budget, and after 60 s the secondary on-call gets paged.
-3. **Monitoring.** A service map, focused metrics, a log stream and per-service actions. Actions take time, you can run one at a time, and some of them make things worse.
-4. **The postmortem.** It opens as `postmortem.md` and shows budget burned, when you mitigated, whether you found the root cause, how fast you acknowledged, the clues you found, the burn broken down by cause, a timeline with a verdict on each action, and one lesson.
+1. **Before the page.** Start shift pulls the camera back from your laptop: you're in a café in a city picked by the seed (Jakarta, Yogyakarta, Tokyo or Melbourne), at a time of day and in weather picked by the same seed. You get a few free seconds. The next table, a poster on the wall, Chat's `#deploys` and `#infra` channels on the laptop, and later a mention on your phone may hold clues, or may not.
+2. **The page.** Your phone buzzes on the table and PitOS shows a critical notification. The Browser shows what customers see: a real `502 Bad Gateway` page, and a DevTools-style Network panel that lists every request with its status code. The incident clock starts, every second before you acknowledge (`A`) burns budget, and after 60 s the secondary on-call gets paged.
+3. **Monitoring.** Acknowledging takes you into the laptop. A service map, focused metrics, a log stream with pinned findings, and per-service actions. Actions take time, you can run one at a time, and some of them make things worse. `L` looks up at the café at any time. The clock keeps running.
+4. **The fix holds.** A fix has to hold for 10 seconds, and Monitoring counts them down.
+5. **The cold close and the postmortem.** The camera pulls back to the café. The coffee has gone cold, or the rain has stopped and it is night, depending on how long it took. Then `postmortem.md` shows:
+   - the budget burned
+   - when the fix went in and when it was confirmed
+   - whether you found the root cause
+   - how fast you acknowledged
+   - the clues you found
+   - the burn broken down by cause
+   - a timeline with a verdict on each action
+   - one lesson
+
+![A rainy evening in a Tokyo café, the page ringing on the phone](docs/media/cafe.png)
 
 ![Chat before the page: the deploy that started it](docs/media/chat.png)
 
 ![Monitoring during an incident](docs/media/monitoring.png)
 
-Windows open, snap and maximize like on a GNOME desktop, and single-key shortcuts (`O` overview, `M` maximize, `[` `]` snap, `X` close, `A` acknowledge, `P` pause) can be turned off in Settings. On screens narrower than 1024 px, the site shows an on-call lockscreen instead.
+The café has recorded ambience (CC0 and public-domain recordings, credited in [`apps/web/public/audio/CREDITS.md`](apps/web/public/audio/CREDITS.md)), and a lo-fi radio on the counter that is generated in the browser. Every other sound is synthesized. Windows open, snap and maximize like on a GNOME desktop, and single-key shortcuts (`O` overview, `M` maximize, `[` `]` snap, `X` close, `A` acknowledge, `P` pause) can be turned off in Settings. On screens narrower than 1024 px, the site shows an on-call lockscreen instead.
 
 <p><img src="docs/media/lockscreen.png" width="240" alt="The lockscreen on a phone"></p>
 
@@ -70,6 +81,7 @@ Every pull request runs lint, typecheck, tests, the deploy-script tests and Dock
 - [Design spec](docs/specs/2026-09-27-pit-wall-on-call-design.md) and [cold open spec](docs/specs/2026-09-28-cold-open-design.md)
 - [Roadmap](docs/plans/2026-09-27-roadmap.md)
 - [PitOS desktop spec](docs/specs/2026-09-28-pitos-desktop-design.md), [polish spec](docs/specs/2026-09-28-pitos-polish-design.md), [persona walkthrough](docs/research/2026-09-28-m1.5-persona-walkthrough.md) and [usability test protocol](docs/research/m1.5-usability-protocol.md)
+- [Café cold open walkthrough (M1.6)](docs/research/2026-09-28-m1.6-walkthrough.md)
 - [Design system](docs/DESIGN.md)
 
 ## License
