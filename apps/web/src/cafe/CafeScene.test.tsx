@@ -1,8 +1,12 @@
 import { slowLeak } from "@pitwall/scenarios";
 import { CITIES, resolveScene, resolveWorld } from "@pitwall/world";
 import { cleanup, render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import CafeScene from "./CafeScene";
+
+const cafeCss = readFileSync(resolve(__dirname, "cafe.css"), "utf8");
 
 afterEach(cleanup);
 
@@ -80,5 +84,73 @@ describe("CafeScene", () => {
       expect(container.querySelector(`.prop-${resolveScene(seed).sign.prop}`), city.id).not.toBeNull();
       cleanup();
     }
+  });
+});
+
+describe("the café's art (M2.5 spec §12)", () => {
+  it("is dense: 40 or more distinct props in every city, across all four depth layers", () => {
+    for (const city of CITIES) {
+      const seed = seedWhere((s) => s.city === city.id);
+      const { container } = scene(seed);
+      const names = (sel: string) => new Set([...container.querySelectorAll(`${sel}[data-prop]`)].map((e) => e.getAttribute("data-prop")));
+      expect(names("").size, city.id).toBeGreaterThanOrEqual(40);
+      for (const layer of ["street", "walls", "counter", "room"]) expect(names(`[data-layer="${layer}"] `).size, `${city.id} ${layer}`).toBeGreaterThanOrEqual(5);
+      cleanup();
+    }
+  });
+
+  it("puts the player's things on the table, the rubber duck among them", () => {
+    const { container } = scene(1);
+    for (const prop of ["laptop", "keyboard", "trackpad", "phone", "latte", "notebook", "earbuds", "rubber-duck"])
+      expect(container.querySelector(`[data-layer="room"] [data-prop="${prop}"]`), prop).not.toBeNull();
+  });
+
+  it("the phone's island expands into a live pager activity only while it rings", () => {
+    const quiet = scene(1, { clock: "00:12" });
+    expect(quiet.container.querySelector(".phone .island")).not.toBeNull();
+    expect(quiet.container.querySelector(".phone .island.live")).toBeNull();
+    cleanup();
+    const ringing = scene(1, { ringing: true, clock: "00:12" });
+    expect(ringing.container.querySelector(".phone .island.live")?.textContent).toBe("SEV2 · Checkout 5xx · 00:12");
+  });
+
+  it("the days-since-last-incident sign resets to 0 when the page fires", () => {
+    const before = scene(1);
+    const days = Number(before.container.querySelector('[data-prop="days-since"] .days')!.textContent);
+    expect(days).toBeGreaterThan(0);
+    cleanup();
+    const after = scene(1, { paged: true });
+    expect(after.container.querySelector('[data-prop="days-since"] .days')!.textContent).toBe("0");
+  });
+
+  it("hides its easter eggs in the art: the sticker, the force push, HUG OPS, the cat and the clock at 3", () => {
+    const { container } = scene(1);
+    expect(container.querySelector('[data-prop="sticker-works-on-my-machine"]')!.textContent).toMatch(/works on my machine/i);
+    expect(container.querySelector('[data-prop="patron-force-push"]')!.textContent).toContain("git push --force");
+    expect(container.querySelector('[data-prop="hug-ops"]')!.textContent).toMatch(/HUG OPS/);
+    expect(container.querySelector('[data-prop="clock-3am"]')).not.toBeNull();
+    expect(container.querySelector('[data-prop="cafe-cat"]')).not.toBeNull();
+  });
+});
+
+describe("café motion (M2.5 spec §12)", () => {
+  const noFrames = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*\s*\}/g, "");
+  const rules = (css: string) => [...noFrames(css).matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ sel: m[1]!.trim(), body: m[2]! }));
+
+  it("animates only transform and opacity", () => {
+    const frames = [...cafeCss.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*)\s*\}/g)];
+    expect(frames.length).toBeGreaterThan(5);
+    for (const [, name, body] of frames) for (const [, p] of body!.matchAll(/([\w-]+)\s*:/g)) expect(["transform", "opacity"], `${name}: ${p}`).toContain(p);
+  });
+
+  it("holds everything still while paused and under reduced motion, both ways of asking", () => {
+    const all = rules(cafeCss);
+    expect(all.some((r) => r.sel.includes(".cafe.paused *") && /animation-play-state:\s*paused/.test(r.body))).toBe(true);
+    expect(all.some((r) => r.sel.includes('[data-motion="reduce"] .cafe *') && /animation:\s*none/.test(r.body))).toBe(true);
+    expect(cafeCss).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.cafe \*[^}]*animation:\s*none/);
+  });
+
+  it("gives transform-box only to the animated loops, never to every group (M1.6 lesson)", () => {
+    for (const r of rules(cafeCss)) if (/transform-box/.test(r.body)) for (const sel of r.sel.split(",")) expect(sel.trim(), sel).not.toMatch(/(\*|^g$|^svg$|^\.cafe$|\bg$)/);
   });
 });

@@ -1,5 +1,7 @@
 import { closeState, resolveScene } from "@pitwall/world";
 import { useMemo } from "react";
+import { formatClock } from "../game/format";
+import { isPaged } from "../os/apps/chat/unread";
 import { useIncident } from "../os/incident/IncidentProvider";
 import { usePrefs } from "../os/PrefsProvider";
 import CafeScene from "./CafeScene";
@@ -17,7 +19,16 @@ export default function CafeView() {
   const weather = useMemo(() => resolveScene(incident.seed).weather, [incident.seed]);
   useCafeAudio(camera.view, weather === "rain" && close !== "late");
   return (
-    <CafeScene seed={incident.seed} close={close} ringing={incident.phase === "paging"} page={incident.scenario.coldOpen.page} radioOn={prefs.radio} paused={incident.paused}>
+    <CafeScene
+      seed={incident.seed}
+      close={close}
+      ringing={incident.phase === "paging"}
+      page={incident.scenario.coldOpen.page}
+      radioOn={prefs.radio}
+      paused={incident.paused}
+      clock={formatClock(incident.snapshot.tick)}
+      paged={isPaged(incident.phase)}
+    >
       <Hotspots />
     </CafeScene>
   );
