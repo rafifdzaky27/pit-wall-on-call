@@ -6,9 +6,11 @@ import { Wallpaper } from "../brand/Wallpaper";
 import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useShortcuts } from "../useShortcuts";
+import { useStartShift } from "../useStartShift";
 import { DesktopIcons } from "./DesktopIcons";
 import { Dock } from "./Dock";
 import { Lockscreen } from "./Lockscreen";
+import { useNoticeFeed } from "./noticeFeed";
 import { Notifications } from "./Notifications";
 import { useOs } from "./OsContext";
 import { Overview } from "./Overview";
@@ -18,6 +20,8 @@ import { Widgets } from "./Widgets";
 import { Window } from "./Window";
 
 export function Desktop() {
+  const startShift = useStartShift();
+  useNoticeFeed(startShift);
   const incident = useIncident();
   const { wm, dispatchWm, openApp, read } = useOs();
   const { prefs } = usePrefs();

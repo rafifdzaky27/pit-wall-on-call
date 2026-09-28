@@ -1,13 +1,14 @@
 import { fillWorld } from "@pitwall/world";
-import { useState } from "react";
 import { isPaged } from "../apps/chat/unread";
 import { AppIcon } from "../brand/AppIcon";
 import { useIncident } from "../incident/IncidentProvider";
 import { surfaceOf } from "../surfaces";
+import { useOs } from "./OsContext";
 
 export function PhoneWidget() {
   const incident = useIncident();
-  const [open, setOpen] = useState(false);
+  const { openMenu, setOpenMenu } = useOs();
+  const open = openMenu === "phone";
   const paged = isPaged(incident.phase);
   const ringing = incident.phase === "paging";
   const page = incident.scenario.coldOpen.page;
@@ -17,9 +18,12 @@ export function PhoneWidget() {
   const unseen = items.filter(([id]) => !incident.snapshot.inspected.includes(id)).length + (ringing ? 1 : 0);
 
   const toggle = () => {
-    const next = !open;
-    setOpen(next);
-    if (next) for (const [id] of items) incident.inspect(id);
+    if (open) {
+      setOpenMenu(null);
+      return;
+    }
+    setOpenMenu("phone");
+    for (const [id] of items) incident.inspect(id);
   };
 
   return (
@@ -33,7 +37,7 @@ export function PhoneWidget() {
         )}
       </button>
       {open && (
-        <div className="phone-panel" role="dialog" aria-label="Phone notifications">
+        <div className="menu phone-panel" role="dialog" aria-label="Phone notifications">
           {ringing && (
             <div className="phone-item phone-page">
               <span className="tag crit">{page.severity}</span>
