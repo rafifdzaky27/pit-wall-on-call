@@ -19,3 +19,7 @@ The following are **not** covered by the AGPL and remain all rights reserved:
 You may read them here and link to them. Do not reuse them in another product or service without written permission. For permission, open an issue or contact the author.
 
 Brands, companies and people that appear in the game are fictional. Any resemblance to real ones is unintended.
+
+## Third-party photos
+
+The store photos in `apps/web/public/store/` are by the photographers listed in [`apps/web/public/store/CREDITS.md`](apps/web/public/store/CREDITS.md), from Unsplash, under the [Unsplash License](https://unsplash.com/license). They are not covered by the AGPL and are not part of the reserved game content.
