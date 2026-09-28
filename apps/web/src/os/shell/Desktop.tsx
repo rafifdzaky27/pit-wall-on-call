@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useCamera } from "../../cafe/CameraContext";
 import { unreadCount } from "../apps/chat/unread";
 import type { AppId } from "../apps/ids";
 import { APP_COMPONENTS } from "../apps/registry";
@@ -16,7 +17,6 @@ import { useNoticeFeed } from "./noticeFeed";
 import { Notifications } from "./Notifications";
 import { useOs } from "./OsContext";
 import { Overview } from "./Overview";
-import { PausedOverlay } from "./PausedOverlay";
 import { TopBar } from "./TopBar";
 import { Widgets } from "./Widgets";
 import { Window } from "./Window";
@@ -28,6 +28,7 @@ export function Desktop() {
   const [overview, setOverview] = useState(false);
   const [locked, setLocked] = useState(false);
   const startShift = useStartShift();
+  const camera = useCamera();
   const focused = wm.focusedId;
   const running = incident.phase === "paging" || incident.phase === "active";
 
@@ -46,31 +47,32 @@ export function Desktop() {
     if (incident.phase === "ended") openApp("postmortem");
   }, [incident.phase, openApp]);
 
-  useShortcuts(
-    {
-      o: () => setOverview((v) => !v),
-      Escape: () => setOverview(false),
-      m: () => {
-        if (focused) dispatchWm({ type: "toggleMaximize", id: focused });
-      },
-      "[": () => {
-        if (focused) dispatchWm({ type: "snap", id: focused, side: "left" });
-      },
-      "]": () => {
-        if (focused) dispatchWm({ type: "snap", id: focused, side: "right" });
-      },
-      x: () => {
-        if (focused) dispatchWm({ type: "close", id: focused });
-      },
-      a: () => incident.acknowledge(),
-      p: () => {
-        if (!running) return;
-        if (incident.paused) incident.resume();
-        else incident.pause();
-      },
+  // In the café the desktop is out of reach: only the ack and pause work from there (M1.6 plan R6).
+  const acknowledge = () => incident.acknowledge();
+  const togglePause = () => {
+    if (!running) return;
+    if (incident.paused) incident.resume();
+    else incident.pause();
+  };
+  const desktopKeys = {
+    o: () => setOverview((v) => !v),
+    Escape: () => setOverview(false),
+    m: () => {
+      if (focused) dispatchWm({ type: "toggleMaximize", id: focused });
     },
-    prefs.singleKeyShortcuts && !locked,
-  );
+    "[": () => {
+      if (focused) dispatchWm({ type: "snap", id: focused, side: "left" });
+    },
+    "]": () => {
+      if (focused) dispatchWm({ type: "snap", id: focused, side: "right" });
+    },
+    x: () => {
+      if (focused) dispatchWm({ type: "close", id: focused });
+    },
+    a: acknowledge,
+    p: togglePause,
+  };
+  useShortcuts(camera.view === "cafe" ? { a: acknowledge, p: togglePause } : desktopKeys, prefs.singleKeyShortcuts && !locked);
 
   // z-index by rank keeps every window between 10 and 999, below the dock (polish spec S24).
   const layers = useMemo(() => new Map([...wm.windows].sort((a, b) => a.z - b.z).map((w, i) => [w.id, 10 + i])), [wm.windows]);
@@ -111,7 +113,6 @@ export function Desktop() {
       <Notifications />
       <Dock unread={unreadCount(incident, read)} forceShow={overview} />
       {overview && <Overview onClose={() => setOverview(false)} />}
-      <PausedOverlay />
     </div>
   );
 }

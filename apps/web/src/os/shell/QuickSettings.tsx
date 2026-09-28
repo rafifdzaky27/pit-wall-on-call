@@ -1,5 +1,5 @@
 import { audio } from "../audio/engine";
-import { radio } from "../audio/lofi";
+import { loadRadio } from "../audio/useRadio";
 import { Glyph } from "../brand/Glyph";
 import { enterFullscreen, exitFullscreen, fullscreenSupported, useFullscreen } from "../fullscreen";
 import { usePrefs } from "../PrefsProvider";
@@ -42,7 +42,7 @@ export function QuickSettings({ onLock }: { onLock: () => void }) {
           {prefs.radio ? "Pause" : "Play"}
         </button>
         {prefs.radio && (
-          <button type="button" className="btn" aria-label="Next track" onClick={() => radio.next()}>
+          <button type="button" className="btn" aria-label="Next track" onClick={() => void loadRadio().then((radio) => radio.next())}>
             Next
           </button>
         )}

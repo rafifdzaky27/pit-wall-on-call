@@ -15,6 +15,8 @@ for (const [width, height] of VIEWPORTS) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     await page.getByRole("button", { name: "Start shift" }).click();
+    // Start shift pulls back to the café; L looks down at the laptop again.
+    await page.keyboard.press("l");
     await page.getByRole("button", { name: "Skip to the page" }).click();
     await page.keyboard.press("a");
     // Measure after the window's open motion settles (looping CSS animations never finish).

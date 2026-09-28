@@ -7,6 +7,8 @@ test.describe("PitOS desktop", () => {
     await page.goto("/");
     await expect(page.getByRole("main", { name: "Desktop" })).toBeVisible();
     await page.getByRole("button", { name: "Start shift" }).click();
+    await expect(page.getByRole("region", { name: "Café" })).toBeVisible();
+    await page.keyboard.press("l");
     await expect(page.getByRole("region", { name: "Browser" })).toBeVisible();
     await page.getByRole("button", { name: "Skip to the page" }).click();
     await expect(page.getByRole("alertdialog", { name: "Checkout returning 5xx" })).toBeVisible();

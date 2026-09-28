@@ -18,6 +18,7 @@ test("Start shift asks for full screen", async ({ page }) => {
 test("the dock hides under maximized Monitoring and returns at the bottom edge", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Start shift" }).click();
+  await page.keyboard.press("l");
   await page.getByRole("button", { name: "Skip to the page" }).click();
   await page.keyboard.press("a");
   const dock = page.getByRole("navigation", { name: "Dock" });

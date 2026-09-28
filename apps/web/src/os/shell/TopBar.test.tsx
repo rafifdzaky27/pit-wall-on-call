@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Stage } from "../../cafe/Stage";
 import { radio } from "../audio/lofi";
 import { loadPrefs } from "../prefs";
 import { renderOs } from "../testing";
@@ -45,7 +46,20 @@ describe("TopBar", () => {
     expect(document.documentElement.dataset.theme).toBe("light");
   });
 
-  it("quick settings play the lo-fi radio and skip to the next progression", () => {
+  it("offers Look up only once the shift has started", () => {
+    const view = renderOs(
+      <Stage>
+        <TopBar overview={false} onActivities={() => {}} onLock={() => {}} />
+      </Stage>,
+    );
+    expect(screen.queryByRole("button", { name: /^Look up/ })).toBeNull();
+    act(() => view.incident().start());
+    act(() => fireEvent.keyDown(window, { key: "l" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Look up/ }));
+    expect(document.querySelector("[data-testid=stage-screen]")!.hasAttribute("inert")).toBe(true);
+  });
+
+  it("quick settings play the lo-fi radio and skip to the next progression", async () => {
     const next = vi.spyOn(radio, "next").mockImplementation(() => {});
     setup();
     fireEvent.click(screen.getByRole("button", { name: "System" }));
@@ -53,7 +67,7 @@ describe("TopBar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Play lo-fi radio" }));
     expect(loadPrefs().radio).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Next track" }));
-    expect(next).toHaveBeenCalled();
+    await vi.waitFor(() => expect(next).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: "Pause lo-fi radio" }));
     expect(loadPrefs().radio).toBe(false);
     next.mockRestore();
@@ -83,15 +97,15 @@ describe("TopBar", () => {
     expect(onLock).toHaveBeenCalled();
   });
 
-  it("the clock shows unread notifications and opens the calendar, which marks them read and can clear them", () => {
+  it("the clock shows unread notifications and opens the calendar, which marks them read and can clear them", async () => {
     const { os } = setup();
     act(() => os().pushNotice({ id: "n", app: "Chat", title: "Laras", body: "check v142?", actions: [] }));
     const clock = screen.getByRole("button", { name: /unread notifications/ });
     fireEvent.click(clock);
-    const cal = screen.getByRole("dialog", { name: "Calendar and notifications" });
+    const cal = await screen.findByRole("dialog", { name: "Calendar and notifications" });
     expect(cal.textContent).toContain("check v142?");
     expect(cal.querySelector('[aria-current="date"]')).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /unread notifications/ })).toBeNull();
+    await vi.waitFor(() => expect(screen.queryByRole("button", { name: /unread notifications/ })).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(cal.textContent).toContain("No notifications");
   });

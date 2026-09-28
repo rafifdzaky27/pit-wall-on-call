@@ -1,6 +1,7 @@
 import { resolveWorld } from "@pitwall/world";
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { Stage } from "../../cafe/Stage";
 import { renderOs } from "../testing";
 import { Desktop } from "./Desktop";
 
@@ -64,7 +65,11 @@ describe("Desktop", () => {
   });
 
   it("P pauses a running incident behind an opaque overlay", () => {
-    const { incident } = renderOs(<Desktop />);
+    const { incident } = renderOs(
+      <Stage>
+        <Desktop />
+      </Stage>,
+    );
     act(() => incident().start());
     act(() => incident().skipPrepage());
     fireEvent.keyDown(window, { key: "p" });

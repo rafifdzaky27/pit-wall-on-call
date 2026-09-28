@@ -1,12 +1,16 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
+import { useCamera } from "../../cafe/CameraContext";
 import { Glyph } from "../brand/Glyph";
 import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useNow } from "../useNow";
-import { CalendarMenu } from "./CalendarMenu";
 import { useOs, type MenuId } from "./OsContext";
 import { PhoneWidget } from "./PhoneWidget";
 import { QuickSettings } from "./QuickSettings";
+
+const loadCalendar = () => import("./CalendarMenu");
+/** The calendar opens only on a click on the clock, so it loads apart from the main chunk (M1.6 budget). */
+const CalendarMenu = lazy(() => loadCalendar().then((m) => ({ default: m.CalendarMenu })));
 
 interface Props {
   overview: boolean;
@@ -16,6 +20,7 @@ interface Props {
 
 export function TopBar({ overview, onActivities, onLock }: Props) {
   const incident = useIncident();
+  const camera = useCamera();
   const { prefs } = usePrefs();
   const { openMenu, setOpenMenu, notices } = useOs();
   const now = useNow();
@@ -41,6 +46,12 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
     };
   }, [openMenu, setOpenMenu]);
 
+  // Fetch the calendar while the browser is idle, so the first click opens it at once.
+  useEffect(() => {
+    const id = window.setTimeout(() => void loadCalendar(), 2000);
+    return () => window.clearTimeout(id);
+  }, []);
+
   const toggle = (menu: MenuId) => setOpenMenu(openMenu === menu ? null : menu);
 
   return (
@@ -53,8 +64,17 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
           <time dateTime={now.toISOString()}>{clock}</time>
           {unread && <span className="clock-dot" aria-hidden="true" />}
         </button>
-        {openMenu === "calendar" && <CalendarMenu now={now} />}
+        {openMenu === "calendar" && (
+          <Suspense fallback={null}>
+            <CalendarMenu now={now} />
+          </Suspense>
+        )}
       </div>
+      {camera.started && (
+        <button type="button" className="os-lookup" onClick={camera.lookUp}>
+          Look up <kbd>L</kbd>
+        </button>
+      )}
       <div className="os-tray">
         <span className={paging ? "oncall paged" : "oncall"}>{paging ? "Paged" : "On call · Primary"}</span>
         <PhoneWidget />

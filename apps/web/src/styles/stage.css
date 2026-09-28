@@ -1,0 +1,15 @@
+/* The camera around PitOS (cold-open spec §12). Only transform animates. */
+.stage { position: fixed; inset: 0; overflow: hidden; background: #000; }
+.stage-world { position: absolute; inset: 0; transform-origin: 0 0; }
+.stage-cafe { position: absolute; inset: 0; }
+.stage-cafe[hidden] { display: none; }
+.stage-screen { position: absolute; inset: 0; transform-origin: 0 0; }
+.stage.in-cafe .stage-screen { pointer-events: none; }
+
+.cafe-fallback { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(#3a2a22, #1d1512); }
+.cafe-fallback-laptop { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: 0; background: transparent; color: transparent; }
+.cafe-fallback-laptop:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+
+.os-lookup { height: 24px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--topbar-text); font: 500 var(--fs-sm) var(--font); }
+.os-lookup:hover { background: rgba(255, 255, 255, 0.12); }
+.os-lookup kbd { margin-left: 4px; opacity: 0.7; }
