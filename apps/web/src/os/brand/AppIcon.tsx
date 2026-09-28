@@ -1,16 +1,12 @@
 import type { ReactNode } from "react";
 import type { AppId } from "../apps/ids";
+import { LOGO_GLYPH } from "./Logo";
 
 export type IconName = AppId | "phone" | "home";
 
 // Original line glyphs on a squircle (DESIGN.md §9). Functional app icons, not decoration.
 const GLYPHS: Record<IconName, ReactNode> = {
-  monitoring: (
-    <>
-      <path d="M5 17.5h14" />
-      <path d="M6 14l3.5-4 3 2.5 4.5-6" />
-    </>
-  ),
+  monitoring: LOGO_GLYPH,
   browser: (
     <>
       <circle cx="12" cy="12" r="6.5" />

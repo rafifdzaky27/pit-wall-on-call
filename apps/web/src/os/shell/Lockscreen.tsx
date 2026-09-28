@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FACTS, FAVORITES } from "../../content/aboutRafif";
+import { LogoMark } from "../brand/Logo";
 import { Wallpaper } from "../brand/Wallpaper";
 import { useIncident } from "../incident/IncidentProvider";
 import { useNow } from "../useNow";
@@ -21,6 +22,7 @@ export function Lockscreen({ onUnlock }: { onUnlock?: () => void }) {
         </time>
         <p className="lock-date">{date}</p>
         <section className="lock-card" aria-labelledby="lock-h">
+          <LogoMark size={48} />
           <span className="tag info">Shift ready</span>
           <h1 id="lock-h">Pit Wall On-Call</h1>
           <p>
