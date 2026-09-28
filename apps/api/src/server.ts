@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { parseConfig, type Config } from "./config";
-import { createDb } from "./db";
+import { createDb } from "./db/client";
 
 function log(level: "info" | "error", msg: string, extra: Record<string, unknown> = {}) {
   console.log(JSON.stringify({ level, msg, time: new Date().toISOString(), ...extra }));
@@ -16,7 +16,7 @@ try {
 }
 
 const db = createDb(config.databaseUrl);
-const app = createApp({ version: config.version, pingDb: db.ping });
+const app = createApp({ version: config.version, pingDb: db.ping, pendingMigrations: db.pendingMigrations });
 
 const server = serve({ fetch: app.fetch, port: config.port }, (info) => {
   log("info", "api listening", { port: info.port, version: config.version });

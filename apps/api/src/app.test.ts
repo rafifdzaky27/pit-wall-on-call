@@ -31,6 +31,13 @@ describe("GET /readyz", () => {
     expect(await res.json()).toEqual({ status: "not_ready", reason: "database_unreachable" });
   });
 
+  it("returns 503 migrations_pending while migrations are pending", async () => {
+    const app = createApp({ version: "abc123", pingDb: dbUp, pendingMigrations: async () => 1 });
+    const res = await app.request("/readyz");
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ status: "not_ready", reason: "migrations_pending" });
+  });
+
   it("returns 503 within the timeout when the database hangs", async () => {
     const app = createApp({ version: "abc123", pingDb: dbHangs, readinessTimeoutMs: 50 });
     const started = Date.now();
