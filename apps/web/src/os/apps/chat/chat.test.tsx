@@ -82,13 +82,19 @@ describe("ChatApp", () => {
   });
 
   it("opens a channel at its first unread message, like Slack", () => {
-    const seen: string[] = [];
-    Element.prototype.scrollIntoView = function (this: Element) {
-      seen.push(this.textContent ?? "");
-    };
-    renderOs(<ChatApp />);
-    fireEvent.click(screen.getByRole("button", { name: /^# deploys/ }));
-    expect(seen.at(-1)).toBe("New messages");
+    // jsdom has no layout: the list sits at 100 px and the "New messages" marker 300 px into its content.
+    const rect = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      const scrolled = this.closest(".chat-log")?.scrollTop ?? 0;
+      const top = this.classList.contains("chat-new") ? 400 - scrolled : this.classList.contains("chat-log") ? 100 : 0;
+      return { top, left: 0, right: 0, bottom: top, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect;
+    });
+    try {
+      renderOs(<ChatApp />);
+      fireEvent.click(screen.getByRole("button", { name: /^# deploys/ }));
+      expect(document.querySelector(".chat-log")!.scrollTop).toBe(300);
+    } finally {
+      rect.mockRestore();
+    }
   });
 
   it("toggles your reaction and opens a thread", () => {
@@ -102,5 +108,22 @@ describe("ChatApp", () => {
     expect(thread.textContent).toContain("thanks, fixed both");
     fireEvent.click(screen.getByRole("button", { name: "Close thread" }));
     expect(screen.queryByRole("complementary", { name: "Thread" })).toBeNull();
+  });
+});
+
+describe("ChatApp scrolling", () => {
+  afterEach(cleanup);
+
+  it("opens a channel at its first unread message without scrolling any ancestor", () => {
+    const spy = vi.fn();
+    Element.prototype.scrollIntoView = spy;
+    try {
+      renderOs(<ChatApp />);
+      fireEvent.click(screen.getByRole("button", { name: /^# infra/ }));
+      expect(document.querySelector(".chat-new")).not.toBeNull();
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
   });
 });

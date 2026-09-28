@@ -20,4 +20,14 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ["apps/web/src/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.*"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        { selector: "MemberExpression[property.name='scrollIntoView']", message: "scrollIntoView also scrolls the PitOS root (M1.6 F1). Set scrollTop on the scrolling element." },
+      ],
+    },
+  },
 );
