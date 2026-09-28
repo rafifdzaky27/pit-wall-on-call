@@ -5,6 +5,7 @@ import type { AppEnv, RouteContext } from "./http/context";
 import { ApiError, errorBody } from "./http/errors";
 import { createMetrics, type Metrics } from "./http/metrics";
 import { createRateLimiter, DEFAULT_LIMITS, type Limits, type RateLimiter } from "./http/rateLimit";
+import { playersRoutes } from "./players/routes";
 
 export interface AppDeps {
   version: string;
@@ -98,7 +99,7 @@ export function createApp(deps: AppDeps) {
       limiter: deps.limiter ?? createRateLimiter(),
       limits: { ...DEFAULT_LIMITS, ...deps.limits },
     };
-    void ctx;
+    app.route("/api", playersRoutes(ctx));
   }
 
   return app;
