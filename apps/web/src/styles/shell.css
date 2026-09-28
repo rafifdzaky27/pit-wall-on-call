@@ -140,7 +140,7 @@
 .dock { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: var(--z-dock); padding: 6px; border-radius: 18px; background: color-mix(in srgb, var(--panel) 82%, transparent); border: 1px solid var(--border); box-shadow: var(--shadow-window-rest); transition: transform var(--motion-base) var(--ease-out), opacity var(--motion-base) var(--ease-out); }
 .dock.hidden { transform: translate(-50%, calc(100% + 16px)); opacity: 0; }
 .dock.over { z-index: var(--z-dock-over); }
-.dock-hotzone { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: calc(var(--z-dock) - 1); }
+.dock-hotzone { position: absolute; bottom: 0; height: 4px; z-index: calc(var(--z-dock) - 1); }
 .dock ul { display: flex; gap: 6px; }
 .dock-item { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border: 0; border-radius: 12px; background: transparent; transition: transform var(--motion-fast) var(--ease-out), background var(--motion-fast); }
 .dock-item:hover { transform: translateY(-2px); background: var(--raised); }

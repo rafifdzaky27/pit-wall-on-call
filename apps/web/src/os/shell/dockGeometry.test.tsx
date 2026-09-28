@@ -86,6 +86,14 @@ describe("Dock", () => {
     expect(nav().className).not.toContain("hidden");
   });
 
+  it("the bottom-edge hot zone spans only the dock, not the whole screen width", () => {
+    const { container, os } = renderOs(<Dock unread={0} />);
+    const zone = container.querySelector<HTMLElement>(".dock-hotzone")!;
+    const rect = dockRect(os().wm.area, 400);
+    expect(zone.style.left).toBe(`${rect.x}px`);
+    expect(zone.style.width).toBe(`${rect.w}px`);
+  });
+
   it("ignores minimized windows", () => {
     const { os } = renderOs(<Dock unread={0} />);
     act(() => os().openApp("monitoring"));
