@@ -37,7 +37,7 @@ export function BrowserApp() {
   const paged = phase === "paging" || phase === "active" || phase === "ended";
   const failing = paged && snapshot.errorRateBp >= 100;
   const failingNow = useRef(failing);
-  const order = `${world.brand.name.slice(0, 3).toUpperCase()}-${String(seed % 1_000_000).padStart(6, "0")}`;
+  const order = `${world.brand.name.slice(0, 3).toUpperCase()}-${String(seed).padStart(6, "0").slice(-6)}`;
 
   useEffect(() => {
     failingNow.current = failing;

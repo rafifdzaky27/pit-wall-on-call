@@ -138,6 +138,7 @@ describe("BrowserApp", () => {
     fireEvent.click(screen.getByRole("button", { name: copy.placeOrder }));
     act(() => vi.advanceTimersByTime(PLACE_MS));
     expect(screen.getByRole("status").textContent).toContain(world.brand.name);
+    expect(document.body.textContent).toMatch(new RegExp(`${world.brand.name.slice(0, 3).toUpperCase()}-\\d{6}(?!\\d)`));
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     act(() => vi.advanceTimersByTime(NAV_MS));
     expect(screen.getByRole("button", { name: copy.placeOrder })).toBeTruthy();
