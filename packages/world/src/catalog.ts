@@ -1,5 +1,15 @@
 import type { Locale } from "./cities";
 
+export type InfoSlug = "about" | "help" | "shipping" | "returns" | "terms";
+
+/** A footer page (M1.6 F4). The body may use {brand}. */
+export interface InfoPage {
+  slug: InfoSlug;
+  label: string;
+  title: string;
+  body: string[];
+}
+
 /** Store copy in each market's language and conventions (polish spec S21). In-world content. */
 export interface StoreCopy {
   search: string;
@@ -8,6 +18,9 @@ export interface StoreCopy {
   checkout: string;
   featured: string;
   categories: string;
+  /** The category filter that shows every product. */
+  all: string;
+  backToShop: string;
   subtotal: string;
   total: string;
   shipping: string;
@@ -23,7 +36,7 @@ export interface StoreCopy {
   remove: string;
   close: string;
   noResults: (query: string) => string;
-  footer: string[];
+  footer: InfoPage[];
   rating: (rating: number, sold: number) => string;
   /** Prices in the market's minor units. */
   shippingOptions: { label: string; price: number }[];
@@ -44,6 +57,8 @@ export const STORE_COPY: Record<Locale, StoreCopy> = {
     checkout: "Checkout",
     featured: "Pilihan hari ini",
     categories: "Kategori",
+    all: "Semua",
+    backToShop: "Kembali belanja",
     subtotal: "Subtotal",
     total: "Total tagihan",
     shipping: "Pengiriman",
@@ -59,7 +74,13 @@ export const STORE_COPY: Record<Locale, StoreCopy> = {
     remove: "Hapus",
     close: "Tutup",
     noResults: (q) => `Tidak ada hasil untuk "${q}".`,
-    footer: ["Tentang kami", "Bantuan", "Pengiriman", "Pengembalian", "Syarat & ketentuan"],
+    footer: [
+      { slug: "about", label: "Tentang kami", title: "Tentang {brand}", body: ["{brand} menghubungkan pembeli dengan penjual lokal sejak 2019.", "Tim kami bekerja dari Indonesia untuk pembeli di seluruh negeri."] },
+      { slug: "help", label: "Bantuan", title: "Pusat bantuan", body: ["Butuh bantuan soal pesanan? Chat CS kami 24 jam.", "Rata-rata kami membalas dalam 5 menit."] },
+      { slug: "shipping", label: "Pengiriman", title: "Info pengiriman", body: ["Pesanan sebelum pukul 14.00 dikirim di hari yang sama.", "Gratis ongkir untuk belanja di atas Rp100.000."] },
+      { slug: "returns", label: "Pengembalian", title: "Pengembalian barang", body: ["Barang bisa dikembalikan dalam 7 hari setelah diterima.", "Dana kembali ke metode pembayaran awal."] },
+      { slug: "terms", label: "Syarat & ketentuan", title: "Syarat & ketentuan", body: ["Dengan berbelanja, kamu menyetujui syarat penggunaan {brand}.", "Harga dapat berubah sewaktu-waktu."] },
+    ],
     rating: (r, n) => `★ ${r.toFixed(1).replace(".", ",")} · ${idSold(n)} terjual`,
     shippingOptions: [
       { label: "Reguler · 2–3 hari", price: 12000 },
@@ -75,6 +96,8 @@ export const STORE_COPY: Record<Locale, StoreCopy> = {
     checkout: "レジに進む",
     featured: "今週のおすすめ",
     categories: "カテゴリ",
+    all: "すべて",
+    backToShop: "ショップに戻る",
     subtotal: "小計",
     total: "合計（税込）",
     shipping: "配送方法",
@@ -90,7 +113,13 @@ export const STORE_COPY: Record<Locale, StoreCopy> = {
     remove: "削除",
     close: "閉じる",
     noResults: (q) => `「${q}」に一致する商品はありません。`,
-    footer: ["会社概要", "ヘルプ", "配送について", "返品・交換", "利用規約"],
+    footer: [
+      { slug: "about", label: "会社概要", title: "{brand}について", body: ["{brand}は、日本の職人の道具を暮らしに届けるオンラインショップです。", "本社は東京都目黒区にあります。"] },
+      { slug: "help", label: "ヘルプ", title: "ヘルプセンター", body: ["ご注文についてのお問い合わせは、チャットで24時間受け付けています。", "通常5分以内にお返事します。"] },
+      { slug: "shipping", label: "配送について", title: "配送について", body: ["14時までのご注文は当日発送します。", "5,000円以上のお買い上げで送料無料です。"] },
+      { slug: "returns", label: "返品・交換", title: "返品・交換", body: ["商品到着後7日以内であれば返品・交換を承ります。", "返金は元のお支払い方法に戻ります。"] },
+      { slug: "terms", label: "利用規約", title: "利用規約", body: ["ご利用により、{brand}の利用規約に同意したものとみなします。", "価格は予告なく変更される場合があります。"] },
+    ],
     rating: (r, n) => `★${r.toFixed(1)}（${n.toLocaleString("en-US")}件）`,
     shippingOptions: [
       { label: "通常配送 · 2〜3日", price: 550 },
@@ -106,6 +135,8 @@ export const STORE_COPY: Record<Locale, StoreCopy> = {
     checkout: "Checkout",
     featured: "New this week",
     categories: "Categories",
+    all: "All",
+    backToShop: "Back to the shop",
     subtotal: "Subtotal",
     total: "Total (incl. GST)",
     shipping: "Delivery",
@@ -121,7 +152,13 @@ export const STORE_COPY: Record<Locale, StoreCopy> = {
     remove: "Remove",
     close: "Close",
     noResults: (q) => `No results for "${q}".`,
-    footer: ["About", "Help", "Delivery", "Returns", "Terms"],
+    footer: [
+      { slug: "about", label: "About", title: "About {brand}", body: ["{brand} sells small-batch goods from Melbourne makers.", "We have been based in Fitzroy since 2018."] },
+      { slug: "help", label: "Help", title: "Help centre", body: ["Questions about an order? Chat with us any time.", "We usually reply within five minutes."] },
+      { slug: "shipping", label: "Delivery", title: "Delivery", body: ["Orders placed before 2 pm ship the same day.", "Free delivery on orders over $80."] },
+      { slug: "returns", label: "Returns", title: "Returns", body: ["Change of mind? Return it within 30 days.", "Refunds go back to your original payment method."] },
+      { slug: "terms", label: "Terms", title: "Terms of use", body: ["By shopping with {brand} you agree to our terms of use.", "Prices may change without notice."] },
+    ],
     rating: (r, n) => `★ ${r.toFixed(1)} (${n.toLocaleString("en-AU")} reviews)`,
     shippingOptions: [
       { label: "Standard · 3–5 business days", price: 995 },

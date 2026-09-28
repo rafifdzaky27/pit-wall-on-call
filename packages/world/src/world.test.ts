@@ -68,3 +68,20 @@ describe("fillWorld", () => {
     );
   });
 });
+
+describe("store catalogue", () => {
+  it("lists every product's category, and every category has products (M1.6 F4)", () => {
+    for (const city of CITIES) {
+      const used = new Set(city.brand.products.map((p) => p.category));
+      expect(new Set(city.brand.categories), city.id).toEqual(used);
+    }
+  });
+
+  it("has the five footer pages in every locale, each with a title and body", () => {
+    for (const copy of Object.values(STORE_COPY)) {
+      expect(copy.footer.map((f) => f.slug)).toEqual(["about", "help", "shipping", "returns", "terms"]);
+      for (const f of copy.footer) expect(f.label && f.title && f.body.length >= 1).toBeTruthy();
+      expect(copy.all).toBeTruthy();
+    }
+  });
+});

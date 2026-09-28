@@ -1,4 +1,4 @@
-import { formatPrice, STORE_COPY, type Product, type World } from "@pitwall/world";
+import { fillWorld, formatPrice, STORE_COPY, type InfoSlug, type Product, type World } from "@pitwall/world";
 import { useState, type CSSProperties, type ReactNode } from "react";
 
 export type Cart = Record<string, number>;
@@ -37,16 +37,18 @@ interface StoreProps {
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
   onCheckout: () => void;
+  onInfo: (slug: InfoSlug) => void;
 }
 
-export function StorePage({ world, cart, onAdd, onRemove, onCheckout }: StoreProps) {
+export function StorePage({ world, cart, onAdd, onRemove, onCheckout, onInfo }: StoreProps) {
   const { brand, city } = world;
   const copy = STORE_COPY[brand.locale];
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [cat, setCat] = useState<string | null>(null);
   const price = (n: number) => formatPrice(n, city.currency);
   const q = query.trim().toLowerCase();
-  const shown = brand.products.filter((p) => p.name.toLowerCase().includes(q));
+  const shown = brand.products.filter((p) => (cat === null || p.category === cat) && p.name.toLowerCase().includes(q));
   const lines = cartLines(world, cart);
 
   return (
@@ -63,8 +65,12 @@ export function StorePage({ world, cart, onAdd, onRemove, onCheckout }: StorePro
         </button>
       </header>
       <ul className="st-cats" aria-label={copy.categories}>
-        {brand.categories.map((c) => (
-          <li key={c}>{c}</li>
+        {[null, ...brand.categories].map((c) => (
+          <li key={c ?? ""}>
+            <button type="button" aria-pressed={cat === c} onClick={() => setCat(c)}>
+              {c ?? copy.all}
+            </button>
+          </li>
         ))}
       </ul>
       <section className="st-hero">
@@ -106,7 +112,11 @@ export function StorePage({ world, cart, onAdd, onRemove, onCheckout }: StorePro
       <footer className="st-foot">
         <ul>
           {copy.footer.map((f) => (
-            <li key={f}>{f}</li>
+            <li key={f.slug}>
+              <button type="button" onClick={() => onInfo(f.slug)}>
+                {f.label}
+              </button>
+            </li>
           ))}
         </ul>
         <p>© 2026 {brand.name}</p>
@@ -248,6 +258,28 @@ export function OrderPage({ world, order, onContinue }: { world: World; order: s
           {copy.continueShopping}
         </button>
       </div>
+    </Page>
+  );
+}
+
+/** A footer page: About, Help, Shipping, Returns or Terms, in the store's language (M1.6 F4). */
+export function InfoPage({ world, slug, onBack }: { world: World; slug: InfoSlug; onBack: () => void }) {
+  const copy = STORE_COPY[world.brand.locale];
+  const info = copy.footer.find((f) => f.slug === slug)!;
+  return (
+    <Page world={world} className="st-done">
+      <header className="st-head slim">
+        <h1 className="st-logo">{world.brand.name}</h1>
+      </header>
+      <article className="st-box st-info">
+        <h2>{fillWorld(info.title, world)}</h2>
+        {info.body.map((line) => (
+          <p key={line}>{fillWorld(line, world)}</p>
+        ))}
+        <button type="button" className="st-pay" onClick={onBack}>
+          {copy.backToShop}
+        </button>
+      </article>
     </Page>
   );
 }

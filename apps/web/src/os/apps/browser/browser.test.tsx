@@ -126,6 +126,27 @@ describe("BrowserApp", () => {
     expect(screen.queryByRole("img", { name: b!.name })).toBeNull();
   });
 
+  it("filters the grid by category, and All shows everything again (M1.6 F4)", () => {
+    renderOs(<BrowserApp />);
+    const bar = screen.getByRole("list", { name: copy.categories });
+    const cat = world.brand.categories[1]!;
+    fireEvent.click(within(bar).getByRole("button", { name: cat }));
+    expect(within(bar).getByRole("button", { name: cat }).getAttribute("aria-pressed")).toBe("true");
+    const names = () => screen.getAllByRole("img").map((i) => i.getAttribute("alt")).filter((a) => world.brand.products.some((p) => p.name === a));
+    expect(names()).toEqual(world.brand.products.filter((p) => p.category === cat).map((p) => p.name));
+    fireEvent.click(within(bar).getByRole("button", { name: copy.all }));
+    expect(names()).toHaveLength(world.brand.products.length);
+  });
+
+  it("opens a footer page in the store's language, with its own address (M1.6 F4)", () => {
+    renderOs(<BrowserApp />);
+    const help = copy.footer.find((f) => f.slug === "help")!;
+    fireEvent.click(screen.getByRole("button", { name: help.label }));
+    act(() => vi.advanceTimersByTime(NAV_MS));
+    expect(screen.getByRole("heading", { level: 2, name: help.title })).toBeTruthy();
+    expect((screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement).value).toBe(`https://${world.brand.domain}/help`);
+  });
+
   it("goes from the cart to checkout with a loading bar, places an order, and navigates back and forward", () => {
     renderOs(<BrowserApp />);
     fireEvent.click(screen.getByRole("button", { name: `${copy.cart}, 2` }));
