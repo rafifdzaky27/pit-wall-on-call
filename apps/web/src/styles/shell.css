@@ -66,8 +66,14 @@
 .clockmenu { position: relative; justify-self: center; }
 .clock-dot { width: 6px; height: 6px; border-radius: 3px; background: var(--topbar-text); }
 .os-tray { justify-self: end; display: flex; align-items: center; gap: 6px; }
-.oncall { padding: 2px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.1); font-size: var(--fs-xs); }
-.oncall.paged { background: var(--crit); color: #ffffff; font-weight: 600; }
+.oncall { padding: 2px 8px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, 0.1); color: var(--topbar-text); font: var(--fs-xs) var(--font); white-space: nowrap; cursor: pointer; }
+.oncall:hover { background: rgba(255, 255, 255, 0.18); }
+.oncall:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Status is always a word; the colour only repeats it (M2.5 spec §3). */
+.oncall.status-crit { background: var(--crit); color: #ffffff; font-weight: 600; }
+.oncall.status-warn { background: var(--warn); color: #16181d; font-weight: 600; }
+.oncall.status-info { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.oncall.status-ok { background: var(--ok); color: #16181d; font-weight: 600; }
 .sysmenu, .phone { position: relative; }
 .tray-badge { min-width: 16px; padding: 0 4px; border-radius: 8px; background: var(--crit); color: #ffffff; font-size: 10px; line-height: 16px; text-align: center; }
 .tray-btn.ringing { animation: ring 0.9s ease-in-out infinite; }

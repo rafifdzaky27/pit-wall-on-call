@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { useCamera } from "../../cafe/CameraContext";
 import { Glyph } from "../brand/Glyph";
-import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useNow } from "../useNow";
 import { useOs, type MenuId } from "./OsContext";
+import { StatusChip } from "./StatusChip";
 import { PhoneWidget } from "./PhoneWidget";
 
 const loadCalendar = () => import("./CalendarMenu");
@@ -20,13 +20,11 @@ interface Props {
 }
 
 export function TopBar({ overview, onActivities, onLock }: Props) {
-  const incident = useIncident();
   const camera = useCamera();
   const { prefs } = usePrefs();
   const { openMenu, setOpenMenu, notices } = useOs();
   const now = useNow();
   const bar = useRef<HTMLElement>(null);
-  const paging = incident.phase === "paging";
   const unread = notices.some((n) => !n.read);
   const clock = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(now);
 
@@ -80,7 +78,7 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
             Look up <kbd>L</kbd>
           </button>
         )}
-        <span className={paging ? "oncall paged" : "oncall"}>{paging ? "Paged" : "On call · Primary"}</span>
+        <StatusChip />
         <PhoneWidget />
         <div className="sysmenu">
           <button type="button" className="tray-btn" aria-label="System" aria-expanded={openMenu === "system"} onClick={() => toggle("system")}>

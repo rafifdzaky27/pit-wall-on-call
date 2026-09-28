@@ -154,6 +154,11 @@ export const slowLeak = defineScenario<SlowLeak>({
   ],
   rootCauseActionIds: ["checkout.rollback"],
   hints: SLOW_LEAK_HINTS,
+  maskNotes: {
+    "checkout.restart": "Restart pods reset the pool, so the errors stopped for a while. The leak in v142 kept running.",
+    "postgres.failover": "Fail over to replica reset the pool, so the errors stopped. The leak in v142 kept running.",
+    "postgres.raise_max_conns": "Raise max_connections gave the leak more room and restarted postgres. The leak in v142 kept running.",
+  },
 
   coldOpen: {
     scene: "cafe",

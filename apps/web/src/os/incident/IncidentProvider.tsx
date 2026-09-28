@@ -3,6 +3,7 @@ import {
   ActionRejected,
   inspectAction,
   Run,
+  type IncidentStatus,
   type LogEntry,
   type RejectReason,
   type RunResult,
@@ -13,7 +14,7 @@ import {
 } from "@pitwall/engine";
 import { desktopFor, slowLeak, type DesktopContent } from "@pitwall/scenarios";
 import { resolveWorld, type World } from "@pitwall/world";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRunLoop } from "../../game/useRunLoop";
 
 /** Cold-open spec §3: about 18 s of free pre-page before the pager fires. */
@@ -28,6 +29,8 @@ export interface IncidentApi {
   scenario: ScenarioDef<State>;
   content: DesktopContent;
   snapshot: Snapshot;
+  /** The tick the current status began (M2.5 plan A2); other statuses are absent. */
+  statusSince: Partial<Record<IncidentStatus, number>>;
   history: Record<string, number[]>;
   logs: readonly LogEntry[];
   timeline: readonly TimelineEntry[];
@@ -95,6 +98,10 @@ function Session({ children, seed, scenario, prepageMs, now, onNewShift }: Sessi
   }, []);
   const loop = useRunLoop(run, { active: phase === "paging" || phase === "active", onFinish, now });
   const { refresh } = loop;
+  // Remember when the current status began, for chat that reacts to how long it has lasted.
+  const began = useRef<{ status: IncidentStatus; tick: number }>({ status: loop.snapshot.status, tick: loop.snapshot.tick });
+  if (began.current.status !== loop.snapshot.status) began.current = { status: loop.snapshot.status, tick: loop.snapshot.tick };
+  const statusSince = { [began.current.status]: began.current.tick } as Partial<Record<IncidentStatus, number>>;
 
   useEffect(() => {
     if (phase !== "prepage") return;
@@ -123,6 +130,7 @@ function Session({ children, seed, scenario, prepageMs, now, onNewShift }: Sessi
       scenario,
       content,
       snapshot: loop.snapshot,
+      statusSince,
       history: loop.history,
       logs: run.logs,
       timeline: run.timeline,

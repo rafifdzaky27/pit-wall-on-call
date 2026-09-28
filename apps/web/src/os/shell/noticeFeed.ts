@@ -48,6 +48,22 @@ export function useNoticeFeed(startShift: () => void): void {
     }
   }, [phase, result]);
 
+  // Symptoms down but the cause still active: say the incident is open (M2.5 spec §3, finding F1).
+  const status = incident.snapshot.status;
+  useEffect(() => {
+    if (phase !== "active") return;
+    if (status === "mitigated") {
+      pushNotice({
+        id: "mitigated",
+        app: "Monitoring",
+        title: "Incident still open",
+        body: "Symptoms are down, but the incident is still open. Is the cause fixed, or only its effect?",
+        actions: [{ label: "Open Monitoring", run: () => openApp("monitoring") }],
+        sound: "notify",
+      });
+    } else removeNotice("mitigated");
+  }, [status, phase]);
+
   const visible = visibleFor(incident);
   const ids = visible.map((m) => m.id).join(",");
   const seen = useRef<Set<string> | null>(null);

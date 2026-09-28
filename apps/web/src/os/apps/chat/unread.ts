@@ -7,7 +7,12 @@ export function isPaged(phase: IncidentPhase): boolean {
 }
 
 export function visibleFor(incident: IncidentApi) {
-  return visibleMessages(incident.content, { paged: isPaged(incident.phase), timeline: incident.timeline });
+  return visibleMessages(incident.content, {
+    paged: isPaged(incident.phase),
+    timeline: incident.timeline,
+    statusSince: incident.statusSince,
+    tick: incident.snapshot.tick,
+  });
 }
 
 export function unreadCount(incident: IncidentApi, read: ReadonlySet<string>): number {

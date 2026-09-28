@@ -14,6 +14,7 @@ export function TopBar({ scenario, snapshot, onPause }: { scenario: ScenarioDef<
         <b>{scenario.coldOpen.page.title}</b>
         <small>{scenario.title}</small>
         <HoldIndicator snapshot={snapshot} />
+        {snapshot.status === "mitigated" && snapshot.outcome === "running" && <span className="tag warn">Mitigated · cause still active</span>}
       </div>
       <div className="spacer" />
       <div className="kv">
