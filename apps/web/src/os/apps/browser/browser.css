@@ -1,12 +1,23 @@
 /* Browser: Chromium-like chrome under PitOS's identity (polish spec S21) */
-.browser { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100%; background: var(--panel); }
+.browser { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; background: var(--panel); }
+.browser-view { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-height: 0; }
+.browser-view[hidden] { display: none; }
 .browser-tabs { display: flex; align-items: flex-end; padding: 6px 8px 0; background: var(--sunken); }
-.browser-tablist { display: flex; min-width: 0; }
-.browser-tab { display: flex; align-items: center; gap: 8px; max-width: 280px; padding: 7px 40px 7px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--panel); border-radius: var(--radius) var(--radius) 0 0; font-size: var(--fs-sm); }
+.browser-tablist { display: flex; min-width: 0; gap: 2px; }
+.browser-tab-wrap { display: flex; align-items: flex-end; min-width: 0; }
+.browser-tab { border: 0; font-family: var(--font); color: var(--text); cursor: default; text-align: left; display: flex; align-items: center; gap: 8px; max-width: 280px; padding: 7px 40px 7px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--panel); border-radius: var(--radius) var(--radius) 0 0; font-size: var(--fs-sm); }
 .favicon { flex: none; width: 14px; height: 14px; border-radius: 3px; background: var(--store-primary, var(--accent)); }
 .favicon.blank { background: transparent; border: 1.5px solid var(--muted); border-radius: 50%; }
 .tab-close { display: grid; place-items: center; width: 22px; height: 22px; margin: 0 0 6px -34px; border: 0; border-radius: 11px; background: transparent; color: var(--muted); }
 .tab-close:hover { background: var(--raised); color: var(--text); }
+.browser-tab[aria-selected="false"] { background: transparent; color: var(--muted); }
+.browser-tab[aria-selected="false"]:hover { background: var(--raised); }
+.browser-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.favicon.pitwall { background: var(--text); border-radius: 50%; }
+.browser-bookmarks { display: flex; gap: 2px; padding: 3px 8px; border-bottom: 1px solid var(--border); background: var(--panel); overflow: hidden; }
+.bookmark { display: inline-flex; align-items: center; gap: 6px; max-width: 200px; padding: 3px 10px; border: 0; border-radius: 12px; background: transparent; color: var(--text); font: var(--fs-xs) var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.bookmark:hover { background: var(--raised); }
+.bookmark:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .browser-toolbar { position: relative; display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .tool-btn { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 15px; background: transparent; color: var(--text); }
 .tool-btn:hover { background: var(--raised); }
