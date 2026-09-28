@@ -78,6 +78,8 @@ export interface HotspotDef {
   label: string;
   text: string;
   appearsAt?: "incident_start";
+  /** Who said it, when the hotspot is a message. Filled from the world's colleagues. */
+  author?: "deployer" | "secondary" | "infra" | "support";
 }
 
 export interface ColdOpenDef {
@@ -169,6 +171,8 @@ export interface Snapshot {
   details: Record<string, string>;
   alerts: AlertState[];
   budgetBurnedBp: number;
+  /** Requests failing right now, including a running side effect (presentation only). */
+  errorRateBp: number;
   inspected: string[];
   cluesFound: string[];
 }

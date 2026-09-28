@@ -146,6 +146,16 @@ describe("timed actions", () => {
     expect(r.burnByTag.mitigated_unfixed).toBe(20);
   });
 
+  it("reports the current error rate, including a running side effect", () => {
+    const run = newRun();
+    run.dispatch(ACK);
+    expect(run.snapshot().errorRateBp).toBe(1000);
+    run.dispatch("svc.break");
+    expect(run.snapshot().errorRateBp).toBe(6000);
+    steps(run, 10);
+    expect(run.snapshot().errorRateBp).toBe(1000);
+  });
+
   it("respect availability", () => {
     const run = newRun();
     run.dispatch(ACK);

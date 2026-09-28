@@ -1,6 +1,5 @@
 import { TICKS_PER_SECOND, type ScenarioDef, type Snapshot, type State } from "@pitwall/engine";
 import { formatBp, formatClock } from "../game/format";
-import { ThemeToggle } from "../ThemeToggle";
 
 export function TopBar({ scenario, snapshot, onPause }: { scenario: ScenarioDef<State>; snapshot: Snapshot; onPause: () => void }) {
   const burned = snapshot.budgetBurnedBp;
@@ -36,7 +35,6 @@ export function TopBar({ scenario, snapshot, onPause }: { scenario: ScenarioDef<
       <button type="button" className="btn" onClick={onPause}>
         Pause <kbd>P</kbd>
       </button>
-      <ThemeToggle />
     </header>
   );
 }

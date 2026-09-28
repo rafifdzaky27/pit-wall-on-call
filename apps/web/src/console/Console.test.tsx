@@ -1,10 +1,13 @@
 import { ACK, Run, type State } from "@pitwall/engine";
 import { slowLeak } from "@pitwall/scenarios";
+import { resolveWorld } from "@pitwall/world";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Console } from "./Console";
 
 afterEach(cleanup);
+
+const world = resolveWorld(1);
 
 function setup({ steps = 50, acked = true, inspect = [] as string[] } = {}) {
   const run = new Run<State>(slowLeak, 1);
@@ -19,7 +22,7 @@ function setup({ steps = 50, acked = true, inspect = [] as string[] } = {}) {
       snapshot={run.snapshot()}
       logs={run.logs}
       history={{}}
-      brand="Northbound"
+      world={world}
       check={(id) => run.check(id)}
       onAction={onAction}
       onPause={onPause}
@@ -92,9 +95,29 @@ describe("Console", () => {
     expect(onPause).toHaveBeenCalled();
   });
 
-  it("shows what the player noticed before the page, with the brand filled in", () => {
-    setup({ inspect: ["wall.poster"] });
-    expect(screen.getByText("Northbound FLASH SALE 50% today")).toBeTruthy();
+  it("shows what the player noticed before the page, with names filled in", () => {
+    setup({ inspect: ["wall.poster", "laptop.slack.deploys"] });
+    expect(screen.getByText(`${world.brand.name} FLASH SALE 50% today`)).toBeTruthy();
+    expect(screen.getByText(`${world.colleagues.deployer}: shipping the checkout refactor (v142), heading home`)).toBeTruthy();
+  });
+
+  it("ignores number keys typed into a text field", () => {
+    setup();
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: "3" });
+    expect(screen.getByRole("button", { name: /^postgres/ }).getAttribute("aria-pressed")).toBe("false");
+    input.remove();
+  });
+
+  it("digits do nothing when single-key shortcuts are off", () => {
+    const run = new Run<State>(slowLeak, 1);
+    run.dispatch(ACK);
+    render(
+      <Console scenario={slowLeak} snapshot={run.snapshot()} logs={run.logs} history={{}} world={world} check={(id) => run.check(id)} onAction={vi.fn()} onPause={vi.fn()} shortcuts={false} />,
+    );
+    fireEvent.keyDown(window, { key: "3" });
+    expect(screen.getByRole("button", { name: /^postgres/ }).getAttribute("aria-pressed")).toBe("false");
   });
 
   it("explains empty states", () => {

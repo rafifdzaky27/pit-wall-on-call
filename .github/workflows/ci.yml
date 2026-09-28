@@ -22,6 +22,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: end-to-end tests
+        run: pnpm e2e
       - name: shellcheck
         run: shellcheck infra/deploy.sh infra/test/deploy_test.sh
       - name: deploy.sh behaviour tests

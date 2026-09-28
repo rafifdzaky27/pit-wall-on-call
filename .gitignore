@@ -6,3 +6,5 @@ coverage/
 .env.*
 !infra/local.env
 .superpowers/
+test-results/
+playwright-report/

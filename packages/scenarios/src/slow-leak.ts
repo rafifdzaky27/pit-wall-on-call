@@ -36,8 +36,8 @@ export const slowLeak = defineScenario<SlowLeak>({
   services: [
     { id: "edge", label: "edge-gateway", x: 12, y: 50, detail: () => "nginx · 2 nodes" },
     { id: "checkout", label: "checkout-api", x: 44, y: 50, detail: (s) => (s.rolledBack ? "v141 · 3 pods" : "v142 · 3 pods") },
-    { id: "postgres", label: "postgres", x: 80, y: 24, detail: (s) => `primary · max ${s.dbMaxConns} conns` },
-    { id: "payments", label: "payments", x: 80, y: 76, detail: () => "external provider" },
+    { id: "postgres", label: "postgres", x: 80, y: 18, detail: (s) => `primary · max ${s.dbMaxConns} conns` },
+    { id: "payments", label: "payments", x: 80, y: 82, detail: () => "external provider" },
   ],
   edges: [
     { from: "edge", to: "checkout" },
@@ -82,7 +82,7 @@ export const slowLeak = defineScenario<SlowLeak>({
 
   logs: [
     { id: "edge.upstream_timeout", serviceId: "edge", level: "ERROR", everyTicks: 7, when: (s) => errorRateBp(s) >= 100,
-      text: (_s, r) => `upstream timed out (110) while reading response header, client 10.0.${r.int(256)}.${r.int(256)}, request "POST /checkout", upstream "checkout-api:8080"` },
+      text: (_s, r) => `upstream prematurely closed connection while reading response header from upstream, client 10.0.${r.int(256)}.${r.int(256)}, request "POST /checkout", upstream "checkout-api:8080"` },
     { id: "edge.access", serviceId: "edge", level: "INFO", everyTicks: 12,
       text: (_s, r) => `GET /products/${1000 + r.int(9000)} 200 ${30 + r.int(40)}ms` },
     { id: "checkout.pool_timeout", serviceId: "checkout", level: "WARN", everyTicks: 9, when: (s) => s.pool >= 95_000,
@@ -109,13 +109,13 @@ export const slowLeak = defineScenario<SlowLeak>({
 
   actions: [
     { id: "edge.error_log", label: "Read gateway error log", serviceId: "edge", category: "investigate", durationS: 3, verdict: "useful",
-      reveals: () => [`nginx: every 5xx in the last 5 min is an upstream timeout from checkout-api:8080`] },
+      reveals: () => [`nginx: every 5xx in the last 5 min is a 502, "upstream prematurely closed connection" from checkout-api:8080`] },
     { id: "edge.add_workers", label: "Add gateway workers", serviceId: "edge", category: "mitigate", durationS: 10, verdict: "wasted",
-      reveals: () => ["gateway workers 8 → 16; upstream timeouts unchanged"] },
+      reveals: () => ["gateway workers 8 → 16; 502s unchanged"] },
     { id: "checkout.pool_stats", label: "Check connection pool", serviceId: "checkout", category: "investigate", durationS: 4, verdict: "useful",
       reveals: (s) => [`pool: ${inUse(s)} of 100 in use, ${100 - inUse(s)} idle; oldest connection checked out 52 min ago, idle in transaction`] },
     { id: "checkout.deploys", label: "View recent deploys", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
-      reveals: () => [`v142 by dimas, 52 min ago: "checkout refactor: move tx handling to middleware"; v141 ran 6 days without issues`] },
+      reveals: () => [`v142 by {deployer}, 52 min ago: "checkout refactor: move tx handling to middleware"; v141 ran 6 days without issues`] },
     { id: "checkout.restart", label: "Restart pods", serviceId: "checkout", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 5000,
       effect: (s) => ({ ...s, pool: 40_000, restarts: s.restarts + 1 }),
       reveals: () => ["rolling restart done: 3 of 3 pods ready, pool reset"] },
@@ -139,7 +139,7 @@ export const slowLeak = defineScenario<SlowLeak>({
       effect: (s) => ({ ...s, statusPosted: 1 }),
       reveals: () => [`status page: "Investigating elevated checkout errors"`] },
     { id: "global.ask_secondary", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful",
-      reveals: () => [`Maya (secondary): "Dimas shipped v142 about an hour ago. Could that be it?"`] },
+      reveals: () => [`{secondary} (secondary): "{deployer} shipped v142 about an hour ago. Could that be it?"`] },
   ],
   rootCauseActionIds: ["checkout.rollback"],
 
@@ -148,8 +148,8 @@ export const slowLeak = defineScenario<SlowLeak>({
     symptom: { kind: "http_502", surface: "checkout" },
     page: { severity: "SEV2", title: "Checkout returning 5xx", body: "Checkout requests for {brand} are failing at the gateway. You are the primary on-call." },
     hotspots: {
-      "laptop.slack.deploys": { kind: "clue", label: "Laptop: Slack #deploys", text: "Dimas: shipping the checkout refactor (v142), heading home" },
-      "laptop.slack.infra": { kind: "herring", label: "Laptop: Slack #infra", text: "Reminder: DB maintenance window tomorrow at 02:00 UTC" },
+      "laptop.slack.deploys": { kind: "clue", label: "Laptop: Slack #deploys", author: "deployer", text: "shipping the checkout refactor (v142), heading home" },
+      "laptop.slack.infra": { kind: "herring", label: "Laptop: Slack #infra", author: "infra", text: "reminder: DB maintenance window tomorrow at 02:00 UTC" },
       "phone.mention": { kind: "clue", label: "Phone: new mention", text: "@{brand} checkout just errors out??", appearsAt: "incident_start" },
       "table.neighbours": { kind: "clue", label: "The next table", text: "Their site keeps giving me some gateway error." },
       "wall.poster": { kind: "herring", label: "Poster on the wall", text: "{brand} FLASH SALE 50% today" },
