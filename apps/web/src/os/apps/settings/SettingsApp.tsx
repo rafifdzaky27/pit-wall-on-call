@@ -1,11 +1,32 @@
 import { CITIES } from "@pitwall/world";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { fetchApiVersion } from "../../../api";
+import photos from "../../../content/store-photos.json";
+import { LogoMark } from "../../brand/Logo";
+import { enterFullscreen, exitFullscreen, fullscreenSupported, useFullscreen } from "../../fullscreen";
 import type { WallpaperChoice } from "../../prefs";
 import { usePrefs } from "../../PrefsProvider";
+import { useOs, type SettingsPageId } from "../../shell/OsContext";
+import { synth, type SoundName } from "../../sound";
 import "./settings.css";
 
-type Page = "appearance" | "accessibility" | "about";
+const PAGES: { id: SettingsPageId; label: string; keywords: string }[] = [
+  { id: "appearance", label: "Appearance", keywords: "style theme dark light wallpaper background" },
+  { id: "sound", label: "Sound", keywords: "volume mute pager alert audio" },
+  { id: "accessibility", label: "Accessibility", keywords: "motion animation larger text cursor shortcuts" },
+  { id: "display", label: "Display", keywords: "full screen fullscreen" },
+  { id: "keyboard", label: "Keyboard", keywords: "shortcuts keys" },
+  { id: "about", label: "About", keywords: "version build api license credits photos" },
+];
+
+const SOUND_ROWS: [SoundName, string, string][] = [
+  ["pager", "Pager", "Repeats until you acknowledge the page"],
+  ["ack", "Acknowledge", "When you take the page"],
+  ["message", "Chat message", "A DM or #incidents while Chat is in the background"],
+  ["notify", "Notification", "Other banners"],
+  ["resolved", "Resolved", "The fix held"],
+  ["dnf", "Budget exhausted", "The error budget ran out"],
+];
 
 const SHORTCUTS: [string, string][] = [
   ["O", "Overview"],
@@ -17,10 +38,43 @@ const SHORTCUTS: [string, string][] = [
   ["1–9, Esc", "Select a service, clear the log filter (Monitoring)"],
 ];
 
+function Group({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="group" aria-label={title}>
+      <h3 className="group-title">{title}</h3>
+      <div className="boxed">{children}</div>
+    </section>
+  );
+}
+
+function Row({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
+  return (
+    <div className="row">
+      <div className="row-text">
+        <span className="row-title">{title}</span>
+        {subtitle && <span className="row-sub">{subtitle}</span>}
+      </div>
+      {children && <div className="row-control">{children}</div>}
+    </div>
+  );
+}
+
+function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (on: boolean) => void }) {
+  return <input type="checkbox" role="switch" className="switch" aria-label={label} checked={checked} onChange={(e) => onChange(e.target.checked)} />;
+}
+
+/** GNOME Settings: a searchable page list and libadwaita-style boxed rows (polish spec S22). */
 export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?: () => Promise<string> }) {
   const { prefs, update } = usePrefs();
-  const [page, setPage] = useState<Page>("appearance");
+  const { settingsPage } = useOs();
+  const full = useFullscreen();
+  const [page, setPage] = useState<SettingsPageId>(settingsPage);
+  const [query, setQuery] = useState("");
   const [api, setApi] = useState("Checking API…");
+
+  useEffect(() => {
+    setPage(settingsPage);
+  }, [settingsPage]);
 
   useEffect(() => {
     if (page !== "about") return;
@@ -34,71 +88,122 @@ export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?:
     };
   }, [page, fetchVersion]);
 
-  const toggle = (key: "reduceMotion" | "largeText" | "systemCursor" | "singleKeyShortcuts", label: string, help: string) => (
-    <label className="setting">
-      <input type="checkbox" checked={prefs[key]} onChange={(e) => update({ [key]: e.target.checked })} />
-      <span>
-        <b>{label}</b>
-        <span className="muted">{help}</span>
-      </span>
-    </label>
-  );
+  const q = query.trim().toLowerCase();
+  const shown = PAGES.filter((p) => q === "" || `${p.label} ${p.keywords}`.toLowerCase().includes(q));
+  const label = PAGES.find((p) => p.id === page)!.label;
+  const volume = prefs.muted ? 0 : prefs.volume;
 
   return (
     <div className="settings">
       <nav className="settings-nav" aria-label="Settings pages">
-        {(["appearance", "accessibility", "about"] as const).map((p) => (
-          <button key={p} type="button" aria-pressed={page === p} onClick={() => setPage(p)}>
-            {p === "appearance" ? "Appearance" : p === "accessibility" ? "Accessibility" : "About"}
-          </button>
-        ))}
+        <input type="search" className="settings-search" aria-label="Search settings" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
+        {shown.length === 0 ? (
+          <p className="empty settings-none">No results</p>
+        ) : (
+          shown.map((p) => (
+            <button key={p.id} type="button" aria-current={page === p.id ? "page" : undefined} onClick={() => setPage(p.id)}>
+              {p.label}
+            </button>
+          ))
+        )}
       </nav>
       <div className="settings-page">
+        <h2 className="settings-title">{label}</h2>
+
         {page === "appearance" && (
           <>
-            <fieldset>
-              <legend>Theme</legend>
-              {(["dark", "light"] as const).map((t) => (
-                <label key={t} className="setting-inline">
-                  <input type="radio" name="theme" checked={prefs.theme === t} onChange={() => update({ theme: t })} />
-                  {t === "dark" ? "Dark" : "Light"}
-                </label>
-              ))}
-            </fieldset>
-            <label className="setting-select">
-              <b>Wallpaper</b>
-              <select value={prefs.wallpaper} onChange={(e) => update({ wallpaper: e.target.value as WallpaperChoice })}>
-                <option value="auto">Follow the shift's city</option>
-                {CITIES.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+            <Group title="Style">
+              <div className="styles" role="radiogroup" aria-label="Style">
+                {(["light", "dark"] as const).map((t) => (
+                  <label key={t} className="style-card">
+                    <span className={`style-preview ${t}`} aria-hidden="true" />
+                    <span className="style-label">
+                      <input type="radio" name="theme" checked={prefs.theme === t} onChange={() => update({ theme: t })} />
+                      {t === "dark" ? "Dark" : "Light"}
+                    </span>
+                  </label>
                 ))}
-              </select>
-            </label>
+              </div>
+            </Group>
+            <Group title="Background">
+              <Row title="Wallpaper" subtitle="The shift's city, or one you pick">
+                <select aria-label="Wallpaper" value={prefs.wallpaper} onChange={(e) => update({ wallpaper: e.target.value as WallpaperChoice })}>
+                  <option value="auto">Follow the shift's city</option>
+                  {CITIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Row>
+            </Group>
           </>
         )}
+
+        {page === "sound" && (
+          <>
+            <Group title="Output">
+              <Row title="Volume">
+                <input type="range" min={0} max={100} step={5} aria-label="Volume" value={volume} onChange={(e) => update({ volume: Number(e.target.value), muted: false })} />
+                <span className="mono row-value">{volume}%</span>
+              </Row>
+              <Row title="Mute" subtitle="Silences every PitOS sound">
+                <Switch label="Mute" checked={prefs.muted} onChange={(on) => update({ muted: on })} />
+              </Row>
+            </Group>
+            <Group title="Alert sounds">
+              {SOUND_ROWS.map(([id, title, subtitle]) => (
+                <Row key={id} title={title} subtitle={subtitle}>
+                  <button
+                    type="button"
+                    className="btn"
+                    aria-label={`Play ${title}`}
+                    disabled={prefs.muted}
+                    onClick={() => {
+                      synth.unlock();
+                      synth.play(id);
+                    }}
+                  >
+                    Play
+                  </button>
+                </Row>
+              ))}
+            </Group>
+          </>
+        )}
+
         {page === "accessibility" && (
-          <>
-            {toggle("reduceMotion", "Reduce motion", "Turns off window animations and the phone shake.")}
-            {toggle("largeText", "Larger text", "Raises the type scale across PitOS.")}
-            {toggle("systemCursor", "Use system cursor", "Uses your browser's own cursors instead of PitOS cursors.")}
-            {toggle("singleKeyShortcuts", "Single-key shortcuts", "O, M, [, ], X, A, P and number keys. Turn off if they get in your way.")}
-          </>
+          <Group title="Seeing and moving">
+            <Row title="Reduce motion" subtitle="Turns off window animations and the phone shake">
+              <Switch label="Reduce motion" checked={prefs.reduceMotion} onChange={(on) => update({ reduceMotion: on })} />
+            </Row>
+            <Row title="Larger text" subtitle="Raises the type scale across PitOS">
+              <Switch label="Larger text" checked={prefs.largeText} onChange={(on) => update({ largeText: on })} />
+            </Row>
+            <Row title="Use system cursor" subtitle="Your browser's own cursors instead of PitOS cursors">
+              <Switch label="Use system cursor" checked={prefs.systemCursor} onChange={(on) => update({ systemCursor: on })} />
+            </Row>
+            <Row title="Single-key shortcuts" subtitle="O, M, [, ], X, A, P and number keys. Turn off if they get in your way.">
+              <Switch label="Single-key shortcuts" checked={prefs.singleKeyShortcuts} onChange={(on) => update({ singleKeyShortcuts: on })} />
+            </Row>
+          </Group>
         )}
-        {page === "about" && (
-          <>
-            <h2>PitOS 1.0</h2>
-            <dl className="about">
-              <dt>Web build</dt>
-              <dd className="mono">{import.meta.env.VITE_GIT_SHA ?? "dev"}</dd>
-              <dt>API</dt>
-              <dd>{api}</dd>
-              <dt>Made by</dt>
-              <dd>Rafif Dzaky Daniswara</dd>
-              <dt>License</dt>
-              <dd>Code AGPL-3.0-only. Game content, names and art are all rights reserved.</dd>
-            </dl>
+
+        {page === "display" && (
+          <Group title="Full screen">
+            <Row title="Full screen on Start shift" subtitle="Hides the browser's toolbars while you are on call. Esc leaves full screen.">
+              <Switch label="Full screen on Start shift" checked={prefs.fullscreenOnStart} onChange={(on) => update({ fullscreenOnStart: on })} />
+            </Row>
+            {fullscreenSupported() && (
+              <Row title="Full screen now">
+                <Switch label="Full screen now" checked={full} onChange={(on) => void (on ? enterFullscreen() : exitFullscreen())} />
+              </Row>
+            )}
+          </Group>
+        )}
+
+        {page === "keyboard" && (
+          <Group title="Shortcuts">
             <table className="shortcuts" aria-label="Keyboard shortcuts">
               <tbody>
                 {SHORTCUTS.map(([k, v]) => (
@@ -111,6 +216,38 @@ export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?:
                 ))}
               </tbody>
             </table>
+          </Group>
+        )}
+
+        {page === "about" && (
+          <>
+            <div className="about-head">
+              <LogoMark size={64} />
+              <p className="about-name">PitOS</p>
+              <p className="muted">Version 1.1 · Pit Wall On-Call</p>
+            </div>
+            <Group title="System">
+              <Row title="Web build">
+                <span className="mono">{import.meta.env.VITE_GIT_SHA ?? "dev"}</span>
+              </Row>
+              <Row title="API">
+                <span>{api}</span>
+              </Row>
+              <Row title="Made by">
+                <span>Rafif Dzaky Daniswara</span>
+              </Row>
+              <Row title="License" subtitle="Code AGPL-3.0-only. Game content, names and art are all rights reserved." />
+            </Group>
+            <Group title="Photo credits">
+              <Row title="Store photos" subtitle="From Unsplash, under the Unsplash License" />
+              {photos.map((p) => (
+                <Row key={p.file} title={p.by} subtitle={`${p.file}.webp`}>
+                  <a href={`https://unsplash.com/photos/${p.id}`} target="_blank" rel="noreferrer">
+                    Unsplash
+                  </a>
+                </Row>
+              ))}
+            </Group>
           </>
         )}
       </div>
