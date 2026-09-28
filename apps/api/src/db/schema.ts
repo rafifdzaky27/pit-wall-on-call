@@ -27,6 +27,7 @@ export const runs = pgTable(
     actions: jsonb("actions").notNull(),
     budgetBurnedBp: integer("budget_burned_bp").notNull(),
     mitigatedAtTick: integer("mitigated_at_tick"),
+    endTick: integer("end_tick").notNull(),
     resolved: boolean("resolved").notNull(),
     flagged: boolean("flagged").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

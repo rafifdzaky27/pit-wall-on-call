@@ -14,8 +14,8 @@ afterAll(async () => {
 
 const player = (id: string) => t.sql`insert into players (id, token_hash, handle) values (${id}, ${`hash-${id}`}, 'p')`;
 const run = (playerId: string, fields: { mode: string; dailyDate?: string; key: string }) =>
-  t.sql`insert into runs (player_id, client_run_id, scenario_id, mode, daily_date, seed, engine_version, actions, budget_burned_bp, resolved)
-        values (${playerId}, ${fields.key}, 'db-pool-exhaustion', ${fields.mode}, ${fields.dailyDate ?? null}, 1, '1.0.0', '[]'::jsonb, 100, true)`;
+  t.sql`insert into runs (player_id, client_run_id, scenario_id, mode, daily_date, seed, engine_version, actions, budget_burned_bp, end_tick, resolved)
+        values (${playerId}, ${fields.key}, 'db-pool-exhaustion', ${fields.mode}, ${fields.dailyDate ?? null}, 1, '1.0.0', '[]'::jsonb, 100, 400, true)`;
 
 describe("migrations", () => {
   it("a fresh database has every migration pending, then none after migrating", async () => {

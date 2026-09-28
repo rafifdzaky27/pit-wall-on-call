@@ -6,6 +6,7 @@ import { ApiError, errorBody } from "./http/errors";
 import { createMetrics, type Metrics } from "./http/metrics";
 import { createRateLimiter, DEFAULT_LIMITS, type Limits, type RateLimiter } from "./http/rateLimit";
 import { playersRoutes } from "./players/routes";
+import { runsRoutes } from "./runs/routes";
 
 export interface AppDeps {
   version: string;
@@ -100,6 +101,7 @@ export function createApp(deps: AppDeps) {
       limits: { ...DEFAULT_LIMITS, ...deps.limits },
     };
     app.route("/api", playersRoutes(ctx));
+    app.route("/api", runsRoutes(ctx));
   }
 
   return app;

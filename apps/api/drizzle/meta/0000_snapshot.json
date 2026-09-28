@@ -1,5 +1,5 @@
 {
-  "id": "0b337764-792a-494b-a399-1fc51b65e652",
+  "id": "36db4578-8de2-4177-8db4-1ffad8ce3017",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -121,6 +121,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+        },
+        "end_tick": {
+          "name": "end_tick",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         },
         "resolved": {
           "name": "resolved",

@@ -18,6 +18,7 @@ CREATE TABLE "runs" (
 	"actions" jsonb NOT NULL,
 	"budget_burned_bp" integer NOT NULL,
 	"mitigated_at_tick" integer,
+	"end_tick" integer NOT NULL,
 	"resolved" boolean NOT NULL,
 	"flagged" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
