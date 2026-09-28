@@ -7,19 +7,10 @@ import { useShortcuts } from "../os/useShortcuts";
 import { CafeFallback } from "./CafeFallback";
 import { cameraReducer, INITIAL_CAMERA, laptopFit, type View } from "./camera";
 import { CameraContext, type CameraApi } from "./CameraContext";
+import { useViewport } from "./useViewport";
 
 /** The resolved chord plays over the postmortem opening before the camera pulls back (cold-open spec §3). */
 export const COLD_CLOSE_DELAY_MS = 1500;
-
-function useViewport(): { w: number; h: number } {
-  const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
-  useEffect(() => {
-    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return size;
-}
 
 function focusAfter(view: View): void {
   if (view === "desktop") {

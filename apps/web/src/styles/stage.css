@@ -13,3 +13,9 @@
 .os-lookup { height: 24px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--topbar-text); font: 500 var(--fs-sm) var(--font); }
 .os-lookup:hover { background: rgba(255, 255, 255, 0.12); }
 .os-lookup kbd { margin-left: 4px; opacity: 0.7; }
+
+/* Café controls: text buttons in the corner, readable over any scene. */
+.cafe-controls { position: absolute; top: 16px; right: 16px; display: flex; gap: var(--space-2); z-index: 2; }
+.cafe-btn { height: 32px; padding: 0 var(--space-3); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: var(--radius-sm); background: rgba(20, 16, 14, 0.72); color: #f3e7cf; font: 500 var(--fs-sm) var(--font); backdrop-filter: blur(6px); cursor: pointer; }
+.cafe-btn:hover { background: rgba(20, 16, 14, 0.9); }
+.cafe-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

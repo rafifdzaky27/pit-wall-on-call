@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Desktop } from "../os/shell/Desktop";
 import { renderOs } from "../os/testing";
@@ -48,6 +48,18 @@ describe("Stage", () => {
     expect(cafeEl()!.hasAttribute("inert")).toBe(true);
     press("l");
     expect(cafeEl()!.hidden).toBe(false);
+  });
+
+  it("after looking up, keyboard focus is on the laptop, ready to go back down", async () => {
+    const { incident } = renderOs(
+      <Stage>
+        <button type="button">inside PitOS</button>
+      </Stage>,
+    );
+    act(() => incident().start());
+    press("l");
+    press("l");
+    await waitFor(() => expect(document.activeElement?.getAttribute("data-hotspot")).toBe("laptop"));
   });
 
   it("ignores L when single-key shortcuts are off", () => {

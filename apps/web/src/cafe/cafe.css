@@ -56,3 +56,29 @@
 @media (prefers-reduced-motion: reduce) {
   .cafe *, .cafe .layer-far, .cafe .layer-mid { animation: none !important; transition: none; }
 }
+
+/* Hotspots (cold-open spec §6, §9): invisible until hovered or focused, then outlined and named. */
+.hotspots { position: absolute; inset: 0; pointer-events: none; }
+.hotspot { position: absolute; padding: 0; border: 0; border-radius: 12px; background: transparent; pointer-events: auto; cursor: pointer; }
+.hotspot:hover, .hotspot:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.75); outline-offset: 4px; background: rgba(255, 255, 255, 0.06); }
+.hotspot-label { position: absolute; left: 50%; top: -34px; transform: translateX(-50%); padding: 3px 10px; border-radius: var(--radius-sm); background: rgba(20, 16, 14, 0.85); color: #f3e7cf; font: 500 var(--fs-sm) var(--font); white-space: nowrap; opacity: 0; transition: opacity var(--motion-fast); pointer-events: none; }
+.hotspot:hover .hotspot-label, .hotspot:focus-visible .hotspot-label { opacity: 1; }
+
+.cafe-caption { position: absolute; transform: translate(-50%, calc(-100% - 12px)); display: grid; gap: 4px; max-width: 320px; padding: 12px 14px; border-radius: var(--radius); background: #f6f1e6; color: #1f1a17; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); font: 400 var(--fs-md) var(--font); pointer-events: auto; }
+.cafe-caption::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 14px; height: 14px; background: #f6f1e6; transform: translateX(-50%) rotate(45deg); }
+.cafe-caption-src { color: #6b5a4a; font-size: var(--fs-sm); font-weight: 600; }
+.cafe-caption q { quotes: "“" "”"; }
+
+/* The phone, picked up off the table. */
+.phone-closeup-scrim { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 8, 7, 0.55); pointer-events: auto; }
+.phone-closeup { display: grid; align-content: start; gap: 10px; width: 300px; min-height: 520px; padding: 28px 16px 20px; border: 10px solid #1c1f24; border-radius: 36px; background: linear-gradient(#2c3358, #594878); color: #ffffff; font-family: var(--font); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+.phone-time { margin: 0 0 12px; text-align: center; font-size: 44px; font-weight: 300; }
+.phone-card { display: grid; gap: 4px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.88); color: #1f1a17; font-size: var(--fs-sm); }
+.phone-card p { margin: 0; }
+.phone-card.phone-page { gap: 6px; }
+.phone-app { color: #6b5a4a; font-size: var(--fs-xs); font-weight: 600; }
+.phone-empty { margin: 24px 0; text-align: center; opacity: 0.8; }
+.phone-close { justify-self: center; margin-top: auto; }
+.phone-closeup.ringing { animation: cafe-shake 2.5s linear infinite; }
+@keyframes cafe-shake { 0%, 30%, 100% { transform: translateX(0); } 5%, 15%, 25% { transform: translateX(-3px); } 10%, 20% { transform: translateX(3px); } }
+[data-motion="reduce"] .phone-closeup { animation: none; }
