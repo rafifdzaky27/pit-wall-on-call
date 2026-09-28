@@ -2,6 +2,7 @@ import { ACK, inspectAction, replay } from "@pitwall/engine";
 import { slowLeak } from "@pitwall/scenarios";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { formatClock } from "../game/format";
 import { burnLabel, DebriefBody } from "./Debrief";
 
 afterEach(cleanup);
@@ -40,6 +41,16 @@ describe("Debrief", () => {
     expect(within(tiles).getByText("Found")).toBeTruthy();
     expect(within(tiles).getByText("00:02")).toBeTruthy();
     expect(within(tiles).getByText("1/2")).toBeTruthy();
+  });
+
+  it("shows when the fix was mitigated and when it was confirmed (M1.6 F2)", () => {
+    show();
+    const tiles = screen.getByRole("list", { name: "Score" });
+    expect(within(tiles).getByText(formatClock(perfect.mitigatedAtTick!))).toBeTruthy();
+    expect(within(tiles).getByText(`Confirmed ${formatClock(perfect.endTick)}`)).toBeTruthy();
+    cleanup();
+    show(dnf);
+    expect(screen.queryByText(/^Confirmed/)).toBeNull();
   });
 
   it("headlines a DNF and says the secondary was paged", () => {

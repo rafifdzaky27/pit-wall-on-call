@@ -18,6 +18,11 @@
 .topbar-title { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; }
 .topbar-title b { font-weight: 500; font-size: var(--fs-md); white-space: nowrap; }
 .topbar-title small { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
+.topbar-title:has(.hold) small { display: none; }
+.hold { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text); font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
+.hold.broken { color: var(--warn); }
+.hold-bar { width: 64px; height: 4px; border-radius: 2px; background: var(--raised); overflow: hidden; }
+.hold-bar i { display: block; height: 100%; background: var(--ok); transform-origin: left; transition: transform var(--motion-base) linear; }
 .spacer { flex: 1; }
 .kv { display: flex; flex-direction: column; }
 .k { font-size: var(--fs-xs); color: var(--muted); }

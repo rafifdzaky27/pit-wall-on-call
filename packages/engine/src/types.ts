@@ -175,6 +175,8 @@ export interface Snapshot {
   errorRateBp: number;
   inspected: string[];
   cluesFound: string[];
+  /** The tick the resolve condition started holding, or null; read only, for the countdown (cold-open spec §4). */
+  stableSinceTick: number | null;
 }
 
 export interface RunResult {
