@@ -4,6 +4,7 @@
 - **Parent spec:** `2026-09-27-pit-wall-on-call-design.md` (decisions D17–D22)
 - **Related:** `2026-09-28-cold-open-design.md`. The café scene moves to M1.6 and zooms out of this desktop.
 - **Delivery:** milestone **M1.5**
+- **Revised by:** `2026-09-28-pitos-polish-design.md` (S11–S24, milestone M1.5.1)
 
 ## 1. Purpose
 
@@ -187,7 +188,7 @@ Every brand is fictional. A content checklist in the plan requires searching eac
 
 **Performance:** window drag and resize stay at 60 fps on a mid-range laptop (transforms only, no layout thrash). Nothing runs while the tab is hidden.
 
-**Usability test (exit gate for M1.5):**
+**Usability test (exit gate for M1.5; replaced by a persona walkthrough, see S11 in the polish spec):**
 - **Participants:** 5 people covering the three personas.
 - **Task:** "Play one incident", with no help.
 - **Measures:** time to the first ack, whether the incident resolved, where the participant hesitated or got lost (think-aloud), and a SUS questionnaire.
