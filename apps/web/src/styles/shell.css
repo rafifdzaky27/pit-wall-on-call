@@ -1,0 +1,24 @@
+/* PitOS shell (DESIGN.md §9). App sections are appended by later tasks. */
+
+/* Cursors */
+[data-cursor="pitos"] body { cursor: url("/cursors/arrow.svg") 5 3, default; }
+[data-cursor="pitos"] .titlebar { cursor: url("/cursors/grab.svg") 16 14, grab; }
+[data-cursor="pitos"] .titlebar:active { cursor: url("/cursors/grabbing.svg") 16 14, grabbing; }
+[data-cursor="pitos"] :is(button, a, summary, label, [role="tab"]) { cursor: url("/cursors/pointer.svg") 12 4, pointer; }
+[data-cursor="pitos"] :is(input, textarea) { cursor: url("/cursors/text.svg") 16 16, text; }
+[data-cursor="pitos"] .resize-handle { cursor: url("/cursors/resize.svg") 16 16, nwse-resize; }
+[data-cursor="pitos"] [aria-busy="true"] { cursor: url("/cursors/wait.svg") 16 16, progress; }
+[data-cursor="pitos"] :is(button:disabled, input:disabled) { cursor: not-allowed; }
+
+/* App icons and wallpaper */
+.app-icon { color: #ffffff; flex: none; display: block; }
+.app-icon-bg { fill: var(--app-color, var(--app-settings)); }
+.app-monitoring { --app-color: var(--app-monitoring); }
+.app-browser { --app-color: var(--app-browser); }
+.app-chat { --app-color: var(--app-chat); }
+.app-files, .app-home { --app-color: var(--app-files); }
+.app-settings { --app-color: var(--app-settings); }
+.app-trash { --app-color: var(--app-trash); }
+.app-phone { --app-color: var(--app-phone); }
+.app-postmortem { --app-color: var(--app-postmortem); }
+.wallpaper { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
