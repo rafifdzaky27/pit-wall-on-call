@@ -38,7 +38,7 @@ export function OsProvider({ children }: { children: ReactNode }) {
 
   const openApp = useCallback((id: AppId) => {
     const meta = APP_META[id];
-    dispatchWm({ type: "open", appId: id, title: meta.title, bounds: meta.bounds, maximized: meta.maximized });
+    dispatchWm({ type: "open", appId: id, title: meta.title, size: meta.size, min: meta.min, maximized: meta.maximized });
   }, []);
 
   const markRead = useCallback((ids: string[]) => {

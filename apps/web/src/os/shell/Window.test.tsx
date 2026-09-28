@@ -5,7 +5,7 @@ import { Window } from "./Window";
 
 afterEach(cleanup);
 
-const win: WindowState = { id: "w1", appId: "chat", title: "Chat", mode: "normal", minimized: false, bounds: { x: 100, y: 50, w: 600, h: 400 }, z: 3 };
+const win: WindowState = { id: "w1", appId: "chat", title: "Chat", mode: "normal", minimized: false, closing: false, bounds: { x: 100, y: 50, w: 600, h: 400 }, min: { w: 360, h: 240 }, z: 3 };
 const area = { w: 1280, h: 760 };
 
 function setup(over: Partial<WindowState> = {}) {

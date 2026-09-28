@@ -1,4 +1,4 @@
-import { useRef, type Dispatch, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, type Dispatch, type PointerEvent, type ReactNode } from "react";
 import { Glyph } from "../brand/Glyph";
 import { frameOf, type WindowState, type WmAction } from "../wm/wm";
 
@@ -17,6 +17,10 @@ export function Window({ win, area, focused, dispatch, children }: Props) {
   const drag = useRef<Drag | null>(null);
   const maximized = win.mode === "maximized";
 
+  useEffect(() => {
+    if (win.closing) dispatch({ type: "remove", id: win.id });
+  }, [win.closing, win.id, dispatch]);
+
   const begin = (kind: Drag["kind"]) => (e: PointerEvent<HTMLElement>) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest("button")) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -28,7 +32,7 @@ export function Window({ win, area, focused, dispatch, children }: Props) {
     const dx = e.clientX - d.px;
     const dy = e.clientY - d.py;
     if (d.kind === "move") dispatch({ type: "move", id: win.id, x: d.x + dx, y: d.y + dy });
-    else dispatch({ type: "resize", id: win.id, w: d.w + dx, h: d.h + dy });
+    else dispatch({ type: "setBounds", id: win.id, bounds: { x: d.x, y: d.y, w: d.w + dx, h: d.h + dy } });
   };
   const end = () => {
     drag.current = null;
