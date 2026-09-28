@@ -1,5 +1,6 @@
 import { render, type RenderResult } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { SubmissionProvider } from "../net/SubmissionProvider";
 import { IncidentProvider, useIncident, type IncidentApi } from "./incident/IncidentProvider";
 import { DEFAULT_PREFS, type Prefs } from "./prefs";
 import { PrefsProvider } from "./PrefsProvider";
@@ -17,10 +18,12 @@ export function renderOs(ui: ReactNode, { seeds = [1, 2, 3], prefs = {} }: { see
   const result = render(
     <PrefsProvider initial={{ ...DEFAULT_PREFS, ...prefs }}>
       <IncidentProvider newSeed={() => queue.shift() ?? 99} now={() => Date.now()}>
-        <OsProvider>
-          <Capture />
-          {ui}
-        </OsProvider>
+        <SubmissionProvider>
+          <OsProvider>
+            <Capture />
+            {ui}
+          </OsProvider>
+        </SubmissionProvider>
       </IncidentProvider>
     </PrefsProvider>,
   );
