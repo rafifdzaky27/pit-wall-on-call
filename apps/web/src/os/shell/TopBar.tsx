@@ -74,12 +74,12 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
           </Suspense>
         )}
       </div>
-      {camera.started && (
-        <button type="button" className="os-lookup" onClick={camera.lookUp}>
-          Look up <kbd>L</kbd>
-        </button>
-      )}
       <div className="os-tray">
+        {camera.started && (
+          <button type="button" className="os-lookup" onClick={camera.lookUp}>
+            Look up <kbd>L</kbd>
+          </button>
+        )}
         <span className={paging ? "oncall paged" : "oncall"}>{paging ? "Paged" : "On call · Primary"}</span>
         <PhoneWidget />
         <div className="sysmenu">

@@ -3,7 +3,9 @@
 .stage-world { position: absolute; inset: 0; transform-origin: 0 0; }
 .stage-cafe { position: absolute; inset: 0; }
 .stage-cafe[hidden] { display: none; }
-.stage-screen { position: absolute; inset: 0; transform-origin: 0 0; }
+/* The laptop's screen sits above the café art (layer 1) and below the café's own UI: hotspots, captions, the phone, controls (layer 2). */
+.stage-screen { position: absolute; inset: 0; transform-origin: 0 0; z-index: 1; }
+.stage-cafe .hotspots { z-index: 2; }
 .stage.in-cafe .stage-screen { pointer-events: none; }
 
 .cafe-fallback { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(#3a2a22, #1d1512); }
@@ -21,6 +23,6 @@
 .cafe-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* The fallback café's ringing phone, and the cold close's lower third. */
-.cafe-fallback-phone { display: grid; gap: var(--space-2); justify-items: center; padding: var(--space-5); border-radius: var(--radius); background: rgba(20, 16, 14, 0.85); color: #f3e7cf; font: 400 var(--fs-md) var(--font); position: relative; }
+.cafe-fallback-phone { z-index: 2; display: grid; gap: var(--space-2); justify-items: center; padding: var(--space-5); border-radius: var(--radius); background: rgba(20, 16, 14, 0.85); color: #f3e7cf; font: 400 var(--fs-md) var(--font); position: relative; }
 .cold-close { position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%); display: flex; align-items: center; gap: var(--space-4); max-width: calc(100% - 32px); padding: var(--space-3) var(--space-4); border-radius: var(--radius); background: rgba(20, 16, 14, 0.82); color: #f3e7cf; font: 500 var(--fs-md) var(--font); backdrop-filter: blur(6px); z-index: 2; }
 .cold-close p { margin: 0; }

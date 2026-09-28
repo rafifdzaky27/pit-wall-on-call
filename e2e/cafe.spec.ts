@@ -21,6 +21,33 @@ test.describe("the café cold open", () => {
     await expect(cafe(page)).toBeHidden();
   });
 
+  test("the café's captions and the phone sit above the laptop's live screen", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Start shift" }).click();
+    const cafeRegion = cafe(page);
+    /** What is painted on top at the centre of `where`: it must belong to `owner`. */
+    const onTop = (owner: string, where: string) =>
+      page.evaluate(
+        ([o, w]) => {
+          // In the café the screen is inert and ignores the pointer, which also hides it from hit-testing;
+          // lift both for this measurement, so paint order alone decides.
+          const screen = document.querySelector(".stage-screen") as HTMLElement;
+          screen.inert = false;
+          screen.style.pointerEvents = "auto";
+          const r = document.querySelector(w)!.getBoundingClientRect();
+          return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest(o) !== null;
+        },
+        [owner, where],
+      );
+    await cafeRegion.getByRole("button", { name: "Phone", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Phone" })).toBeVisible();
+    // The close-up covers the laptop: at the laptop screen's centre, the phone (or its backdrop) is on top.
+    expect(await onTop(".phone-closeup-scrim", ".stage-screen")).toBe(true);
+    await page.keyboard.press("Escape");
+    await cafeRegion.getByRole("button", { name: "The next table", exact: true }).click();
+    expect(await onTop(".cafe-caption", ".cafe-caption")).toBe(true);
+  });
+
   test("a whole run: the fix holds on a visible countdown, then the cold close leads to the postmortem", async ({ page }) => {
     await page.clock.install();
     await page.goto("/");

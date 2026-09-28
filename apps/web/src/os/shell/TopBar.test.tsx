@@ -60,6 +60,9 @@ describe("TopBar", () => {
     );
     expect(screen.queryByRole("button", { name: /^Look up/ })).toBeNull();
     act(() => view.incident().start());
+    // The bar is a three-column grid; Look up lives in the tray, never as a fourth column.
+    expect(document.querySelector(".os-topbar")!.children).toHaveLength(3);
+    expect(screen.getByRole("button", { name: /^Look up/ }).closest(".os-tray")).not.toBeNull();
     act(() => fireEvent.keyDown(window, { key: "l" }));
     fireEvent.click(screen.getByRole("button", { name: /^Look up/ }));
     expect(document.querySelector("[data-testid=stage-screen]")!.hasAttribute("inert")).toBe(true);
