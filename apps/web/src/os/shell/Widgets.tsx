@@ -22,7 +22,7 @@ export function Fortune() {
 export function WorldClock() {
   const now = useNow();
   return (
-    <section className="widget clock" aria-label="World clock">
+    <section className="widget worldclock" aria-label="World clock">
       <ul>
         {CITIES.map((c) => (
           <li key={c.id}>

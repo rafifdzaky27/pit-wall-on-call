@@ -11,9 +11,10 @@ import "./styles/shell.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { applyTheme, readStoredTheme } from "./theme";
+import { applyPrefs, loadPrefs } from "./os/prefs";
 
-applyTheme(readStoredTheme());
+// Apply before the first paint so a light-theme player never sees a dark flash.
+applyPrefs(loadPrefs());
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root element missing");

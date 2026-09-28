@@ -1,7 +1,6 @@
 import { pickLesson, type RunResult, type ScenarioDef, type State, type Verdict } from "@pitwall/engine";
 import type { ReactNode } from "react";
 import { formatBp, formatClock } from "../game/format";
-import { ThemeToggle } from "../ThemeToggle";
 
 const SIDE_EFFECT = "side_effect:";
 
@@ -150,41 +149,5 @@ export function DebriefBody({ scenario, result, clueTotal, actions }: BodyProps)
       </section>
       <div className="debrief-actions">{actions}</div>
     </>
-  );
-}
-
-interface Props {
-  scenario: ScenarioDef<State>;
-  result: RunResult;
-  clueTotal: number;
-  onPlayAgain: () => void;
-  onHome: () => void;
-}
-
-export function Debrief({ scenario, result, clueTotal, onPlayAgain, onHome }: Props) {
-  return (
-    <div className="page">
-      <header className="site-head">
-        <span className="wordmark">Pit Wall On-Call</span>
-        <ThemeToggle />
-      </header>
-      <main className="debrief">
-        <DebriefBody
-          scenario={scenario}
-          result={result}
-          clueTotal={clueTotal}
-          actions={
-            <>
-              <button type="button" className="btn primary btn-lg" onClick={onPlayAgain}>
-                Play again
-              </button>
-              <button type="button" className="btn btn-lg" onClick={onHome}>
-                Back to start
-              </button>
-            </>
-          }
-        />
-      </main>
-    </div>
   );
 }

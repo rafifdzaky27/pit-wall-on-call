@@ -2,7 +2,7 @@ import { ACK, inspectAction, replay } from "@pitwall/engine";
 import { slowLeak } from "@pitwall/scenarios";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { burnLabel, Debrief } from "./Debrief";
+import { burnLabel, DebriefBody } from "./Debrief";
 
 afterEach(cleanup);
 
@@ -16,9 +16,20 @@ const perfect = replay(slowLeak, 1, [
 const dnf = replay(slowLeak, 1, []);
 
 const show = (result = perfect) => {
-  const handlers = { onPlayAgain: vi.fn(), onHome: vi.fn() };
-  render(<Debrief scenario={slowLeak} result={result} clueTotal={2} {...handlers} />);
-  return handlers;
+  const onNewShift = vi.fn();
+  render(
+    <DebriefBody
+      scenario={slowLeak}
+      result={result}
+      clueTotal={2}
+      actions={
+        <button type="button" onClick={onNewShift}>
+          New shift
+        </button>
+      }
+    />,
+  );
+  return { onNewShift };
 };
 
 describe("Debrief", () => {
@@ -57,10 +68,8 @@ describe("Debrief", () => {
   it("shows the scenario lesson and the next steps", () => {
     const h = show(dnf);
     expect(screen.getByText(/the database was a victim, not the cause/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Play again" }));
-    fireEvent.click(screen.getByRole("button", { name: "Back to start" }));
-    expect(h.onPlayAgain).toHaveBeenCalled();
-    expect(h.onHome).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "New shift" }));
+    expect(h.onNewShift).toHaveBeenCalled();
   });
 
   it("names side-effect burn after the action", () => {

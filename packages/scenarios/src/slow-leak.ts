@@ -36,8 +36,8 @@ export const slowLeak = defineScenario<SlowLeak>({
   services: [
     { id: "edge", label: "edge-gateway", x: 12, y: 50, detail: () => "nginx · 2 nodes" },
     { id: "checkout", label: "checkout-api", x: 44, y: 50, detail: (s) => (s.rolledBack ? "v141 · 3 pods" : "v142 · 3 pods") },
-    { id: "postgres", label: "postgres", x: 80, y: 24, detail: (s) => `primary · max ${s.dbMaxConns} conns` },
-    { id: "payments", label: "payments", x: 80, y: 76, detail: () => "external provider" },
+    { id: "postgres", label: "postgres", x: 80, y: 18, detail: (s) => `primary · max ${s.dbMaxConns} conns` },
+    { id: "payments", label: "payments", x: 80, y: 82, detail: () => "external provider" },
   ],
   edges: [
     { from: "edge", to: "checkout" },
