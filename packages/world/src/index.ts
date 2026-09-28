@@ -3,6 +3,7 @@ import { CITIES, type Brand, type City, type ColleagueRole, type CurrencyCode } 
 
 export * from "./cities";
 export * from "./catalog";
+export * from "./scene";
 
 export interface World {
   city: City;

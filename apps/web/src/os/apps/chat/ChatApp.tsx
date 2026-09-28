@@ -91,8 +91,9 @@ export function ChatApp() {
     if (!el) return;
     const opened = shownIn.current !== current;
     shownIn.current = current;
-    const marker = opened ? el.querySelector(".chat-new") : null;
-    if (marker) marker.scrollIntoView?.({ block: "start" });
+    const marker = opened ? el.querySelector<HTMLElement>(".chat-new") : null;
+    // scrollIntoView would also scroll the overflow-hidden PitOS root (M1.6 F1).
+    if (marker) el.scrollTop += marker.getBoundingClientRect().top - el.getBoundingClientRect().top;
     else el.scrollTop = el.scrollHeight;
   }, [current, messages.length]);
 

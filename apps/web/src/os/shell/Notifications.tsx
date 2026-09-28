@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { formatClock } from "../../game/format";
 import { Glyph } from "../brand/Glyph";
 import { useIncident } from "../incident/IncidentProvider";
-import { synth } from "../sound";
+import { audio } from "../audio/engine";
 import { useOs, type Notice } from "./OsContext";
 
 /** Non-critical banners move to the calendar's list after this long (polish spec §6). */
@@ -39,7 +39,7 @@ function Banner({ notice }: { notice: Notice }) {
   const [held, setHeld] = useState(false);
 
   useEffect(() => {
-    if (notice.sound) synth.play(notice.sound);
+    if (notice.sound) audio.play(notice.sound);
   }, [notice.sound]);
 
   // Hovering or focusing holds the banner; the timer restarts when the player lets go.

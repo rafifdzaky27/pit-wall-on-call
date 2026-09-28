@@ -16,6 +16,14 @@ export interface Prefs {
   muted: boolean;
   /** Start shift requests full screen (polish spec S13). */
   fullscreenOnStart: boolean;
+  /** Bus levels, 0–100 (cold-open spec §7). */
+  ambience: number;
+  music: number;
+  alerts: number;
+  /** Turns off budget pulses, the escalation tone and fix-hold ticks. */
+  reduceAudio: boolean;
+  /** The lo-fi radio was playing (cold-open spec C8). */
+  radio: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -29,12 +37,18 @@ export const DEFAULT_PREFS: Prefs = {
   volume: 70,
   muted: false,
   fullscreenOnStart: true,
+  ambience: 60,
+  music: 50,
+  alerts: 100,
+  reduceAudio: false,
+  radio: false,
 };
 
 const KEY = "pitwall.prefs";
 const LEGACY_THEME_KEY = "pitwall.theme";
 const WALLPAPERS: readonly string[] = ["auto", "jakarta", "yogyakarta", "tokyo", "melbourne"];
-const FLAGS = ["reduceMotion", "largeText", "systemCursor", "singleKeyShortcuts", "muted", "fullscreenOnStart"] as const;
+const FLAGS = ["reduceMotion", "largeText", "systemCursor", "singleKeyShortcuts", "muted", "fullscreenOnStart", "reduceAudio", "radio"] as const;
+const LEVELS = ["volume", "ambience", "music", "alerts"] as const;
 
 function sanitize(raw: unknown): Prefs {
   const prefs = { ...DEFAULT_PREFS };
@@ -47,7 +61,10 @@ function sanitize(raw: unknown): Prefs {
   }
   if (typeof r.wallpaper === "string" && WALLPAPERS.includes(r.wallpaper)) prefs.wallpaper = r.wallpaper as WallpaperChoice;
   if (typeof r.sticky === "string") prefs.sticky = r.sticky.slice(0, 2000);
-  if (typeof r.volume === "number" && Number.isFinite(r.volume)) prefs.volume = Math.round(Math.min(100, Math.max(0, r.volume)));
+  for (const level of LEVELS) {
+    const value = r[level];
+    if (typeof value === "number" && Number.isFinite(value)) prefs[level] = Math.round(Math.min(100, Math.max(0, value)));
+  }
   return prefs;
 }
 

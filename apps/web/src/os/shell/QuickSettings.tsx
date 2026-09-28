@@ -1,3 +1,5 @@
+import { audio } from "../audio/engine";
+import { loadRadio } from "../audio/useRadio";
 import { Glyph } from "../brand/Glyph";
 import { enterFullscreen, exitFullscreen, fullscreenSupported, useFullscreen } from "../fullscreen";
 import { usePrefs } from "../PrefsProvider";
@@ -25,6 +27,25 @@ export function QuickSettings({ onLock }: { onLock: () => void }) {
         <span className="qs-value mono" aria-hidden="true">
           {volume}%
         </span>
+      </div>
+      <div className="qs-radio" role="group" aria-label="Lo-fi radio">
+        <span>Lo-fi radio</span>
+        <button
+          type="button"
+          className="btn"
+          aria-label={prefs.radio ? "Pause lo-fi radio" : "Play lo-fi radio"}
+          onClick={() => {
+            audio.unlock();
+            update({ radio: !prefs.radio });
+          }}
+        >
+          {prefs.radio ? "Pause" : "Play"}
+        </button>
+        {prefs.radio && (
+          <button type="button" className="btn" aria-label="Next track" onClick={() => void loadRadio().then((radio) => radio.next())}>
+            Next
+          </button>
+        )}
       </div>
       <div className="seg seg-fill" role="group" aria-label="Theme">
         <button type="button" aria-pressed={prefs.theme === "dark"} onClick={() => update({ theme: "dark" })}>

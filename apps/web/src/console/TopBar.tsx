@@ -1,5 +1,6 @@
 import { TICKS_PER_SECOND, type ScenarioDef, type Snapshot, type State } from "@pitwall/engine";
 import { formatBp, formatClock } from "../game/format";
+import { HoldIndicator } from "./HoldIndicator";
 
 export function TopBar({ scenario, snapshot, onPause }: { scenario: ScenarioDef<State>; snapshot: Snapshot; onPause: () => void }) {
   const burned = snapshot.budgetBurnedBp;
@@ -12,6 +13,7 @@ export function TopBar({ scenario, snapshot, onPause }: { scenario: ScenarioDef<
       <div className="topbar-title">
         <b>{scenario.coldOpen.page.title}</b>
         <small>{scenario.title}</small>
+        <HoldIndicator snapshot={snapshot} />
       </div>
       <div className="spacer" />
       <div className="kv">

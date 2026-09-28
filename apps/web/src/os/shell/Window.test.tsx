@@ -86,6 +86,14 @@ describe("Window", () => {
     expect(view.container.querySelectorAll(".rz")).toHaveLength(0);
   });
 
+  it("a snapped window resizes only from its inner edge, so the bottom edge stays free for the dock", () => {
+    const left = setup({ mode: "left" });
+    expect([...left.view.container.querySelectorAll(".rz")].map((e) => e.className)).toEqual(["rz rz-e"]);
+    cleanup();
+    const right = setup({ mode: "right" });
+    expect([...right.view.container.querySelectorAll(".rz")].map((e) => e.className)).toEqual(["rz rz-w"]);
+  });
+
   it("double-clicking the title bar toggles maximize", () => {
     const { dispatch } = setup();
     fireEvent.doubleClick(screen.getByText("Chat", { selector: ".titlebar-title" }));

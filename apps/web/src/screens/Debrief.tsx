@@ -82,6 +82,7 @@ export function DebriefBody({ scenario, result, clueTotal, actions }: BodyProps)
         <li className="tile">
           <span className="tile-k">Mitigated at</span>
           <span className="tile-v mono">{result.mitigatedAtTick === null ? "Not mitigated" : formatClock(result.mitigatedAtTick)}</span>
+          {resolved && <span className="tile-sub mono">Confirmed {formatClock(result.endTick)}</span>}
         </li>
         <li className="tile">
           <span className="tile-k">Root cause</span>

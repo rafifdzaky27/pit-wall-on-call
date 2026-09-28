@@ -15,7 +15,8 @@ for (const [width, height] of VIEWPORTS) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
     await page.getByRole("button", { name: "Start shift" }).click();
-    await page.getByRole("button", { name: "Skip to the page" }).click();
+    // Start shift pulls back to the café, which has its own Skip; A acknowledges from anywhere.
+    await page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" }).click();
     await page.keyboard.press("a");
     // Measure after the window's open motion settles (looping CSS animations never finish).
     await page.waitForFunction(() => document.getAnimations().every((a) => a.effect?.getTiming().iterations === Infinity));

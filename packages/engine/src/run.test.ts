@@ -181,6 +181,17 @@ describe("resolution and time limit", () => {
     expect(r.timeline).toContainEqual({ tick: 9, kind: "alert_cleared", alertId: "svc.down" });
   });
 
+  it("exposes when the fix started holding, for the countdown (M1.6 F2)", () => {
+    const run = newRun();
+    run.dispatch(ACK);
+    expect(run.snapshot().stableSinceTick).toBeNull();
+    run.dispatch("svc.fix");
+    steps(run, 20);
+    expect(run.snapshot().stableSinceTick).toBe(9);
+    runToEnd(run);
+    expect(run.result().mitigatedAtTick).toBe(9);
+  });
+
   it("ends as DNF at the time limit with every tick unacknowledged", () => {
     const run = newRun();
     expect(runToEnd(run)).toBe(900);

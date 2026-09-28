@@ -32,14 +32,17 @@ function classTokens(source: string): Set<string> {
   return out;
 }
 
+// Read each component once: the check is classes × components, and re-reading made it time out.
+const tokensBySource = sources.map((src) => [src, classTokens(readFileSync(src, "utf8"))] as const);
+
 describe("app stylesheets", () => {
   it.each(stylesheets.map((f) => [relative(APPS, f), f]))("%s only defines classes its own app uses", (_name, file) => {
     const appDir = resolve(file, "..");
     const clashes: string[] = [];
     for (const cls of definedClasses(readFileSync(file, "utf8"))) {
-      for (const src of sources) {
+      for (const [src, tokens] of tokensBySource) {
         if (src.startsWith(appDir)) continue;
-        if (classTokens(readFileSync(src, "utf8")).has(cls)) clashes.push(`.${cls} in ${relative(SRC, src)}`);
+        if (tokens.has(cls)) clashes.push(`.${cls} in ${relative(SRC, src)}`);
       }
     }
     expect(clashes).toEqual([]);

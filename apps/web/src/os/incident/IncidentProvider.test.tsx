@@ -55,6 +55,18 @@ describe("IncidentProvider", () => {
     expect(result.current.phase).toBe("paging");
   });
 
+  it("does not acknowledge while paused", () => {
+    const { result } = setup();
+    act(() => result.current.start());
+    act(() => result.current.skipPrepage());
+    act(() => result.current.pause());
+    act(() => result.current.acknowledge());
+    expect(result.current.phase).toBe("paging");
+    act(() => result.current.resume());
+    act(() => result.current.acknowledge());
+    expect(result.current.phase).toBe("active");
+  });
+
   it("records each hotspot inspect once", () => {
     const { result } = setup();
     act(() => result.current.inspect("laptop.slack.deploys"));

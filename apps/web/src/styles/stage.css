@@ -1,0 +1,28 @@
+/* The camera around PitOS (cold-open spec §12). Only transform animates. */
+.stage { position: fixed; inset: 0; overflow: clip; background: #000; }
+.stage-world { position: absolute; inset: 0; transform-origin: 0 0; }
+.stage-cafe { position: absolute; inset: 0; }
+.stage-cafe[hidden] { display: none; }
+/* The laptop's screen sits above the café art (layer 1) and below the café's own UI: hotspots, captions, the phone, controls (layer 2). */
+.stage-screen { position: absolute; inset: 0; transform-origin: 0 0; z-index: 1; }
+.stage-cafe .hotspots { z-index: 2; }
+.stage.in-cafe .stage-screen { pointer-events: none; }
+
+.cafe-fallback { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(#3a2a22, #1d1512); }
+.cafe-fallback-laptop { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: 0; background: transparent; color: transparent; }
+.cafe-fallback-laptop:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+
+.os-lookup { height: 24px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--topbar-text); font: 500 var(--fs-sm) var(--font); }
+.os-lookup:hover { background: rgba(255, 255, 255, 0.12); }
+.os-lookup kbd { margin-left: 4px; opacity: 0.7; }
+
+/* Café controls: text buttons in the corner, readable over any scene. */
+.cafe-controls { position: absolute; top: 16px; right: 16px; display: flex; gap: var(--space-2); z-index: 2; }
+.cafe-btn { height: 32px; padding: 0 var(--space-3); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: var(--radius-sm); background: rgba(20, 16, 14, 0.72); color: #f3e7cf; font: 500 var(--fs-sm) var(--font); backdrop-filter: blur(6px); cursor: pointer; }
+.cafe-btn:hover { background: rgba(20, 16, 14, 0.9); }
+.cafe-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The fallback café's ringing phone, and the cold close's lower third. */
+.cafe-fallback-phone { z-index: 2; display: grid; gap: var(--space-2); justify-items: center; padding: var(--space-5); border-radius: var(--radius); background: rgba(20, 16, 14, 0.85); color: #f3e7cf; font: 400 var(--fs-md) var(--font); position: relative; }
+.cold-close { position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%); display: flex; align-items: center; gap: var(--space-4); max-width: calc(100% - 32px); padding: var(--space-3) var(--space-4); border-radius: var(--radius); background: rgba(20, 16, 14, 0.82); color: #f3e7cf; font: 500 var(--fs-md) var(--font); backdrop-filter: blur(6px); z-index: 2; }
+.cold-close p { margin: 0; }

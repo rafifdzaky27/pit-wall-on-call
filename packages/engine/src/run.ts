@@ -196,6 +196,7 @@ export class Run<S extends State> {
       errorRateBp: this.currentErrorBp(),
       inspected: [...this.inspected],
       cluesFound: [...this.cluesFound],
+      stableSinceTick: this.stableSince,
     };
   }
 

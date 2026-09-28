@@ -20,6 +20,13 @@ type Drag =
   | { kind: "resize"; edge: Edge; px: number; py: number; start: Bounds };
 
 const EDGES: readonly Edge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+/** Snapped windows resize only from their inner edge, and maximized ones not at all, as in GNOME (M1.6 F3). */
+function edgesFor(mode: WindowMode): readonly Edge[] {
+  if (mode === "maximized") return [];
+  if (mode === "left") return ["e"];
+  if (mode === "right") return ["w"];
+  return EDGES;
+}
 /** How far a maximized or snapped window is dragged before it restores (polish spec §4). */
 const RESTORE_AFTER = 6;
 
@@ -186,8 +193,7 @@ export function Window({ win, area, focused, layer, dispatch, onDragChange, chil
         </div>
       </header>
       <div className="window-body">{children}</div>
-      {!maximized &&
-        EDGES.map((edge) => (
+      {edgesFor(win.mode).map((edge) => (
           <div key={edge} className={`rz rz-${edge}`} aria-hidden="true" onPointerDown={beginResize(edge)} onPointerMove={onMove} onPointerUp={end} onPointerCancel={end} />
         ))}
     </section>

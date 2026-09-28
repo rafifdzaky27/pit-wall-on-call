@@ -184,8 +184,48 @@ Settings → Reduce motion (`data-motion="reduce"`) and `prefers-reduced-motion`
 
 ### Sound
 
-All sounds are synthesized with WebAudio (`os/sound.ts`): pager (repeats every 2.5 s until acknowledged), ack, chat message, notification, resolved and budget exhausted. Volume and mute are in quick settings and Settings → Sound. Nothing plays while paused, locked or with the tab hidden.
+The audio lives in `os/audio/`: one Web Audio context with four buses (**ambience**, **music**, **sfx**, **ui**) under a master level.
+- **Café filter:** ambience and music pass through a low-pass "café filter" that muffles the room while the camera is on the laptop.
+- **Cues:** every cue is synthesized except the two café recordings. The cues are the pager (every 2.5 s, a step louder every 10 s), the phone vibration, ack, escalation, chat message, notification, the budget pulses at 50% and 80%, fix-hold ticks, action start and done, alert fired and cleared, resolved and budget exhausted.
+- **Levels:** master volume, Ambience, Music and Alerts in Settings → Sound. Master and mute are also in quick settings.
+- **Reduce audio intensity:** drops the pulses, the escalation tone and the fix-hold ticks.
+- **Stopping:** nothing plays while paused, locked or with the tab hidden; the context is suspended.
+- **Radio:** the lo-fi radio (`os/audio/lofi.ts`) loads only when switched on.
+- **Visual equivalents:** no cue carries information that is not also on screen.
 
 ### Text size
 
 Settings → Larger text sets `data-text="large"`, which raises the type scale by 2px per step.
+
+## 10. Café (M1.6)
+
+Spec: `docs/specs/2026-09-28-cold-open-design.md`, §6, §7 and §12.
+
+### Camera
+- **The Stage** (`src/cafe/Stage.tsx`) wraps PitOS and owns the camera: the **desktop** view, or the **café** view.
+- **In the café:** the live desktop is scaled into the laptop's screen (`laptopFit`) and made `inert`. The café is `inert` while the camera is on the laptop.
+- **A zoom** is one transform on `.stage-world`, `DUR.camera` = 700 ms with `EASE_IN_OUT`, or a cut under reduced motion. A new move cancels the last one.
+- **Roots:** the PitOS roots (`.stage`, `.desktop`) use `overflow: clip`, so neither focus nor `scrollIntoView` can ever scroll them. `scrollIntoView` is also a lint error in `apps/web/src`.
+
+### Layers
+- **Inside the Stage:** café art (auto), then the laptop screen (1), then the café UI (2): hotspots, captions, the phone close-up, the controls and the cold close.
+- **Paused overlay:** it belongs to the Stage, so it covers both views.
+
+### Art
+- **Drawing:** flat vector SVG on a 1600×900 canvas, covering the viewport (`xMidYMid slice`). Layers are the street through the window, the interior, the patrons and the foreground table.
+- **Colours:** they come from the scene palette in `packages/world/src/scene.ts` (time of day × weather), not from the UI tokens. The café is in-world art.
+- **Visibility:** everything a player must reach stays inside the scene's x 199–1399 band, the part visible at 4:3.
+- **Particles:** 300 or fewer (rain lines 90 or fewer).
+- **Motion:** only transform and opacity animate. Parallax moves the street 8 px and the room 4 px. The table never moves. Everything holds still while paused and under reduced motion.
+
+### Hotspots and controls
+- **Hotspots:** real buttons, transparent until hover or focus, then outlined and named. In Tab order: Laptop, Phone, The next table, Poster on the wall, Radio. Clues open a caption (Esc closes it). The phone opens a close-up with its own clock in the city's time zone.
+- **Controls:** text buttons at the top right: "Skip to the page" before the page, "Back to laptop (L)" always.
+- **Cold close:** a lower-third caption with "Read the postmortem", which takes focus.
+- **Look up:** a text button in the PitOS tray, and the `L` key.
+
+### Budgets
+- **Main chunk:** grows 3 KB or less per milestone. The calendar, quick settings and the radio load lazily; the menus are fetched 2 s after boot.
+- **Café:** the art, hotspots and ambience player are one lazy chunk (about 7.6 KB gzip).
+- **Recordings:** 1.5 MB or less (currently 0.6 MB).
+

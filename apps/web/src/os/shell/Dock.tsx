@@ -30,7 +30,8 @@ export function Dock({ unread, forceShow = false }: { unread: number; forceShow?
   }, []);
 
   const frames = wm.windows.filter((w) => !w.minimized && !w.closing).map((w) => frameOf(w, wm.area));
-  const covered = dockHidden(frames, dockRect(wm.area, width || FALLBACK_WIDTH));
+  const rect = dockRect(wm.area, width || FALLBACK_WIDTH);
+  const covered = dockHidden(frames, rect);
   const hidden = covered && !peek && !focusWithin && !forceShow && !dragging;
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export function Dock({ unread, forceShow = false }: { unread: number; forceShow?
       <div
         className="dock-hotzone"
         aria-hidden="true"
+        style={{ left: rect.x, width: rect.w }}
         onPointerEnter={() => {
           window.clearTimeout(enterTimer.current);
           enterTimer.current = window.setTimeout(() => setPeek(true), REVEAL_MS);

@@ -1,5 +1,5 @@
 import { symptomCode } from "@pitwall/scenarios";
-import { STORE_COPY } from "@pitwall/world";
+import { fillWorld, STORE_COPY, type InfoSlug } from "@pitwall/world";
 import { useEffect, useRef, useState } from "react";
 import { Glyph } from "../../brand/Glyph";
 import { useIncident } from "../../incident/IncidentProvider";
@@ -9,9 +9,9 @@ import { ErrorPage } from "./ErrorPage";
 import { REASON } from "./http";
 import { NetworkPanel } from "./NetworkPanel";
 import { ROW_EVERY_TICKS, rowForTick, type NetRow } from "./network";
-import { CheckoutPage, OrderPage, StorePage, type Cart } from "./StorePage";
+import { CheckoutPage, InfoPage, OrderPage, StorePage, type Cart } from "./StorePage";
 
-type Route = "/" | "/checkout" | `/order/${string}`;
+type Route = "/" | "/checkout" | `/order/${string}` | `/${InfoSlug}`;
 const MAX_ROWS = 150;
 /** How long a simulated page load takes (presentation only). */
 export const NAV_MS = 450;
@@ -121,13 +121,16 @@ export function BrowserApp() {
   };
 
   const showError = route === "/checkout" && failing;
+  const info = copy.footer.find((f) => route === `/${f.slug}`);
   const title = showError
     ? `${code} ${REASON[code]}`
     : route === "/checkout"
       ? `${copy.checkout} · ${world.brand.name}`
       : route.startsWith("/order/")
         ? `${copy.orderTitle} · ${world.brand.name}`
-        : `${world.brand.name} · ${world.brand.tagline}`;
+        : info
+          ? `${fillWorld(info.title, world)} · ${world.brand.name}`
+          : `${world.brand.name} · ${world.brand.tagline}`;
 
   let page;
   if (route === "/") {
@@ -138,10 +141,13 @@ export function BrowserApp() {
         onAdd={(id) => setCart((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }))}
         onRemove={(id) => setCart((c) => ({ ...c, [id]: 0 }))}
         onCheckout={() => navigate("/checkout", "push")}
+        onInfo={(slug) => navigate(`/${slug}`, "push")}
       />
     );
   } else if (route === "/checkout") {
     page = showError ? <ErrorPage code={code} server={content.server} /> : <CheckoutPage world={world} cart={cart} placing={placing} onPlace={place} />;
+  } else if (info) {
+    page = <InfoPage world={world} slug={info.slug} onBack={() => navigate("/", "push")} />;
   } else {
     page = <OrderPage world={world} order={route.slice("/order/".length)} onContinue={() => navigate("/", "push")} />;
   }

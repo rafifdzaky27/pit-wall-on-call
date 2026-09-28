@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { enterFullscreen } from "./fullscreen";
 import { useIncident } from "./incident/IncidentProvider";
 import { usePrefs } from "./PrefsProvider";
-import { synth } from "./sound";
+import { audio } from "./audio/engine";
 
 /**
  * Start shift, as one click. Full screen and audio both need the click's user activation, so
@@ -20,7 +20,7 @@ export function useStartShift(): () => void {
 
   return useCallback(() => {
     if (latest.current.fullscreenOnStart) void enterFullscreen();
-    synth.unlock();
+    audio.unlock();
     latest.current.start();
   }, []);
 }

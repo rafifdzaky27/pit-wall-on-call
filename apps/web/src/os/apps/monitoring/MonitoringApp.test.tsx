@@ -50,7 +50,7 @@ describe("MonitoringApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open postmortem" }));
     expect(os().wm.windows.map((w) => w.appId)).toContain("postmortem");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/^Resolved in/);
-    expect(screen.getByText(/\/2$/)).toBeTruthy();
+    expect(screen.getByText(/\/3$/)).toBeTruthy();
   });
 
   it("the postmortem's New shift starts a fresh shift", () => {

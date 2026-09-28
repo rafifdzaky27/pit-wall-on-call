@@ -25,3 +25,16 @@ describe("sound and full screen preferences", () => {
     expect(loadPrefs()).toMatchObject({ volume: 70, muted: false });
   });
 });
+
+describe("café audio preferences (M1.6)", () => {
+  it("default to ambience 60, music 50, alerts 100, full intensity, radio off", () => {
+    expect(DEFAULT_PREFS).toMatchObject({ ambience: 60, music: 50, alerts: 100, reduceAudio: false, radio: false });
+  });
+
+  it("clamp levels, keep flags and survive a reload", () => {
+    localStorage.setItem("pitwall.prefs", JSON.stringify({ ambience: 180, music: -1, alerts: 40, reduceAudio: true, radio: true }));
+    expect(loadPrefs()).toMatchObject({ ambience: 100, music: 0, alerts: 40, reduceAudio: true, radio: true });
+    localStorage.setItem("pitwall.prefs", JSON.stringify({ ambience: "x", radio: "on" }));
+    expect(loadPrefs()).toMatchObject({ ambience: 60, radio: false });
+  });
+});

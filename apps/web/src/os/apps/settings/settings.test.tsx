@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadPrefs } from "../../prefs";
-import { synth } from "../../sound";
+import { audio } from "../../audio/engine";
 import { renderOs } from "../../testing";
 import { SettingsApp } from "./SettingsApp";
 
@@ -27,14 +27,22 @@ describe("SettingsApp", () => {
   });
 
   it("Sound sets the volume and mute, and plays each alert sound on demand", () => {
-    const play = vi.spyOn(synth, "play").mockImplementation(() => {});
-    vi.spyOn(synth, "unlock").mockImplementation(() => {});
+    const play = vi.spyOn(audio, "play").mockImplementation(() => {});
+    vi.spyOn(audio, "unlock").mockImplementation(() => {});
     renderOs(<SettingsApp fetchVersion={ok} />);
     open("Sound");
     fireEvent.change(screen.getByRole("slider", { name: "Volume" }), { target: { value: "30" } });
     expect(loadPrefs().volume).toBe(30);
     fireEvent.click(screen.getByRole("button", { name: "Play Pager" }));
     expect(play).toHaveBeenCalledWith("pager");
+    for (const [name, key] of [["Ambience volume", "ambience"], ["Music volume", "music"], ["Alerts volume", "alerts"]] as const) {
+      fireEvent.change(screen.getByRole("slider", { name }), { target: { value: "20" } });
+      expect(loadPrefs()[key]).toBe(20);
+    }
+    fireEvent.click(screen.getByRole("switch", { name: "Reduce audio intensity" }));
+    expect(loadPrefs().reduceAudio).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Play Phone vibration" }));
+    expect(play).toHaveBeenCalledWith("vibrate");
     fireEvent.click(screen.getByRole("switch", { name: "Mute" }));
     expect(loadPrefs().muted).toBe(true);
     expect((screen.getByRole("button", { name: "Play Pager" }) as HTMLButtonElement).disabled).toBe(true);

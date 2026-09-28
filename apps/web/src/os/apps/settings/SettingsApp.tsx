@@ -7,7 +7,7 @@ import { enterFullscreen, exitFullscreen, fullscreenSupported, useFullscreen } f
 import type { WallpaperChoice } from "../../prefs";
 import { usePrefs } from "../../PrefsProvider";
 import { useOs, type SettingsPageId } from "../../shell/OsContext";
-import { synth, type SoundName } from "../../sound";
+import { audio, type Cue } from "../../audio/engine";
 import "./settings.css";
 
 const PAGES: { id: SettingsPageId; label: string; keywords: string }[] = [
@@ -19,13 +19,22 @@ const PAGES: { id: SettingsPageId; label: string; keywords: string }[] = [
   { id: "about", label: "About", keywords: "version build api license credits photos" },
 ];
 
-const SOUND_ROWS: [SoundName, string, string][] = [
-  ["pager", "Pager", "Repeats until you acknowledge the page"],
+const SOUND_ROWS: [Cue, string, string][] = [
+  ["pager", "Pager", "Repeats until you acknowledge the page, a little louder every 10 s"],
+  ["vibrate", "Phone vibration", "Your phone on the café table, with every ring"],
+  ["escalation", "Escalation", "The secondary is paged after 60 s without an ack"],
+  ["tick", "Fix holding", "Once a second while the fix holds"],
   ["ack", "Acknowledge", "When you take the page"],
   ["message", "Chat message", "A DM or #incidents while Chat is in the background"],
   ["notify", "Notification", "Other banners"],
   ["resolved", "Resolved", "The fix held"],
   ["dnf", "Budget exhausted", "The error budget ran out"],
+];
+
+const LEVEL_ROWS: ["ambience" | "music" | "alerts", string, string][] = [
+  ["ambience", "Ambience", "The café: voices, cups, rain"],
+  ["music", "Music", "The lo-fi radio"],
+  ["alerts", "Alerts", "The pager, the phone and every PitOS sound"],
 ];
 
 const SHORTCUTS: [string, string][] = [
@@ -147,8 +156,17 @@ export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?:
                 <input type="range" min={0} max={100} step={5} aria-label="Volume" value={volume} onChange={(e) => update({ volume: Number(e.target.value), muted: false })} />
                 <span className="mono row-value">{volume}%</span>
               </Row>
+              {LEVEL_ROWS.map(([key, title, subtitle]) => (
+                <Row key={key} title={title} subtitle={subtitle}>
+                  <input type="range" min={0} max={100} step={5} aria-label={`${title} volume`} value={prefs[key]} onChange={(e) => update({ [key]: Number(e.target.value) })} />
+                  <span className="mono row-value">{prefs[key]}%</span>
+                </Row>
+              ))}
               <Row title="Mute" subtitle="Silences every PitOS sound">
                 <Switch label="Mute" checked={prefs.muted} onChange={(on) => update({ muted: on })} />
+              </Row>
+              <Row title="Reduce audio intensity" subtitle="Turns off budget pulses, the escalation tone and fix-hold ticks">
+                <Switch label="Reduce audio intensity" checked={prefs.reduceAudio} onChange={(on) => update({ reduceAudio: on })} />
               </Row>
             </Group>
             <Group title="Alert sounds">
@@ -160,8 +178,8 @@ export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?:
                     aria-label={`Play ${title}`}
                     disabled={prefs.muted}
                     onClick={() => {
-                      synth.unlock();
-                      synth.play(id);
+                      audio.unlock();
+                      audio.play(id);
                     }}
                   >
                     Play

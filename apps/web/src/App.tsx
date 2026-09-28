@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Stage } from "./cafe/Stage";
 import { IncidentProvider, useIncident } from "./os/incident/IncidentProvider";
 import { PrefsProvider } from "./os/PrefsProvider";
 import { Desktop } from "./os/shell/Desktop";
@@ -19,7 +20,13 @@ export function App({ newSeed, prepageMs }: { newSeed?: () => number; prepageMs?
     <PrefsProvider>
       <IncidentProvider newSeed={newSeed} prepageMs={prepageMs}>
         <OsProvider>
-          <CrashGuard>{wide ? <Desktop /> : <Lockscreen />}</CrashGuard>
+          <CrashGuard>{wide ? (
+            <Stage>
+              <Desktop />
+            </Stage>
+          ) : (
+            <Lockscreen />
+          )}</CrashGuard>
         </OsProvider>
       </IncidentProvider>
     </PrefsProvider>

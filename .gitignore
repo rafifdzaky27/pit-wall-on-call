@@ -8,3 +8,4 @@ coverage/
 .superpowers/
 test-results/
 playwright-report/
+.cache/

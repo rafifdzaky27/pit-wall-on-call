@@ -1,11 +1,18 @@
 import { resolveWorld } from "@pitwall/world";
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { Stage } from "../../cafe/Stage";
 import { renderOs } from "../testing";
 import { Desktop } from "./Desktop";
 
 afterEach(cleanup);
 const world = resolveWorld(1);
+
+/** The System menu loads on its first open (M1.6 main-chunk budget), so tests wait for it. */
+const openSystem = async () => {
+  fireEvent.click(screen.getByRole("button", { name: "System" }));
+  await screen.findByRole("group", { name: "Quick settings" });
+};
 
 describe("Desktop", () => {
   it("greets with the shift notification, wallpaper, widgets and dock", () => {
@@ -64,7 +71,11 @@ describe("Desktop", () => {
   });
 
   it("P pauses a running incident behind an opaque overlay", () => {
-    const { incident } = renderOs(<Desktop />);
+    const { incident } = renderOs(
+      <Stage>
+        <Desktop />
+      </Stage>,
+    );
     act(() => incident().start());
     act(() => incident().skipPrepage());
     fireEvent.keyDown(window, { key: "p" });
@@ -73,9 +84,9 @@ describe("Desktop", () => {
     expect(screen.queryByRole("dialog", { name: "Paused" })).toBeNull();
   });
 
-  it("the System menu locks the screen, and Unlock returns", () => {
+  it("the System menu locks the screen, and Unlock returns", async () => {
     renderOs(<Desktop />);
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     fireEvent.click(screen.getByRole("button", { name: "Lock" }));
     expect(screen.getByRole("main", { name: "Lock screen" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Unlock" }));

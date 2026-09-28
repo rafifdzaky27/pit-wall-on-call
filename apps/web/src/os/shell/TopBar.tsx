@@ -1,12 +1,17 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
+import { useCamera } from "../../cafe/CameraContext";
 import { Glyph } from "../brand/Glyph";
 import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useNow } from "../useNow";
-import { CalendarMenu } from "./CalendarMenu";
 import { useOs, type MenuId } from "./OsContext";
 import { PhoneWidget } from "./PhoneWidget";
-import { QuickSettings } from "./QuickSettings";
+
+const loadCalendar = () => import("./CalendarMenu");
+const loadQuickSettings = () => import("./QuickSettings");
+/** The calendar and quick settings open only on a click, so they load apart from the main chunk (M1.6 budget). */
+const CalendarMenu = lazy(() => loadCalendar().then((m) => ({ default: m.CalendarMenu })));
+const QuickSettings = lazy(() => loadQuickSettings().then((m) => ({ default: m.QuickSettings })));
 
 interface Props {
   overview: boolean;
@@ -16,6 +21,7 @@ interface Props {
 
 export function TopBar({ overview, onActivities, onLock }: Props) {
   const incident = useIncident();
+  const camera = useCamera();
   const { prefs } = usePrefs();
   const { openMenu, setOpenMenu, notices } = useOs();
   const now = useNow();
@@ -41,6 +47,15 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
     };
   }, [openMenu, setOpenMenu]);
 
+  // Fetch both menus shortly after boot, so the first click opens them at once.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void loadCalendar();
+      void loadQuickSettings();
+    }, 2000);
+    return () => window.clearTimeout(id);
+  }, []);
+
   const toggle = (menu: MenuId) => setOpenMenu(openMenu === menu ? null : menu);
 
   return (
@@ -53,9 +68,18 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
           <time dateTime={now.toISOString()}>{clock}</time>
           {unread && <span className="clock-dot" aria-hidden="true" />}
         </button>
-        {openMenu === "calendar" && <CalendarMenu now={now} />}
+        {openMenu === "calendar" && (
+          <Suspense fallback={null}>
+            <CalendarMenu now={now} />
+          </Suspense>
+        )}
       </div>
       <div className="os-tray">
+        {camera.started && (
+          <button type="button" className="os-lookup" onClick={camera.lookUp}>
+            Look up <kbd>L</kbd>
+          </button>
+        )}
         <span className={paging ? "oncall paged" : "oncall"}>{paging ? "Paged" : "On call · Primary"}</span>
         <PhoneWidget />
         <div className="sysmenu">
@@ -64,12 +88,14 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
             <Glyph name="power" />
           </button>
           {openMenu === "system" && (
-            <QuickSettings
-              onLock={() => {
-                setOpenMenu(null);
-                onLock();
-              }}
-            />
+            <Suspense fallback={null}>
+              <QuickSettings
+                onLock={() => {
+                  setOpenMenu(null);
+                  onLock();
+                }}
+              />
+            </Suspense>
           )}
         </div>
       </div>
