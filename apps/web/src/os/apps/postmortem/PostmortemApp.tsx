@@ -1,6 +1,7 @@
 import { DebriefBody } from "../../../screens/Debrief";
 import { useIncident } from "../../incident/IncidentProvider";
 import { M16_SURFACES, reachableClueCount } from "../../surfaces";
+import { LeaderboardCard } from "./LeaderboardCard";
 
 export function PostmortemApp() {
   const incident = useIncident();
@@ -11,6 +12,7 @@ export function PostmortemApp() {
         scenario={incident.scenario}
         result={incident.result}
         clueTotal={reachableClueCount(incident.scenario, M16_SURFACES)}
+        board={<LeaderboardCard />}
         actions={
           <button type="button" className="btn primary btn-lg" onClick={incident.newShift}>
             New shift

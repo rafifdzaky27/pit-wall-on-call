@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Usage: deploy.sh <git-sha>
-# Pulls the SHA-tagged images, restarts the stack, smoke-tests it,
-# and rolls back to the previously running tag if the smoke test fails.
+# Pulls the SHA-tagged images, migrates the database, restarts the stack,
+# smoke-tests it, and rolls back to the previously running tag if the smoke
+# test fails. Migrations must be backward compatible (add, never drop or
+# rename, in one release), because a rollback runs the old image on the new schema.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -20,6 +22,12 @@ pull() {
   TAG="$1" docker compose pull
 }
 
+# One-shot migration with the new image, before anything restarts: a failure
+# exits here (set -e) with .env and the running containers untouched.
+migrate() {
+  TAG="$1" docker compose run --rm -T api node dist/migrate.js
+}
+
 start() {
   set_tag "$1"
   docker compose up -d --remove-orphans
@@ -28,7 +36,10 @@ start() {
 smoke_test() {
   for _ in $(seq 1 30); do
     if docker compose exec -T api wget -qO- http://127.0.0.1:8787/readyz >/dev/null 2>&1 &&
-      docker compose exec -T web wget -qO- http://127.0.0.1:80/api/version 2>/dev/null | grep -q "\"$1\""; then
+      docker compose exec -T web wget -qO- http://127.0.0.1:80/api/version 2>/dev/null | grep -q "\"$1\"" &&
+      # Replays a fixture run through Caddy as a dry run (nothing is stored). Images
+      # from before M2 have no smoke.js, so a rollback to one skips this check.
+      docker compose exec -T api sh -c 'test ! -f dist/smoke.js || node dist/smoke.js http://web:80' >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
@@ -38,6 +49,7 @@ smoke_test() {
 
 echo "deploying ${NEW_TAG} (previous: ${PREV_TAG:-none})"
 pull "$NEW_TAG"
+migrate "$NEW_TAG"
 
 # start is inside the condition so a failing "compose up" also triggers rollback
 # (under set -e it would otherwise exit with .env on a never-healthy tag).

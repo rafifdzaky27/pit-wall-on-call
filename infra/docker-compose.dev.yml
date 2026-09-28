@@ -1,0 +1,18 @@
+# Local Postgres for API tests and the e2e API (pnpm db:up). Not used in production.
+name: pitwall-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: pitwall-pg
+    environment:
+      POSTGRES_DB: pitwall
+      POSTGRES_USER: pitwall
+      POSTGRES_PASSWORD: pitwall
+    ports:
+      - "54329:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pitwall -d pitwall"]
+      interval: 2s
+      timeout: 3s
+      retries: 15

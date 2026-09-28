@@ -1,10 +1,14 @@
+import { lazy, Suspense } from "react";
 import { LogoMark } from "../brand/Logo";
 import { Wallpaper } from "../brand/Wallpaper";
 import { useIncident } from "../incident/IncidentProvider";
 import { useNow } from "../useNow";
 
+/** Small screens get the leaderboard page (M2 spec §6), loaded apart from the main chunk. */
+const LeaderboardPage = lazy(() => import("../leaderboard/LeaderboardPage").then((m) => ({ default: m.LeaderboardPage })));
+
 export function Lockscreen({ onUnlock }: { onUnlock?: () => void }) {
-  const { world } = useIncident();
+  const { world, scenario } = useIncident();
   const now = useNow();
   const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(now);
   const date = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(now);
@@ -32,6 +36,13 @@ export function Lockscreen({ onUnlock }: { onUnlock?: () => void }) {
             <p className="note">The incident console needs a screen at least 1024 px wide. Open this page on a laptop or desktop to play.</p>
           )}
         </section>
+        {!onUnlock && (
+          <section className="lock-board" aria-label="Leaderboard">
+            <Suspense fallback={null}>
+              <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} />
+            </Suspense>
+          </section>
+        )}
       </main>
     </div>
   );

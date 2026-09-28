@@ -207,3 +207,76 @@ describe("BrowserApp", () => {
     expect(os().wm.windows.filter((w) => !w.closing)).toHaveLength(0);
   });
 });
+
+describe("BrowserApp: the leaderboard site (M2)", () => {
+  const board = { board: "practice", scenarioId: "db-pool-exhaustion", total: 1, entries: [{ rank: 1, handle: "rafif", tag: "ab12", budgetBurnedBp: 253, mitigatedAtTick: 389, outcome: "resolved", runId: "r1", you: false }], you: null };
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    fetchMock = vi.fn(async () => new Response(JSON.stringify(board), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+  const flush = () => act(async () => vi.advanceTimersByTimeAsync(0));
+  const tabs = () => screen.getAllByRole("tab").map((t) => t.textContent);
+
+  it("has a bookmarks bar with the store and the leaderboard", () => {
+    renderOs(<BrowserApp />);
+    const bar = screen.getByRole("toolbar", { name: "Bookmarks" });
+    expect(within(bar).getAllByRole("button").map((b) => b.textContent)).toEqual([world.brand.name, "Pit Wall leaderboard"]);
+  });
+
+  it("the bookmark opens the leaderboard in a second tab at this site's address", async () => {
+    renderOs(<BrowserApp />);
+    fireEvent.click(screen.getByRole("button", { name: "Pit Wall leaderboard" }));
+    await flush();
+    expect(tabs()).toEqual([`${world.brand.name} · ${world.brand.tagline}`, "Leaderboard · Pit Wall On-Call"]);
+    expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Leaderboard · Pit Wall On-Call");
+    expect((screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement).value).toBe(`${window.location.origin}/leaderboard`);
+    expect(screen.getByRole("table", { name: "Practice leaderboard" })).toBeTruthy();
+  });
+
+  it("switching back to the store keeps where it was", async () => {
+    renderOs(<BrowserApp />);
+    fireEvent.click(screen.getByRole("button", { name: `${copy.cart}, 2` }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: copy.cart })).getByRole("button", { name: copy.checkout }));
+    act(() => vi.advanceTimersByTime(NAV_MS));
+    const address = () => (screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement).value;
+    expect(address()).toBe(`https://${world.brand.domain}/checkout`);
+    fireEvent.click(screen.getByRole("button", { name: "Pit Wall leaderboard" }));
+    await flush();
+    fireEvent.click(screen.getAllByRole("tab")[0]!);
+    expect(address()).toBe(`https://${world.brand.domain}/checkout`);
+  });
+
+  it("closing the leaderboard tab returns to the store; closing the last tab closes the window", async () => {
+    const { os } = renderOs(<BrowserApp />);
+    act(() => os().openApp("browser"));
+    fireEvent.click(screen.getByRole("button", { name: "Pit Wall leaderboard" }));
+    await flush();
+    fireEvent.click(screen.getAllByRole("button", { name: "Close tab" })[1]!);
+    expect(tabs()).toEqual([`${world.brand.name} · ${world.brand.tagline}`]);
+    expect(os().wm.windows.filter((w) => !w.closing)).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Close tab" }));
+    expect(os().wm.windows.filter((w) => !w.closing)).toHaveLength(0);
+  });
+
+  it("opens on the leaderboard when asked from outside, and loads it again each time", async () => {
+    const { os } = renderOs(<BrowserApp />);
+    act(() => os().openBrowserTab("leaderboard"));
+    await flush();
+    expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Leaderboard · Pit Wall On-Call");
+    const before = fetchMock.mock.calls.length;
+    fireEvent.click(screen.getAllByRole("tab")[0]!);
+    act(() => os().openBrowserTab("leaderboard"));
+    await flush();
+    expect(fetchMock.mock.calls.length).toBe(before + 1);
+    fireEvent.click(screen.getByRole("button", { name: "Reload" }));
+    await flush();
+    expect(fetchMock.mock.calls.length).toBe(before + 2);
+  });
+});

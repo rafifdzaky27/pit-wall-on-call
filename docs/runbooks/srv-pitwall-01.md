@@ -531,6 +531,21 @@ GitHub Actions runner ─► tailnet (tag:ci-pitwall) ─► srv-vpn-01 subnet r
 ```
 Audience: public players (web), Rafif (admin over LAN/tailnet), and CI (deploy only).
 
+## Database migrations and the runs API (M2)
+
+- **What deploy.sh does now:** pull → `docker compose run --rm -T api node dist/migrate.js` with the new tag → `up -d` → smoke test. The smoke test is `/readyz` (which is 503 `migrations_pending` until the schema matches the image), `/api/version` through Caddy, and a dry-run replay of a fixture run through Caddy (`node dist/smoke.js http://web:80`, which stores nothing).
+- **A failed migration** stops the deploy before anything restarts: `.env` keeps the old tag and production keeps running. Read the error in the job log, fix the migration in a PR, and deploy again.
+- **Migrations must be backward compatible.** A failed smoke test rolls back to the previous image on the new schema, so a release only adds tables, columns and indexes. Dropping or renaming happens in a later release, once nothing uses the old shape.
+- **Check the schema by hand:**
+  ```bash
+  docker compose exec -T postgres psql -U pitwall -d pitwall -c 'select id, created_at from drizzle.__drizzle_migrations order by id'
+  ```
+- **Flagged runs** (implausibly fast fixes) are kept off the board until reviewed:
+  ```bash
+  docker compose exec -T postgres psql -U pitwall -d pitwall -c "select id, player_id, budget_burned_bp, created_at from runs where flagged order by created_at desc limit 20"
+  ```
+- **Metrics:** the API serves `/metrics` inside the compose network only (Caddy proxies `/api/*`). To look at it by hand, run `docker compose exec -T api wget -qO- http://127.0.0.1:8787/metrics | head`. Prometheus scraping and the Grafana dashboard are M5.
+
 ## Known follow-ups
 - The `common` role in homelab-infra still allows SSH from *Anywhere* (the playbook's revised version scopes it to `trusted_admin_networks`). Apply the revised role across all hosts in a separate, planned change.
 - Hardening: an SSH forced command for `pitwall-deploy`, so the key can only run `deploy.sh`.

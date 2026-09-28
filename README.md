@@ -25,6 +25,7 @@ Start shift goes full screen and the pager rings (synthesized with WebAudio, no 
    - the burn broken down by cause
    - a timeline with a verdict on each action
    - one lesson
+6. **The leaderboard.** The first time, the postmortem asks for a handle. The shift is posted, the server replays it and stores its own score, and you see your place on the practice leaderboard (each player's best shift). Later shifts are posted automatically. The board opens as a site in the PitOS Browser; handles change in Settings → Account.
 
 ![A rainy evening in a Tokyo café, the page ringing on the phone](docs/media/cafe.png)
 
@@ -39,7 +40,8 @@ The café has recorded ambience (CC0 and public-domain recordings, credited in [
 ## How it works
 
 - **A deterministic engine** (`packages/engine`) simulates the incident in fixed 100 ms ticks from a seed. All randomness comes from a seeded PRNG with separate streams for dynamics, metric noise and logs, and scoring uses integer math only. A lint rule forbids `Math.random`, `Date` and `performance` in the engine.
-- **Scores come from replays, not from the client.** A run is its seed plus its action log. The server (M2) replays that log with the same engine and stores the score it computes. An action the player could not have taken at that tick is rejected.
+- **Scores come from replays, not from the client.** A run is its seed plus its action log. The API replays that log with the same engine and stores the score it computes. An action the player could not have taken at that tick is rejected (422), a client on an older engine gets 409, and a fix faster than a person could make is kept off the board until reviewed.
+- **The API** (`apps/api`, Hono + Drizzle + Postgres) has anonymous players with bearer tokens (only a hash is stored), `POST /api/runs`, a practice leaderboard, rate limits, JSON logs with request IDs, and Prometheus metrics. Every deploy migrates first and replays a known run through the whole stack as a smoke test.
 - **Scenarios are content** (`packages/scenarios`). Each is a typed `defineScenario()` config with its services, dynamics, metrics, logs, alerts, actions and lessons. Golden-player tests check that the perfect player resolves under par on 50 seeds, that doing nothing ends in a DNF, and that chasing the red herring always scores worse.
 - **The web app** (`apps/web`, React + Vite) is the PitOS desktop. A pure window-manager reducer handles windows, and one incident provider feeds every app (Monitoring, Browser, Chat, the phone). It drives the engine in real time and pauses when the tab is hidden.
 
@@ -48,29 +50,39 @@ packages/engine      deterministic simulation, scoring, replay
 packages/scenarios   scenario content, desktop chat schedule, golden-player tests
 packages/world       seeded cities, fictional local brands, prices
 apps/web             React client
-apps/api             Hono API (runs, leaderboard, daily incident)
+apps/api             Hono API: players, run replay, leaderboard, migrations
 infra/               Docker Compose, Caddy, deploy script with automatic rollback
 docs/                specs, plans, runbooks, design system
 ```
 
 ## Running locally
 
-Requirements: Node 22 and pnpm 10.12.2.
+Requirements: Node 22, pnpm 10.12.2, and Docker (for Postgres).
 
 ```bash
 pnpm install
+pnpm db:up                                   # Postgres 17 on localhost:54329
+DATABASE_URL=postgres://pitwall:pitwall@localhost:54329/pitwall pnpm --filter @pitwall/api migrate
+DATABASE_URL=postgres://pitwall:pitwall@localhost:54329/pitwall pnpm --filter @pitwall/api dev
 pnpm --filter @pitwall/web dev
 ```
 
-Then open http://localhost:5173.
+Then open http://localhost:5173. The web dev server proxies `/api` to the API on port 8787. The game plays without the API; only posting and the leaderboard need it.
 
 ```bash
-pnpm test        # every package
+pnpm test        # every package; API tests need pnpm db:up
 pnpm typecheck
 pnpm lint
 pnpm build
-pnpm e2e         # Playwright, builds and serves the web app itself
+pnpm e2e         # Playwright: starts the API on a fresh pitwall_e2e database and serves the web build
 ```
+
+| API | |
+|---|---|
+| `POST /api/players` | `{ handle }` → a player and its bearer token |
+| `GET`, `PATCH /api/players/me` | read or change the handle |
+| `POST /api/runs` | `{ scenarioId, seed, mode, engineVersion, runKey, actions }` → the server's score and board place |
+| `GET /api/leaderboard?scenario=<id>` | the practice board: top 50, plus your own row |
 
 ## Delivery
 
@@ -82,6 +94,7 @@ Every pull request runs lint, typecheck, tests, the deploy-script tests and Dock
 - [Roadmap](docs/plans/2026-09-27-roadmap.md)
 - [PitOS desktop spec](docs/specs/2026-09-28-pitos-desktop-design.md), [polish spec](docs/specs/2026-09-28-pitos-polish-design.md), [persona walkthrough](docs/research/2026-09-28-m1.5-persona-walkthrough.md) and [usability test protocol](docs/research/m1.5-usability-protocol.md)
 - [Café cold open walkthrough (M1.6)](docs/research/2026-09-28-m1.6-walkthrough.md)
+- [Runs API and leaderboard spec (M2)](docs/specs/2026-09-28-runs-api-leaderboard-design.md) and [walkthrough](docs/research/2026-09-28-m2-walkthrough.md)
 - [Design system](docs/DESIGN.md)
 
 ## License

@@ -229,3 +229,22 @@ Spec: `docs/specs/2026-09-28-cold-open-design.md`, §6, §7 and §12.
 - **Café:** the art, hotspots and ambience player are one lazy chunk (about 7.6 KB gzip).
 - **Recordings:** 1.5 MB or less (currently 0.6 MB).
 
+## 11. Leaderboard (M2)
+
+Spec: `docs/specs/2026-09-28-runs-api-leaderboard-design.md`, §6.
+
+### Postmortem
+- **Placement:** a "Leaderboard" panel directly under the score tiles, so the rank sits next to the score.
+- **States:** ask for a handle, not posted, posting, posted (new best, not a new best, held for review), a rejected handle, and the errors (409 Refresh, 422, 429 Try again, network or 5xx Try again with the request ID). The status line is a `role="status"` region; the exact copy is in the spec.
+- **Handle field:** a label above, the rule as a hint below; the hint turns into the error (`aria-invalid`). The rule is checked before posting.
+
+### The leaderboard site
+- **In the Browser:** a second tab, "Leaderboard · Pit Wall On-Call", at this deployment's real address. A bookmarks bar under the toolbar holds the store and "Pit Wall leaderboard". Inactive tabs stay mounted and hidden, so the store keeps its page and DevTools rows.
+- **The page** is in-world web content, like the store: a light page with its own `lb-` styles, not the PitOS tokens. It has the heading "Practice leaderboard" and a table (Rank, Player as `handle#tag`, Budget burned, Mitigated, Result). The caller's row is highlighted and marked "(you)", after a "…" gap row when it is outside the top 50. Numbers use tabular figures.
+- **Below 1024 px:** the lock screen shows the same page under its card, loaded lazily. The table scrolls sideways inside its frame rather than widening the page.
+
+### Settings → Account
+- "Shown as `handle#tag`", "Change handle" (a field and Save, with its status beside it), and "Remove from this device", which forgets the token only.
+
+### Shared fields
+- `.field`, `.field-label`, `.text-input` and `.field-hint` in `base.css` are the one text-field style for PitOS chrome.

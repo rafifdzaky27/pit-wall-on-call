@@ -58,7 +58,8 @@ describe("cold close", () => {
     act(() => incident().acknowledge());
     seconds(481);
     act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
-    await vi.waitFor(() => expect(screen.getByRole("img", { name: /^A café in .* at night$/ })).toBeTruthy());
+    // The lazy café chunk's first import can take over 1 s under a full parallel `pnpm test`.
+    await vi.waitFor(() => expect(screen.getByRole("img", { name: /^A café in .* at night$/ })).toBeTruthy(), { timeout: 5000 });
     fireEvent.click(screen.getByRole("button", { name: "Read the postmortem" }));
     fireEvent.keyDown(window, { key: "l" });
     expect(screen.getByRole("img", { name: /^A café in / }).getAttribute("aria-label")).toMatch(/at night$/);

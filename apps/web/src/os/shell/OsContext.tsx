@@ -11,7 +11,8 @@ export function workArea(): { w: number; h: number } {
 }
 
 export type MenuId = "phone" | "system" | "calendar";
-export type SettingsPageId = "appearance" | "sound" | "accessibility" | "display" | "keyboard" | "about";
+export type SettingsPageId = "appearance" | "sound" | "accessibility" | "display" | "keyboard" | "account" | "about";
+export type BrowserTabId = "store" | "leaderboard";
 
 export interface NoticeAction {
   label: string;
@@ -48,6 +49,9 @@ export interface OsApi {
   setDragging: (on: boolean) => void;
   settingsPage: SettingsPageId;
   openSettings: (page: SettingsPageId) => void;
+  /** The tab the Browser should show; `nonce` makes a repeated request for the same tab count. */
+  browserTab: { id: BrowserTabId; nonce: number } | null;
+  openBrowserTab: (id: BrowserTabId) => void;
   notices: Notice[];
   pushNotice: (notice: NewNotice) => void;
   hideBanner: (id: string) => void;
@@ -75,6 +79,7 @@ export function OsProvider({ children }: { children: ReactNode }) {
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
   const [dragging, setDragging] = useState(false);
   const [settingsPage, setSettingsPage] = useState<SettingsPageId>("appearance");
+  const [browserTab, setBrowserTab] = useState<OsApi["browserTab"]>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [bootAt] = useState(() => Date.now());
   const [arrivals, setArrivals] = useState<ReadonlyMap<string, number>>(() => new Map());
@@ -98,6 +103,14 @@ export function OsProvider({ children }: { children: ReactNode }) {
     (page: SettingsPageId) => {
       setSettingsPage(page);
       openApp("settings");
+    },
+    [openApp],
+  );
+
+  const openBrowserTab = useCallback(
+    (id: BrowserTabId) => {
+      setBrowserTab((prev) => ({ id, nonce: (prev?.nonce ?? 0) + 1 }));
+      openApp("browser");
     },
     [openApp],
   );
@@ -141,6 +154,8 @@ export function OsProvider({ children }: { children: ReactNode }) {
       setDragging,
       settingsPage,
       openSettings,
+      browserTab,
+      openBrowserTab,
       notices,
       pushNotice,
       hideBanner,
@@ -151,7 +166,7 @@ export function OsProvider({ children }: { children: ReactNode }) {
       arrivals,
       recordArrivals,
     }),
-    [wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals],
+    [wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals],
   );
   return <OsContext.Provider value={value}>{children}</OsContext.Provider>;
 }

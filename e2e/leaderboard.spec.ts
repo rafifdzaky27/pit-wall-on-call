@@ -1,0 +1,75 @@
+import { expect, test } from "@playwright/test";
+
+const skip = (page: import("@playwright/test").Page) =>
+  page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" });
+
+interface Entry {
+  handle: string;
+  budgetBurnedBp: number;
+}
+
+test.describe("the runs API contract (M2)", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("a finished shift is posted, and the debrief's score is the one the server stored", async ({ page, request }) => {
+    const handle = `e2e_${Date.now().toString(36).slice(-7)}`;
+    await page.clock.install();
+    await page.goto("/");
+    await page.getByRole("button", { name: "Start shift" }).click();
+    await skip(page).click();
+    await page.keyboard.press("a");
+    await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
+    await page.keyboard.press("2");
+    // A fix within 2 s of the page is held for review (spec §8), so look around first, as a person would.
+    await page.clock.runFor(3_000);
+    await page.getByRole("button", { name: /Roll back to v141/ }).click();
+    await page.clock.runFor(31_000);
+    await page.clock.runFor(11_000);
+    await page.clock.runFor(1_600);
+    await page.getByRole("button", { name: "Read the postmortem" }).click();
+
+    const board = page.getByRole("region", { name: "Leaderboard" });
+    await expect(board.getByText("Pick a handle to post this shift to the practice leaderboard.")).toBeVisible();
+    await board.getByRole("textbox", { name: "Handle" }).fill(handle);
+    await board.getByRole("button", { name: "Post score" }).click();
+    await expect(board.getByText(/^New best: #\d+ of \d+ on the practice leaderboard\.$/)).toBeVisible();
+
+    const shown = await page.getByRole("list", { name: "Score" }).locator(".tile", { hasText: "Error budget burned" }).locator(".tile-v").textContent();
+    const res = await request.get("/api/leaderboard?scenario=db-pool-exhaustion");
+    expect(res.ok()).toBe(true);
+    const stored = ((await res.json()) as { entries: Entry[] }).entries.find((e) => e.handle === handle);
+    expect(stored, "the posted shift is on the board").toBeDefined();
+    expect(`${(stored!.budgetBurnedBp / 100).toFixed(1)}%`).toBe(shown);
+
+    await board.getByRole("button", { name: "View leaderboard" }).click();
+    await expect(page.getByRole("tab", { name: "Leaderboard · Pit Wall On-Call", selected: true })).toBeVisible();
+    await expect(page.getByRole("table", { name: "Practice leaderboard" }).getByText(`${handle}#`, { exact: false })).toBeVisible();
+    await expect(page.getByRole("table", { name: "Practice leaderboard" }).locator(".lb-you")).toContainText("(you)");
+  });
+
+  test("below 1024 px, the lock screen shows the practice leaderboard", async ({ page, request }) => {
+    // One ranked shift, so the board has a table: the golden perfect player on seed 1.
+    const player = await (await request.post("/api/players", { data: { handle: "phone_seed" } })).json();
+    const actions = [
+      { tick: 0, actionId: "inspect:laptop.slack.deploys" },
+      { tick: 20, actionId: "ack" },
+      { tick: 20, actionId: "checkout.pool_stats" },
+      { tick: 60, actionId: "checkout.deploys" },
+      { tick: 90, actionId: "checkout.rollback" },
+    ];
+    const posted = await request.post("/api/runs", {
+      headers: { authorization: `Bearer ${player.token}` },
+      data: { scenarioId: "db-pool-exhaustion", seed: 1, mode: "practice", engineVersion: "1.0.0", runKey: crypto.randomUUID(), actions },
+    });
+    expect(posted.status()).toBe(201);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1, name: "Practice leaderboard" })).toBeVisible();
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width).toBeLessThanOrEqual(390);
+    // The table fits too, so the Result column is not hidden behind a sideways scroll (walkthrough W1).
+    const wrap = page.locator(".lb-table-wrap");
+    await expect(page.getByRole("columnheader", { name: "Result" })).toBeVisible();
+    expect(await wrap.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  });
+});

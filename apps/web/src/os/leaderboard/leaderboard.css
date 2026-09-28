@@ -1,0 +1,35 @@
+/* The leaderboard site (M2 spec §6): a light web page, in the Browser and under the lock screen. */
+.lb-page { --lb-ink: #16181d; --lb-muted: #5b6270; --lb-line: #e3e6ec; --lb-accent: #2f6fde; --lb-you: #eaf1fd;
+  max-width: 760px; margin: 0 auto; padding: 32px 24px 48px; display: grid; gap: 16px; background: #ffffff; color: var(--lb-ink); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; }
+.lb-head { display: grid; gap: 4px; }
+.lb-site { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--lb-accent); }
+.lb-head h1 { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.lb-sub { color: var(--lb-muted); }
+.lb-table-wrap { overflow-x: auto; border: 1px solid var(--lb-line); border-radius: 8px; }
+.lb-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.lb-table th { padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--lb-muted); border-bottom: 1px solid var(--lb-line); background: #f7f8fa; white-space: nowrap; }
+.lb-table td { padding: 9px 12px; border-bottom: 1px solid var(--lb-line); white-space: nowrap; }
+.lb-table tbody tr:last-child td { border-bottom: 0; }
+.lb-table .lb-num { text-align: right; }
+.lb-table td.lb-num { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+.lb-rank { width: 56px; font-family: "IBM Plex Mono", ui-monospace, monospace; color: var(--lb-muted); }
+.lb-player { font-weight: 500; }
+.lb-tag { color: var(--lb-muted); font-weight: 400; }
+.lb-you td { background: var(--lb-you); }
+.lb-you .lb-rank { color: var(--lb-accent); font-weight: 600; }
+.lb-gap td { padding: 2px 12px; color: var(--lb-muted); text-align: center; }
+.lb-total { font-size: 12px; color: var(--lb-muted); }
+.lb-error { display: grid; gap: 10px; justify-items: start; }
+.lb-btn { font: 500 14px "IBM Plex Sans", system-ui, sans-serif; padding: 7px 14px; border-radius: 6px; border: 1px solid #c9ced8; background: #ffffff; color: var(--lb-ink); cursor: pointer; }
+.lb-btn:hover { border-color: var(--lb-muted); }
+.lb-btn:focus-visible { outline: 2px solid var(--lb-accent); outline-offset: 2px; }
+@media (max-width: 560px) {
+  .lb-page { padding: 20px 16px 32px; }
+  .lb-head h1 { font-size: 22px; }
+  /* A phone shows rank, player, burn and result without a sideways scroll (M2 walkthrough W1):
+     no mitigation column, headers may wrap, and a long handle breaks before its tag. */
+  .lb-table th, .lb-table td { padding: 8px; white-space: normal; }
+  .lb-table .lb-mit { display: none; }
+  .lb-rank { width: auto; }
+  .lb-player { overflow-wrap: anywhere; }
+}

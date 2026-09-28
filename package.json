@@ -8,7 +8,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "db:up": "docker compose -f infra/docker-compose.dev.yml up -d --wait"
   },
   "packageManager": "pnpm@10.12.2",
   "devDependencies": {
