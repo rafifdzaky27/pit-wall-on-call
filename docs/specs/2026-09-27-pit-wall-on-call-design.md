@@ -334,3 +334,7 @@ From the opportunity report:
 | 2026-09-28 | Action ticks must be non-decreasing (several actions may share a tick), replacing "strictly increasing" in §8. | M1 plan P4 |
 | 2026-09-28 | The player runs one timed action at a time; `ack` and `inspect` are instant and never blocked. | M1 plan P6 |
 | 2026-09-28 | Action categories are shown as text labels; the category emoji in §6 are dropped (D14). | M1 plan P7 |
+| 2026-09-28 | Before the daily exists, the leaderboard is a **practice board**: each player's best shift per scenario. D11 still governs the daily board. | M2 spec L1, L5 |
+| 2026-09-28 | `POST /api/runs` takes a client `runKey` (a UUID, unique per player); a repeated key returns the stored run. It also accepts `dryRun: true` without a token (validate and replay only), which the deploy smoke test uses. | M2 spec L6, L7 |
+| 2026-09-28 | An oversized body is `413`, not `400`. `POST /api/runs` returns `{ runId, mode, flagged, score, board: { rank, total, best } }`. | M2 plan P1, P2 |
+| 2026-09-28 | `/metrics` stays inside the compose network (Caddy proxies `/api/*` only); scraping it is M5. | M2 spec L9 |
