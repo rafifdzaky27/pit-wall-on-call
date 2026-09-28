@@ -22,7 +22,7 @@ interface Props {
 export function TopBar({ overview, onActivities, onLock }: Props) {
   const camera = useCamera();
   const { prefs } = usePrefs();
-  const { openMenu, setOpenMenu, notices } = useOs();
+  const { openMenu, setOpenMenu, notices, openApp } = useOs();
   const now = useNow();
   const bar = useRef<HTMLElement>(null);
   const unread = notices.some((n) => !n.read);
@@ -80,6 +80,9 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
         )}
         <StatusChip />
         <PhoneWidget />
+        <button type="button" className="tray-btn" aria-label="Help" onClick={() => openApp("help")}>
+          ?
+        </button>
         <div className="sysmenu">
           <button type="button" className="tray-btn" aria-label="System" aria-expanded={openMenu === "system"} onClick={() => toggle("system")}>
             <Glyph name={prefs.muted ? "mute" : "volume"} />

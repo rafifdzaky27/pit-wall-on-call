@@ -44,6 +44,12 @@ const GLYPHS: Record<IconName, ReactNode> = {
       <path d="M14 5v3h3M9.8 12h5M9.8 15h5" />
     </>
   ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="6.5" />
+      <path d="M10 10.2a2 2 0 1 1 2.8 1.8c-.5.2-.8.7-.8 1.2v.6M12 15.9v.1" />
+    </>
+  ),
   phone: (
     <>
       <rect x="8.2" y="4.5" width="7.6" height="15" rx="1.8" />

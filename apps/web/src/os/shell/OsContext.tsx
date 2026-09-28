@@ -63,6 +63,9 @@ export interface OsApi {
   /** Wall-clock time each chat message first appeared during the session. */
   arrivals: ReadonlyMap<string, number>;
   recordArrivals: (ids: string[], at: number) => void;
+  /** Apps the player brought forward while it counted, for the incident checklist (M2.5 spec §4). */
+  seenApps: ReadonlySet<AppId>;
+  markSeen: (id: AppId) => void;
 }
 
 const OsContext = createContext<OsApi | null>(null);
@@ -83,6 +86,7 @@ export function OsProvider({ children }: { children: ReactNode }) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [bootAt] = useState(() => Date.now());
   const [arrivals, setArrivals] = useState<ReadonlyMap<string, number>>(() => new Map());
+  const [seenApps, setSeenApps] = useState<ReadonlySet<AppId>>(() => new Set());
 
   useEffect(() => {
     const onResize = () => dispatchWm({ type: "setArea", ...workArea() });
@@ -141,6 +145,10 @@ export function OsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const markSeen = useCallback((id: AppId) => {
+    setSeenApps((prev) => (prev.has(id) ? prev : new Set([...prev, id])));
+  }, []);
+
   const value = useMemo<OsApi>(
     () => ({
       wm,
@@ -165,8 +173,10 @@ export function OsProvider({ children }: { children: ReactNode }) {
       bootAt,
       arrivals,
       recordArrivals,
+      seenApps,
+      markSeen,
     }),
-    [wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals],
+    [wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals, seenApps, markSeen],
   );
   return <OsContext.Provider value={value}>{children}</OsContext.Provider>;
 }

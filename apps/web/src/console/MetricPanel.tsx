@@ -1,5 +1,21 @@
 import type { MetricDef, State } from "@pitwall/engine";
+import type { GlossaryId } from "../content/glossary";
 import { formatMetric } from "../game/format";
+import { Term } from "../os/Term";
+
+/** Metric labels whose first word is a glossary term (M2.5 spec §4). */
+const TERMS: Record<string, GlossaryId> = { "5xx": "5xx", p99: "p99", Pool: "connection-pool" };
+
+function Label({ text }: { text: string }) {
+  const [first, ...rest] = text.split(" ");
+  const id = TERMS[first!];
+  if (!id) return text;
+  return (
+    <>
+      <Term id={id}>{first}</Term> {rest.join(" ")}
+    </>
+  );
+}
 
 const WIDTH = 120;
 const HEIGHT = 40;
@@ -24,7 +40,9 @@ export function MetricPanel({ metric, value, history }: { metric: MetricDef<Stat
   return (
     <section className="panel metric" aria-label={`${metric.label} metric`}>
       <div className="ph">
-        <h3>{metric.label}</h3>
+        <h3>
+          <Label text={metric.label} />
+        </h3>
         {level !== "ok" && <span className={`tag ${level}`}>{level === "crit" ? "Crit" : "Warn"}</span>}
       </div>
       <div className="pb">

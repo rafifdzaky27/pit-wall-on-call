@@ -1,5 +1,6 @@
 import { TICKS_PER_SECOND, type ScenarioDef, type Snapshot, type State } from "@pitwall/engine";
 import { formatBp, formatClock } from "../game/format";
+import { Term } from "../os/Term";
 import { HoldIndicator } from "./HoldIndicator";
 
 export function TopBar({ scenario, snapshot, onPause }: { scenario: ScenarioDef<State>; snapshot: Snapshot; onPause: () => void }) {
@@ -26,7 +27,9 @@ export function TopBar({ scenario, snapshot, onPause }: { scenario: ScenarioDef<
       </div>
       <div className="budget">
         <div className="budget-row">
-          <span className="k">Error budget burned</span>
+          <span className="k">
+            <Term id="error-budget">Error budget</Term> burned
+          </span>
           <b className={`budget-value mono ${level}`}>{formatBp(burned)}</b>
         </div>
         <div className="meter" role="meter" aria-label="Error budget burned" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>

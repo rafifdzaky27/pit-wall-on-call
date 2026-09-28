@@ -84,6 +84,35 @@ describe("Desktop", () => {
     expect(screen.queryByRole("dialog", { name: "Paused" })).toBeNull();
   });
 
+  it("? opens Help, but not while typing", async () => {
+    const { os } = renderOs(<Desktop />);
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Sticky note" }), { key: "?", shiftKey: true });
+    expect(os().wm.windows).toHaveLength(0);
+    fireEvent.keyDown(window, { key: "?", shiftKey: true });
+    expect(await screen.findByRole("region", { name: "Help" })).toBeTruthy();
+  });
+
+  it("? does nothing with single-key shortcuts off", () => {
+    const { os } = renderOs(<Desktop />, { prefs: { singleKeyShortcuts: false } });
+    fireEvent.keyDown(window, { key: "?", shiftKey: true });
+    expect(os().wm.windows).toHaveLength(0);
+  });
+
+  it("notes the Browser for the checklist only when the player brings it forward during the incident", async () => {
+    const { incident, os } = renderOs(<Desktop />);
+    fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
+    await screen.findByRole("region", { name: "Browser" });
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    // The Browser opened by itself before the page, and Monitoring took over at the ack.
+    expect(os().seenApps.has("browser")).toBe(false);
+    act(() => os().openApp("postmortem"));
+    // The postmortem only counts once there is one to read.
+    expect(os().seenApps.has("postmortem")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Browser" }));
+    expect(os().seenApps.has("browser")).toBe(true);
+  });
+
   it("the System menu locks the screen, and Unlock returns", async () => {
     renderOs(<Desktop />);
     await openSystem();
