@@ -72,6 +72,24 @@ test.describe("flow (M2.5 spec §11)", () => {
     }
   });
 
+  test("a tab from before a deploy reloads instead of crashing when an app's chunk is gone", async ({ page }) => {
+    await page.route(/\/assets\/SettingsApp-[^/]+\.js$/, (r) => r.fulfill({ status: 404, body: "" }));
+    await page.goto("/");
+    const openSettings = async () => {
+      await page.getByRole("button", { name: "System" }).click();
+      await page.getByRole("button", { name: /settings/i }).first().click();
+    };
+    // First failure: the page reloads onto the "new version".
+    const reloaded = page.waitForEvent("load");
+    await openSettings();
+    await reloaded;
+    // Still missing right after the reload: the window says so, and the desktop keeps working.
+    await openSettings();
+    await expect(page.getByText("Couldn't load this app.")).toBeVisible();
+    await expect(page.getByText("The simulation hit an error")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Start shift" }).first()).toBeVisible();
+  });
+
   // @perf runs alone (PERF=1 playwright test --workers=1, a CI step of its own): frame times mean nothing while other browsers share the CPU.
   test("looking up and back down stays smooth @perf", async ({ page }) => {
     await page.goto("/");

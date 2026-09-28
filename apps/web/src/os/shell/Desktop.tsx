@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useCamera } from "../../cafe/CameraContext";
+import { AppBoundary } from "../../chunks";
 import { unreadCount } from "../apps/chat/unread";
 import type { AppId } from "../apps/ids";
 import { APP_COMPONENTS } from "../apps/registry";
@@ -14,6 +15,7 @@ import { DesktopIcons } from "./DesktopIcons";
 import { Dock } from "./Dock";
 import { Lockscreen } from "./Lockscreen";
 import { useNoticeFeed } from "./noticeFeed";
+import { useUpdateNotice } from "./useUpdateNotice";
 import { Notifications } from "./Notifications";
 import { useOs } from "./OsContext";
 import { Overview } from "./Overview";
@@ -33,6 +35,7 @@ export function Desktop() {
   const running = incident.phase === "paging" || incident.phase === "active";
 
   useNoticeFeed(startShift);
+  useUpdateNotice();
   useSoundCues(locked);
   useRadio(incident.phase === "paging");
 
@@ -97,15 +100,17 @@ export function Desktop() {
           const App = APP_COMPONENTS[w.appId as AppId];
           return (
             <Window key={w.id} win={w} area={wm.area} focused={w.id === focused} layer={layers.get(w.id) ?? 10} dispatch={dispatchWm} onDragChange={setDragging}>
-              <Suspense
-                fallback={
-                  <p className="app-pad empty" aria-busy="true">
-                    Opening {w.title}…
-                  </p>
-                }
-              >
-                <App />
-              </Suspense>
+              <AppBoundary>
+                <Suspense
+                  fallback={
+                    <p className="app-pad empty" aria-busy="true">
+                      Opening {w.title}…
+                    </p>
+                  }
+                >
+                  <App />
+                </Suspense>
+              </AppBoundary>
             </Window>
           );
         })}
