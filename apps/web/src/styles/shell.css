@@ -88,3 +88,33 @@
 .net-status.server { color: var(--crit); }
 .netpanel tr.selected td { background: var(--accent-soft); }
 .net-detail { padding: var(--space-2) var(--space-3); border-top: 1px solid var(--border); }
+
+/* Chat */
+.chat { display: grid; grid-template-columns: 220px minmax(0, 1fr); height: 100%; background: var(--panel); }
+.chat-side { padding: var(--space-3); background: var(--sunken); border-right: 1px solid var(--border); overflow: auto; }
+.chat-side .group-h { margin-top: 0; }
+.chat-channel { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 6px 10px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--muted); text-align: left; }
+.chat-channel:hover { background: var(--raised); color: var(--text); }
+.chat-channel.unread { color: var(--text); font-weight: 600; }
+.chat-channel.current { background: var(--accent-soft); color: var(--accent-text); }
+.chat-count { min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--crit); color: #ffffff; font-size: var(--fs-xs); text-align: center; }
+.chat-main { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+.chat-title { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); font-size: var(--fs-md); font-weight: 600; }
+.chat-empty { padding: var(--space-4); }
+.chat-messages { overflow: auto; padding: var(--space-3) var(--space-4); display: grid; gap: var(--space-3); align-content: start; }
+.chat-meta { display: flex; gap: var(--space-2); align-items: baseline; }
+.chat-meta time { color: var(--muted); font-size: var(--fs-xs); }
+.chat-msg p { margin-top: 2px; font-size: var(--fs-md); }
+
+/* Phone */
+.phone { position: relative; }
+.tray-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border: 0; border-radius: 12px; background: transparent; color: var(--topbar-text); }
+.tray-btn:hover, .tray-btn[aria-expanded="true"] { background: rgba(255, 255, 255, 0.12); }
+.tray-badge { min-width: 16px; padding: 0 4px; border-radius: 8px; background: var(--crit); color: #ffffff; font-size: 10px; line-height: 16px; text-align: center; }
+.tray-btn.ringing { animation: ring 0.9s ease-in-out infinite; }
+@keyframes ring { 0%, 60%, 100% { transform: translateX(0); } 10%, 30%, 50% { transform: translateX(-2px); } 20%, 40% { transform: translateX(2px); } }
+.phone-panel { position: absolute; right: 0; top: 30px; z-index: 50; width: 320px; display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-window); box-shadow: var(--shadow-window); }
+.phone-item { display: grid; gap: 4px; padding: var(--space-2); border-radius: var(--radius-md); background: var(--raised); }
+.phone-page { border-left: 3px solid var(--crit); }
+.phone-page .btn { justify-self: start; }
+.phone-app { font-size: var(--fs-xs); color: var(--muted); }
