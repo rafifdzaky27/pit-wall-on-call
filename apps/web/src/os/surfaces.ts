@@ -4,6 +4,8 @@ export type Surface = "chat" | "phone" | "cafe";
 
 /** Surfaces the M1.5 desktop can show. The café arrives in M1.6. */
 export const M15_SURFACES: readonly Surface[] = ["chat", "phone"];
+/** From M1.6 the café shows the next table and the wall too (cold-open spec §12). */
+export const M16_SURFACES: readonly Surface[] = ["chat", "phone", "cafe"];
 
 export function surfaceOf(hotspotId: string): Surface | null {
   if (hotspotId.startsWith("laptop.slack.")) return "chat";
