@@ -21,9 +21,11 @@ export interface ConsoleProps {
   onPause: () => void;
   /** Single-key shortcuts (Settings → Accessibility). */
   shortcuts?: boolean;
+  /** Monitoring is the focused, visible window; keys act only then (M1.6 F7). */
+  active?: boolean;
 }
 
-export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true }: ConsoleProps) {
+export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true, active = true }: ConsoleProps) {
   const [selected, setSelected] = useState(scenario.services[0]!.id);
   const [filter, setFilter] = useState<string | null>(null);
 
@@ -34,7 +36,7 @@ export function Console({ scenario, snapshot, logs, history, world, check, onAct
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!shortcuts || e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
+      if (!active || !shortcuts || e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
       if (e.key === "Escape") {
         setFilter(null);
         return;
@@ -45,7 +47,7 @@ export function Console({ scenario, snapshot, logs, history, world, check, onAct
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [scenario, select, shortcuts]);
+  }, [scenario, select, shortcuts, active]);
 
   const service = scenario.services.find((s) => s.id === selected)!;
   const metrics = scenario.metrics.filter((m) => m.serviceId === selected).slice(0, 2);

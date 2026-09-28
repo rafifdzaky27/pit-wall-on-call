@@ -9,7 +9,7 @@ afterEach(cleanup);
 
 const world = resolveWorld(1);
 
-function setup({ steps = 50, acked = true, inspect = [] as string[] } = {}) {
+function setup({ steps = 50, acked = true, inspect = [] as string[], active = true } = {}) {
   const run = new Run<State>(slowLeak, 1);
   for (const id of inspect) run.dispatch(`inspect:${id}`);
   if (acked) run.dispatch(ACK);
@@ -26,6 +26,7 @@ function setup({ steps = 50, acked = true, inspect = [] as string[] } = {}) {
       check={(id) => run.check(id)}
       onAction={onAction}
       onPause={onPause}
+      active={active}
     />
   );
   const utils = render(view());
@@ -65,6 +66,12 @@ describe("Console", () => {
     const services = within(logs).getAllByTestId("log-service").map((el) => el.textContent);
     expect(services.length).toBeGreaterThan(0);
     expect(services.every((s) => s === "postgres")).toBe(true);
+  });
+
+  it("ignores number keys while Monitoring is not the active window", () => {
+    setup({ active: false });
+    fireEvent.keyDown(window, { key: "2" });
+    expect(screen.getByRole("button", { name: /^checkout-api/ }).getAttribute("aria-pressed")).toBe("false");
   });
 
   it("number keys select services and Esc clears the log filter", () => {

@@ -132,7 +132,8 @@ function Session({ children, seed, scenario, prepageMs, now, onNewShift }: Sessi
       start: () => setPhase((p) => (p === "idle" ? "prepage" : p)),
       skipPrepage: () => setPhase((p) => (p === "prepage" ? "paging" : p)),
       acknowledge: () => {
-        if (phase !== "paging") return;
+        // Paused means the clock is stopped; nothing, not even the ack, happens then (M1.6 F6).
+        if (phase !== "paging" || loop.paused) return;
         dispatch(ACK);
         setPhase("active");
       },

@@ -43,7 +43,9 @@ function CalmView() {
 export function MonitoringApp() {
   const incident = useIncident();
   const { prefs } = usePrefs();
-  const { openApp } = useOs();
+  const { wm, openApp } = useOs();
+  const mine = wm.windows.find((w) => w.appId === "monitoring" && !w.closing);
+  const active = !!mine && wm.focusedId === mine.id && !mine.minimized;
 
   if (incident.phase === "idle" || incident.phase === "prepage") return <CalmView />;
   if (incident.phase === "ended") {
@@ -81,6 +83,7 @@ export function MonitoringApp() {
         onAction={incident.dispatch}
         onPause={incident.pause}
         shortcuts={prefs.singleKeyShortcuts}
+        active={active}
       />
     </div>
   );
