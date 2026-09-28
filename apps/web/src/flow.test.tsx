@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+// Preloaded, so the Stage's lazy import of the report resolves from the module cache under fake time.
+import "./cafe/ResultsCard";
 
 // The run loop reads performance.now(); setImmediate stays real so lazy chunks can finish loading.
 beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance", "requestAnimationFrame", "cancelAnimationFrame"] }));
@@ -14,7 +16,7 @@ const seconds = (n: number) => {
   for (let i = 0; i < n; i++) act(() => vi.advanceTimersByTime(1000));
 };
 /** Retries `get` while giving real I/O (lazy imports) and fake time a turn. */
-async function until<T>(get: () => T, tries = 300): Promise<T> {
+async function until<T>(get: () => T, tries = 80): Promise<T> {
   for (let i = 0; ; i++) {
     try {
       return get();
@@ -22,7 +24,8 @@ async function until<T>(get: () => T, tries = 300): Promise<T> {
       if (i >= tries) throw e;
       await act(async () => {
         await new Promise((r) => setImmediate(r));
-        vi.advanceTimersByTime(10);
+        // Each step re-renders the whole app, so steps are coarse.
+        vi.advanceTimersByTime(100);
       });
     }
   }

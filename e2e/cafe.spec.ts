@@ -62,7 +62,9 @@ test.describe("the café cold open", () => {
     await page.clock.runFor(11_000);
     await page.clock.runFor(1_600);
     await expect(page.getByText(/^Checkout is back\. Resolved in \d\d:\d\d\.$/)).toBeVisible();
-    await page.getByRole("button", { name: "Read the postmortem" }).click();
+    // The shift report opens 1.5 s after the caption (M2.5 spec §6).
+    await page.clock.runFor(1_600);
+    await page.getByRole("dialog", { name: "Shift report" }).getByRole("button", { name: "Read the postmortem" }).click();
     await expect(page.getByRole("heading", { level: 1, name: /^Resolved in/ })).toBeVisible();
     await expect(page.getByText(/^Confirmed \d\d:\d\d$/)).toBeVisible();
   });

@@ -2,7 +2,14 @@ import { act, cleanup, fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { savePlayer } from "../../../net/player";
 import { renderOs } from "../../testing";
-import { LeaderboardCard } from "./LeaderboardCard";
+import { useOs } from "../../shell/OsContext";
+import { LeaderboardCard as Card } from "./LeaderboardCard";
+
+/** As the postmortem mounts it: View leaderboard opens the Browser tab. */
+function LeaderboardCard() {
+  const { openBrowserTab } = useOs();
+  return <Card onView={() => openBrowserTab("leaderboard")} />;
+}
 
 const PLAYER = { playerId: "0c1f2e3d-0000-4000-8000-0000abcd1234", handle: "rafif", tag: "1234", token: `pw_${"a".repeat(43)}` };
 const posted = (board: { rank: number | null; total: number; best: boolean }, flagged = false) => ({

@@ -26,7 +26,21 @@ function Row({ e }: { e: BoardEntry }) {
  * The practice leaderboard (M2 spec §6), as a web page: inside the PitOS Browser and under the lock
  * screen on small screens. It loads again whenever `version` changes.
  */
-export function LeaderboardPage({ scenarioId, scenarioTitle, version = 0 }: { scenarioId: string; scenarioTitle: string; version?: number }) {
+export function LeaderboardPage({
+  scenarioId,
+  scenarioTitle,
+  version = 0,
+  limit,
+  bare = false,
+}: {
+  scenarioId: string;
+  scenarioTitle: string;
+  version?: number;
+  /** Show only the top `limit`, plus the caller's row (the shift report's mini board). */
+  limit?: number;
+  /** No page heading: the board sits inside another surface. */
+  bare?: boolean;
+}) {
   const player = usePlayer();
   const token = player?.token;
   const [load, setLoad] = useState<Load>({ kind: "loading" });
@@ -59,7 +73,8 @@ export function LeaderboardPage({ scenarioId, scenarioTitle, version = 0 }: { sc
   } else if (load.board.entries.length === 0) {
     body = <p>No shifts posted yet. Finish a shift and post it from its postmortem.</p>;
   } else {
-    const { entries, you, total } = load.board;
+    const { you, total } = load.board;
+    const entries = limit === undefined ? load.board.entries : load.board.entries.slice(0, limit);
     const outside = you && !entries.some((e) => e.you) ? you : null;
     body = (
       <>
@@ -98,6 +113,7 @@ export function LeaderboardPage({ scenarioId, scenarioTitle, version = 0 }: { sc
     );
   }
 
+  if (bare) return <div className="lb-page lb-bare">{body}</div>;
   return (
     <article className="lb-page">
       <header className="lb-head">

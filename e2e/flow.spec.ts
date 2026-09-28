@@ -35,6 +35,7 @@ test.describe("flow (M2.5 spec §11)", () => {
     await page.getByRole("button", { name: "Start shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
+    await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.keyboard.press("2");
     await page.clock.runFor(3_000);
     await page.getByRole("button", { name: /Roll back to v141/ }).click();
@@ -48,6 +49,27 @@ test.describe("flow (M2.5 spec §11)", () => {
     await expect(page.locator(".stage")).toHaveAttribute("data-marker", "same");
     await expect(page.locator(".stage-screen .window")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Start shift" }).first()).toBeVisible();
+  });
+
+  test("the shift report opens by itself and fits a 1366×657 laptop", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 657 });
+    await page.clock.install();
+    await page.goto("/");
+    await page.getByRole("button", { name: "Start shift" }).click();
+    await skip(page).click();
+    await page.keyboard.press("a");
+    await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
+    await page.keyboard.press("2");
+    await page.clock.runFor(3_000);
+    await page.getByRole("button", { name: /Roll back to v141/ }).click();
+    await page.clock.runFor(45_000);
+    await page.clock.runFor(3_200);
+    const report = page.getByRole("dialog", { name: "Shift report" });
+    await expect(report).toBeVisible();
+    for (const name of ["New shift", "Share", "Full leaderboard", "Read the postmortem"]) {
+      const box = (await report.getByRole("button", { name }).boundingBox())!;
+      expect(box.y + box.height, name).toBeLessThanOrEqual(657);
+    }
   });
 
   // @perf runs alone (PERF=1 playwright test --workers=1, a CI step of its own): frame times mean nothing while other browsers share the CPU.

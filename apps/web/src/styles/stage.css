@@ -28,11 +28,9 @@
 .cold-close p { margin: 0; }
 
 /* M2.5: a new shift's café fades in; the lead-in before the cold close. */
-/* No fill: a filled opacity animation keeps a stacking context, which would trap the café UI (z 2)
-   under the laptop screen (z 1). The context lasts only while the fade runs. */
-.cafe-shift { position: absolute; inset: 0; animation: cafe-shift-in 600ms var(--ease-out); }
-@keyframes cafe-shift-in { from { opacity: 0; } }
-[data-motion="reduce"] .cafe-shift { animation: none; }
+.cafe-curtain { position: absolute; inset: 0; z-index: 1; background: var(--bg); pointer-events: none; opacity: 0; animation: cafe-curtain-out 600ms var(--ease-out); }
+@keyframes cafe-curtain-out { from { opacity: 1; } }
+[data-motion="reduce"] .cafe-curtain { animation: none; }
 .fix-confirmed { position: absolute; left: 50%; top: 42%; z-index: 5; transform: translateX(-50%); margin: 0; padding: 14px 22px; border-radius: var(--radius-window); background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-window); font-size: var(--fs-lg); font-weight: 600; animation: fix-confirmed-in 240ms var(--ease-out) both; }
 @keyframes fix-confirmed-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 [data-motion="reduce"] .fix-confirmed { animation: none; }

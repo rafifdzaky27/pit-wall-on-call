@@ -15,6 +15,9 @@ import { useViewport } from "./useViewport";
 
 /** The café's art, sound and hotspots load on Start shift, apart from the main chunk (cold-open spec §9). */
 const CafeView = lazy(() => import("./CafeView"));
+/** The shift report and its leaderboard load when a run ends, apart from the main chunk (M2.5 spec §6). */
+const loadResults = () => import("./ResultsCard");
+const ResultsCard = lazy(() => loadResults().then((m) => ({ default: m.ResultsCard })));
 
 /** If the café cannot load, the plain backdrop keeps the shift playable (cold-open spec §9). */
 class CafeBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -148,14 +151,14 @@ export function Stage({ children }: { children: ReactNode }) {
             <div className="stage-cafe" role="region" aria-label="Café" hidden={!cafeShown && !inCafe} inert={!inCafe} aria-hidden={!inCafe}>
               <CafeBoundary>
                 <Suspense fallback={<CafeFallback />}>
-                  {/* A new shift's city fades in (M2.5 spec §11). */}
-                  <div className="cafe-shift" key={incident.seed}>
-                    <CafeView />
-                  </div>
+                  <CafeView />
                 </Suspense>
               </CafeBoundary>
               <CafeControls />
               <ColdClose />
+              {/* A new shift's city fades in: a curtain on layer 1 lifts off the art. The café wrapper
+                  itself never animates, so it never traps the café UI under the screen (M2.5). */}
+              <div className="cafe-curtain" key={incident.seed} aria-hidden="true" />
             </div>
           )}
           <div
@@ -172,6 +175,12 @@ export function Stage({ children }: { children: ReactNode }) {
           <p className="fix-confirmed" role="status">
             {confirmed.outcome === "resolved" ? `Fix confirmed · resolved in ${formatClock(confirmed.endTick)}` : `Out of time · ${formatClock(confirmed.endTick)}`}
           </p>
+        )}
+        {/* Outside the world transform, so it is sized by the viewport, not the scene. */}
+        {incident.phase === "ended" && inCafe && (
+          <Suspense fallback={null}>
+            <ResultsCard />
+          </Suspense>
         )}
         <PausedOverlay />
       </div>

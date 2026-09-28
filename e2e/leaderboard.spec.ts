@@ -26,7 +26,9 @@ test.describe("the runs API contract (M2)", () => {
     await page.clock.runFor(31_000);
     await page.clock.runFor(11_000);
     await page.clock.runFor(1_600);
-    await page.getByRole("button", { name: "Read the postmortem" }).click();
+    // The shift report opens 1.5 s after the caption (M2.5 spec §6).
+    await page.clock.runFor(1_600);
+    await page.getByRole("dialog", { name: "Shift report" }).getByRole("button", { name: "Read the postmortem" }).click();
 
     const board = page.getByRole("region", { name: "Leaderboard" });
     await expect(board.getByText("Pick a handle to post this shift to the practice leaderboard.")).toBeVisible();
