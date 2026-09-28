@@ -16,7 +16,7 @@ function Row({ e }: { e: BoardEntry }) {
         {e.you && " (you)"}
       </td>
       <td className="lb-num">{formatBp(e.budgetBurnedBp)}</td>
-      <td className="lb-num">{e.mitigatedAtTick === null ? "—" : formatClock(e.mitigatedAtTick)}</td>
+      <td className="lb-num lb-mit">{e.mitigatedAtTick === null ? "—" : formatClock(e.mitigatedAtTick)}</td>
       <td>{e.outcome === "resolved" ? "Resolved" : "DNF"}</td>
     </tr>
   );
@@ -72,7 +72,7 @@ export function LeaderboardPage({ scenarioId, scenarioTitle, version = 0 }: { sc
                 <th scope="col" className="lb-num">
                   Budget burned
                 </th>
-                <th scope="col" className="lb-num">
+                <th scope="col" className="lb-num lb-mit">
                   Mitigated
                 </th>
                 <th scope="col">Result</th>

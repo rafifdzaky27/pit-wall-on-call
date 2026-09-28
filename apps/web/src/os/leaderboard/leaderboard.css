@@ -10,7 +10,8 @@
 .lb-table th { padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--lb-muted); border-bottom: 1px solid var(--lb-line); background: #f7f8fa; white-space: nowrap; }
 .lb-table td { padding: 9px 12px; border-bottom: 1px solid var(--lb-line); white-space: nowrap; }
 .lb-table tbody tr:last-child td { border-bottom: 0; }
-.lb-table .lb-num { text-align: right; font-family: "IBM Plex Mono", ui-monospace, monospace; }
+.lb-table .lb-num { text-align: right; }
+.lb-table td.lb-num { font-family: "IBM Plex Mono", ui-monospace, monospace; }
 .lb-rank { width: 56px; font-family: "IBM Plex Mono", ui-monospace, monospace; color: var(--lb-muted); }
 .lb-player { font-weight: 500; }
 .lb-tag { color: var(--lb-muted); font-weight: 400; }
@@ -25,5 +26,10 @@
 @media (max-width: 560px) {
   .lb-page { padding: 20px 16px 32px; }
   .lb-head h1 { font-size: 22px; }
-  .lb-table th, .lb-table td { padding: 8px; }
+  /* A phone shows rank, player, burn and result without a sideways scroll (M2 walkthrough W1):
+     no mitigation column, headers may wrap, and a long handle breaks before its tag. */
+  .lb-table th, .lb-table td { padding: 8px; white-space: normal; }
+  .lb-table .lb-mit { display: none; }
+  .lb-rank { width: auto; }
+  .lb-player { overflow-wrap: anywhere; }
 }

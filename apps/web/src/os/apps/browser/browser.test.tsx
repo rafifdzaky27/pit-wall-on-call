@@ -236,7 +236,7 @@ describe("BrowserApp: the leaderboard site (M2)", () => {
     await flush();
     expect(tabs()).toEqual([`${world.brand.name} · ${world.brand.tagline}`, "Leaderboard · Pit Wall On-Call"]);
     expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Leaderboard · Pit Wall On-Call");
-    expect((screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement).value).toBe(`https://${window.location.host}/leaderboard`);
+    expect((screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement).value).toBe(`${window.location.origin}/leaderboard`);
     expect(screen.getByRole("table", { name: "Practice leaderboard" })).toBeTruthy();
   });
 

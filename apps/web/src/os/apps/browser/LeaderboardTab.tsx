@@ -28,7 +28,7 @@ export function LeaderboardTab({ bookmarks, opened }: { bookmarks: ReactNode; op
         </button>
         <div className="omnibox">
           <Glyph name="lock" size={14} />
-          <input className="address mono" aria-label="Address" value={`https://${window.location.host}/leaderboard`} readOnly />
+          <input className="address mono" aria-label="Address" value={`${window.location.origin}/leaderboard`} readOnly />
         </div>
       </div>
       {bookmarks}
