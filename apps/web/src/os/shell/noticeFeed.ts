@@ -68,7 +68,7 @@ export function useNoticeFeed(startShift: () => void): void {
       seen.current.add(m.id);
       const author = messageAuthor(m, scenario);
       const loud = m.channel.startsWith("dm:") || m.channel === "incidents";
-      if (!loud || chatFocused || author === "bot") continue;
+      if (!loud || chatFocused || author === "bot" || author === "deploybot") continue;
       const name = authorName(author, world);
       pushNotice({
         id: `chat:${m.id}`,

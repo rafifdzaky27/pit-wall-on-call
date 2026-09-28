@@ -41,9 +41,9 @@ describe("formatPrice", () => {
 describe("fillWorld", () => {
   it("fills brand and colleague tokens, and leaves unknown tokens alone", () => {
     const world = resolveWorld(1);
-    const text = fillWorld("{deployer} and {secondary} at {brand}; {infra}, {support}, {nope}", world);
+    const text = fillWorld("{deployer} and {secondary} at {brand} ({domain}); {infra}, {support}, {nope}", world);
     expect(text).toBe(
-      `${world.colleagues.deployer} and ${world.colleagues.secondary} at ${world.brand.name}; ${world.colleagues.infra}, ${world.colleagues.support}, {nope}`,
+      `${world.colleagues.deployer} and ${world.colleagues.secondary} at ${world.brand.name} (${world.brand.domain}); ${world.colleagues.infra}, ${world.colleagues.support}, {nope}`,
     );
   });
 });

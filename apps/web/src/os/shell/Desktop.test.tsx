@@ -16,7 +16,7 @@ describe("Desktop", () => {
     expect(screen.getByRole("region", { name: "World clock" })).toBeTruthy();
     const dock = screen.getByRole("navigation", { name: "Dock" });
     expect(dock.querySelectorAll("button")).toHaveLength(6);
-    expect(screen.getByRole("button", { name: "Chat, 5 unread" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Chat, 11 unread" })).toBeTruthy();
   });
 
   it("the dock opens, focuses and minimizes apps", async () => {

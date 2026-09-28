@@ -1,7 +1,8 @@
 import type { ScenarioDef, State, TimelineEntry } from "@pitwall/engine";
 import { slowLeakDesktop } from "./slow-leak.desktop";
 
-export type Author = "deployer" | "secondary" | "infra" | "support" | "bot";
+export type Person = "deployer" | "secondary" | "infra" | "support";
+export type Author = Person | "bot" | "deploybot";
 
 export type MessageTrigger =
   | { kind: "prepage" }
@@ -9,13 +10,47 @@ export type MessageTrigger =
   | { kind: "alert"; alertId: string }
   | { kind: "action"; actionId: string };
 
+/** An emoji reaction. Emoji are in-world content here, never PitOS chrome (polish spec S19). */
+export interface Reaction {
+  emoji: string;
+  by: Author[];
+}
+
+export interface ThreadReply {
+  author: Author;
+  text: string;
+  minutesAgo: number;
+}
+
+/** The attachment Deploy Bot posts with each deploy. */
+export interface DeployCard {
+  service: string;
+  version: string;
+  sha: string;
+  by: Person;
+  env: string;
+  changes: string;
+  status: "succeeded" | "failed";
+}
+
+export interface ChannelInfo {
+  topic: string;
+  members: number;
+  pinned: number;
+}
+
 interface MessageBase {
   id: string;
   /** A channel name from `channels`, or "dm:<role>" for a direct message. */
   channel: string;
   trigger: MessageTrigger;
-  /** Shown as "53 min ago" for messages that predate the page. */
+  /** Minutes before the desktop session started, for messages that predate the page. */
   minutesAgo?: number;
+  reactions?: Reaction[];
+  thread?: ThreadReply[];
+  card?: DeployCard;
+  /** A code block shown under the text, for log or command output. */
+  code?: string;
 }
 
 /** A message is either a cold-open hotspot (author and text come from it) or plain chat. */
@@ -35,6 +70,7 @@ export interface RequestPattern {
 export interface DesktopContent {
   server: "nginx" | "framework" | "cdn";
   channels: readonly string[];
+  channelInfo: Record<string, ChannelInfo>;
   chat: readonly ChatMessage[];
   requests: readonly RequestPattern[];
 }
@@ -73,6 +109,12 @@ export function visibleMessages(content: DesktopContent, view: { paged: boolean;
         return done.has(m.trigger.actionId);
     }
   });
+}
+
+/** Who is typing: the authors of messages the running action will produce (polish plan R6). */
+export function typingFor(content: DesktopContent, busyActionId: string | null): { channel: string; author: Author }[] {
+  if (!busyActionId) return [];
+  return content.chat.flatMap((m) => (m.trigger.kind === "action" && m.trigger.actionId === busyActionId && "author" in m ? [{ channel: m.channel, author: m.author }] : []));
 }
 
 export function messageAuthor(msg: ChatMessage, scenario: ScenarioDef<State>): Author {

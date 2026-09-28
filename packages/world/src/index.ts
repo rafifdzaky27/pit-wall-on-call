@@ -26,6 +26,7 @@ export function formatPrice(minor: number, currency: CurrencyCode): string {
 
 const TOKENS: Record<string, (w: World) => string> = {
   brand: (w) => w.brand.name,
+  domain: (w) => w.brand.domain,
   deployer: (w) => w.colleagues.deployer,
   secondary: (w) => w.colleagues.secondary,
   infra: (w) => w.colleagues.infra,
