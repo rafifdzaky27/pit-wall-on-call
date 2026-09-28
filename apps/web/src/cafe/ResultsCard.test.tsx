@@ -38,13 +38,13 @@ function finished() {
   return view;
 }
 // The first test pays for the report chunk's cold import.
-vi.setConfig({ testTimeout: 20_000 });
+vi.setConfig({ testTimeout: 60_000 });
 
 const card = () => screen.getByRole("dialog", { name: "Shift report" });
 /** The report is a lazy chunk; give the import time to land. */
 const opened = async () => {
   await act(async () => vi.advanceTimersByTimeAsync(RESULTS_DELAY_MS));
-  await vi.waitFor(() => card(), { timeout: 15000 });
+  await vi.waitFor(() => card(), { timeout: 40000 });
 };
 
 describe("the shift report (M2.5 spec §6)", () => {
@@ -95,6 +95,29 @@ describe("the shift report (M2.5 spec §6)", () => {
     const seed = incident().seed;
     fireEvent.click(within(card()).getByRole("button", { name: "New shift" }));
     expect(incident().seed).not.toBe(seed);
+    expect(incident().phase).toBe("idle");
+  });
+
+  it("after the training shift, says Training complete and leads to a real shift, with no board", async () => {
+    const view = renderOs(
+      <Stage>
+        <p>laptop screen</p>
+      </Stage>,
+    );
+    const { incident } = view;
+    act(() => incident().startTraining());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    seconds(3);
+    act(() => incident().dispatch("api.config_rollback"));
+    seconds(30);
+    act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
+    await opened();
+    expect(within(card()).getByRole("heading", { level: 2 }).textContent).toBe("Training complete");
+    expect(within(card()).queryByRole("region", { name: "Leaderboard" })).toBeNull();
+    expect(within(card()).queryByRole("button", { name: "Share" })).toBeNull();
+    fireEvent.click(within(card()).getByRole("button", { name: "Start a real shift" }));
+    expect(incident().scenario.id).toBe("db-pool-exhaustion");
     expect(incident().phase).toBe("idle");
   });
 });

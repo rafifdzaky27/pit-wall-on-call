@@ -3,6 +3,8 @@ import { fillWorld } from "@pitwall/world";
 import { useEffect, useRef } from "react";
 import { authorName, visibleFor } from "../apps/chat/unread";
 import { useIncident } from "../incident/IncidentProvider";
+import { usePrefs } from "../PrefsProvider";
+import { useStartTraining } from "../useStartShift";
 import { useOs } from "./OsContext";
 
 /**
@@ -14,15 +16,22 @@ export function useNoticeFeed(startShift: () => void): void {
   const incident = useIncident();
   const { pushNotice, removeNotice, openApp, wm, recordArrivals } = useOs();
   const { phase, world, scenario, result } = incident;
+  const { prefs } = usePrefs();
+  const startTraining = useStartTraining();
 
   useEffect(() => {
     if (phase === "idle") {
+      // Newcomers see the guided training first (M2.5 spec §5); afterwards the real shift leads.
+      const real = { label: "Start shift", run: startShift, primary: prefs.trainingDone };
+      const drill = { label: "Training shift (about 3 min)", run: startTraining, primary: !prefs.trainingDone };
       pushNotice({
         id: "shift",
         app: "Shift",
         title: `Shift ready · ${world.city.name}`,
-        body: `${world.brand.name} is quiet. Start a practice incident whenever you are ready.`,
-        actions: [{ label: "Start shift", run: startShift, primary: true }],
+        body: prefs.trainingDone
+          ? `${world.brand.name} is quiet. Start a practice incident whenever you are ready.`
+          : `${world.brand.name} is quiet. New here? Start with the training shift: a coach walks you through it.`,
+        actions: prefs.trainingDone ? [real, drill] : [drill, real],
       });
     } else removeNotice("shift");
 
@@ -46,7 +55,7 @@ export function useNoticeFeed(startShift: () => void): void {
         actions: [{ label: "Open postmortem", run: () => openApp("postmortem") }],
       });
     }
-  }, [phase, result]);
+  }, [phase, result, prefs.trainingDone]);
 
   // Symptoms down but the cause still active: say the incident is open (M2.5 spec §3, finding F1).
   const status = incident.snapshot.status;

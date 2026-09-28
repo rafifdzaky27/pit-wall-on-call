@@ -12,7 +12,7 @@ import {
   type State,
   type TimelineEntry,
 } from "@pitwall/engine";
-import { desktopFor, slowLeak, type DesktopContent } from "@pitwall/scenarios";
+import { desktopFor, slowLeak, training, type DesktopContent } from "@pitwall/scenarios";
 import { resolveWorld, type World } from "@pitwall/world";
 import { createContext, Fragment, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRunLoop } from "../../game/useRunLoop";
@@ -44,7 +44,10 @@ export interface IncidentApi {
   inspect: (hotspotId: string) => void;
   pause: () => void;
   resume: () => void;
+  /** A real shift, ready to start. */
   newShift: () => void;
+  /** The guided training shift, started at once (M2.5 spec §5). Call it from the click, like Start shift. */
+  startTraining: () => void;
 }
 
 const IncidentContext = createContext<IncidentApi | null>(null);
@@ -71,12 +74,23 @@ interface ProviderProps {
  * café stay (M2.5 spec §11). What must start over per shift sits in a `ShiftScope`.
  */
 export function IncidentProvider({ children, scenario = slowLeak, newSeed = randomSeed, prepageMs = PREPAGE_MS, now }: ProviderProps) {
-  const [seed, setSeed] = useState(newSeed);
+  const [shift, setShift] = useState(() => ({ seed: newSeed(), scenario, startNow: false }));
   const [api, setApi] = useState<IncidentApi | null>(null);
-  const newShift = useCallback(() => setSeed(newSeed()), [newSeed]);
+  const newShift = useCallback(() => setShift({ seed: newSeed(), scenario, startNow: false }), [newSeed, scenario]);
+  const startTraining = useCallback(() => setShift({ seed: newSeed(), scenario: training, startNow: true }), [newSeed]);
   return (
     <>
-      <Session key={seed} seed={seed} scenario={scenario} prepageMs={prepageMs} now={now} onNewShift={newShift} onApi={setApi} />
+      <Session
+        key={shift.seed}
+        seed={shift.seed}
+        scenario={shift.scenario}
+        startNow={shift.startNow}
+        prepageMs={prepageMs}
+        now={now}
+        onNewShift={newShift}
+        onStartTraining={startTraining}
+        onApi={setApi}
+      />
       {api && <IncidentContext.Provider value={api}>{children}</IncidentContext.Provider>}
     </>
   );
@@ -90,6 +104,9 @@ export function ShiftScope({ children }: { children: ReactNode }) {
 
 interface SessionProps {
   onApi: (api: IncidentApi) => void;
+  onStartTraining: () => void;
+  /** Begin in the pre-page at once (the training shift starts from its button). */
+  startNow: boolean;
   seed: number;
   scenario: ScenarioDef<State>;
   prepageMs: number;
@@ -98,9 +115,9 @@ interface SessionProps {
 }
 
 /** Memoised: the hub re-renders on every reported API, and must not re-render the session back (M2.5 plan A4). */
-const Session = memo(function Session({ onApi, seed, scenario, prepageMs, now, onNewShift }: SessionProps) {
+const Session = memo(function Session({ onApi, onStartTraining, startNow, seed, scenario, prepageMs, now, onNewShift }: SessionProps) {
   const [run] = useState(() => new Run(scenario, seed));
-  const [phase, setPhase] = useState<IncidentPhase>("idle");
+  const [phase, setPhase] = useState<IncidentPhase>(startNow ? "prepage" : "idle");
   const [result, setResult] = useState<RunResult | null>(null);
   const world = useMemo(() => resolveWorld(seed), [seed]);
   const content = useMemo(() => desktopFor(scenario.id), [scenario]);
@@ -165,8 +182,9 @@ const Session = memo(function Session({ onApi, seed, scenario, prepageMs, now, o
       pause: loop.pause,
       resume: loop.resume,
       newShift: onNewShift,
+      startTraining: onStartTraining,
     }),
-    [phase, seed, world, scenario, content, loop, run, result, dispatch, onNewShift],
+    [phase, seed, world, scenario, content, loop, run, result, dispatch, onNewShift, onStartTraining],
   );
 
   // Before paint, so the tree above never shows a frame of the previous shift's state.

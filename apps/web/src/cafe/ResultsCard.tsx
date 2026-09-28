@@ -44,6 +44,8 @@ export function ResultsCard() {
   if (!open || !result) return null;
   const resolved = result.outcome === "resolved";
   const scenario = incident.scenario;
+  // Training is never posted: its report points at the real shift instead (M2.5 spec §5).
+  const drill = scenario.training === true;
 
   const share = async () => {
     const text = shareText(scenario, result, window.location.origin);
@@ -65,7 +67,14 @@ export function ResultsCard() {
         ) : (
           <div className="results-body">
             <p className="eyebrow">{scenario.title} · Shift report</p>
-            <h2 className="results-title">{resolved ? `Resolved in ${formatClock(result.endTick)}` : "Out of time"}</h2>
+            <h2 className="results-title">{resolved ? (drill ? "Training complete" : `Resolved in ${formatClock(result.endTick)}`) : "Out of time"}</h2>
+            {drill && (
+              <p>
+                {resolved
+                  ? "You acknowledged, found what changed, undid it, watched it hold and told customers. Real shifts hide the cause better, and nobody coaches you."
+                  : "The clock ran out this time. Try the training again, or go straight to a real shift."}
+              </p>
+            )}
             <dl className="results-tiles">
               <div>
                 <dt>Budget burned</dt>
@@ -84,18 +93,24 @@ export function ResultsCard() {
                 <dd className="mono">{`${result.cluesFound.length}/${reachableClueCount(scenario, M16_SURFACES)}`}</dd>
               </div>
             </dl>
-            <section className="results-board" aria-label="Leaderboard">
-              <LeaderboardCard bare />
-              <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} version={leaderboardVersion} limit={5} bare />
-            </section>
+            {!drill && (
+              <section className="results-board" aria-label="Leaderboard">
+                <LeaderboardCard bare />
+                <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} version={leaderboardVersion} limit={5} bare />
+              </section>
+            )}
             {copied && <p role="status">{copied === "yes" ? "Copied to the clipboard." : "Couldn't copy. Select the text in the postmortem instead."}</p>}
           </div>
         )}
         <div className="results-actions">
           <button type="button" className="btn primary" onClick={incident.newShift}>
-            New shift
+            {drill ? "Start a real shift" : "New shift"}
           </button>
-          {view === "board" ? (
+          {drill ? (
+            <button type="button" className="btn" onClick={incident.startTraining}>
+              Try the training again
+            </button>
+          ) : view === "board" ? (
             <button type="button" className="btn" onClick={() => setView("report")}>
               Back to the report
             </button>

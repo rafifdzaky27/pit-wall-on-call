@@ -12,13 +12,7 @@ import "./styles/stage.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { reloadOnce } from "./chunks";
 import { applyPrefs, loadPrefs } from "./os/prefs";
-
-// Vite reports a failed chunk preload here; after a deploy that means reload onto the new version (M2.5 spec §10).
-window.addEventListener("vite:preloadError", (event) => {
-  if (reloadOnce()) event.preventDefault();
-});
 
 // Apply before the first paint so a light-theme player never sees a dark flash.
 applyPrefs(loadPrefs());

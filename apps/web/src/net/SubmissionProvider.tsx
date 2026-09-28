@@ -41,7 +41,7 @@ const retryable = (e: unknown) => e instanceof NetworkError || (e instanceof Api
  * new shift starts it over. M3 persists a pending post across reloads.
  */
 export function SubmissionProvider({ children }: { children: ReactNode }) {
-  const { result, seed } = useIncident();
+  const { result, seed, scenario } = useIncident();
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
   // This provider outlives each shift (M2.5 plan A4): a new seed starts it over, and a post still in
   // flight from the previous shift is ignored when it lands.
@@ -125,10 +125,11 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
 
   // A finished shift posts at once when this device has a player, and asks for a handle otherwise.
   useEffect(() => {
-    if (!result) return;
+    // Training is never posted (M2.5 spec D4): the report says so instead.
+    if (!result || scenario.training) return;
     if (loadPlayer()) void post();
     else setState({ kind: "ask" });
-  }, [result, post]);
+  }, [result, post, scenario]);
 
   const value = useMemo<Submission>(
     () => ({

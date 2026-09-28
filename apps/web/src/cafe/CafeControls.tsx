@@ -8,7 +8,7 @@ export function CafeControls() {
   return (
     <div className="cafe-controls" role="group" aria-label="Café controls">
       {incident.phase === "prepage" && (
-        <button type="button" className="cafe-btn" onClick={incident.skipPrepage}>
+        <button type="button" className="cafe-btn" data-coach="skip" onClick={incident.skipPrepage}>
           Skip to the page
         </button>
       )}

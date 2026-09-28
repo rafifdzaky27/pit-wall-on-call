@@ -4,6 +4,7 @@ import { motionGate } from "../game/motionGate";
 import { useIncident } from "../os/incident/IncidentProvider";
 import { animation, DUR, EASE_IN_OUT } from "../os/motion";
 import { usePrefs } from "../os/PrefsProvider";
+import { CoachCard } from "../os/coach/CoachCard";
 import { PausedOverlay } from "../os/shell/PausedOverlay";
 import { useShortcuts } from "../os/useShortcuts";
 import { CafeControls } from "./CafeControls";
@@ -182,6 +183,7 @@ export function Stage({ children }: { children: ReactNode }) {
             <ResultsCard />
           </Suspense>
         )}
+        <CoachCard />
         <PausedOverlay />
       </div>
     </CameraContext.Provider>
