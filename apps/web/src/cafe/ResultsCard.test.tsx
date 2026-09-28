@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderOs } from "../os/testing";
 import { RESULTS_DELAY_MS } from "./ResultsCard";
-import { COLD_CLOSE_DELAY_MS, Stage } from "./Stage";
+import { COLD_CLOSE_DELAY_MS, loadResults, Stage } from "./Stage";
 
 const board = { board: "practice", scenarioId: "db-pool-exhaustion", total: 1, entries: [{ rank: 1, handle: "ana", tag: "ab12", budgetBurnedBp: 253, mitigatedAtTick: 389, outcome: "resolved", runId: "r1", you: false }], you: null };
 
@@ -33,18 +33,21 @@ function finished() {
   act(() => incident().acknowledge());
   seconds(3);
   act(() => incident().dispatch("checkout.rollback"));
-  seconds(45);
+  // Stop the moment the run ends; the caption follows COLD_CLOSE_DELAY_MS later, the report after that.
+  for (let s = 0; s < 60 && incident().phase !== "ended"; s++) seconds(1);
   act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
   return view;
 }
-// The first test pays for the report chunk's cold import.
-vi.setConfig({ testTimeout: 60_000 });
+// The report module loads once up front, so it renders without suspending under fake timers.
+beforeAll(async () => {
+  await loadResults();
+});
 
 const card = () => screen.getByRole("dialog", { name: "Shift report" });
 /** The report is a lazy chunk; give the import time to land. */
 const opened = async () => {
   await act(async () => vi.advanceTimersByTimeAsync(RESULTS_DELAY_MS));
-  await vi.waitFor(() => card(), { timeout: 40000 });
+  await vi.waitFor(() => card());
 };
 
 describe("the shift report (M2.5 spec §6)", () => {
@@ -53,7 +56,7 @@ describe("the shift report (M2.5 spec §6)", () => {
     expect(screen.queryByRole("dialog", { name: "Shift report" })).toBeNull();
     await opened();
     expect(within(card()).getByRole("heading", { level: 2 }).textContent).toMatch(/^Resolved in \d\d:\d\d$/);
-    expect(within(card()).getByText("Budget burned")).toBeTruthy();
+    expect(within(card()).getAllByText("Budget burned")[0]!.tagName).toBe("DT");
     // No handle yet: the handle field is right here, above the top of the board.
     expect(within(card()).getByRole("textbox", { name: "Handle" })).toBeTruthy();
     await vi.waitFor(() => within(card()).getByRole("table", { name: "Practice leaderboard" }));

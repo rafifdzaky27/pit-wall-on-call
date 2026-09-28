@@ -1,12 +1,14 @@
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatClock } from "../game/format";
 import { renderOs } from "../os/testing";
 import { RESULTS_DELAY_MS } from "./ResultsCard";
-import { COLD_CLOSE_DELAY_MS, Stage } from "./Stage";
+import { COLD_CLOSE_DELAY_MS, loadResults, Stage } from "./Stage";
 
-// The report is a lazy chunk; its first import is slow under vitest.
-vi.setConfig({ testTimeout: 20_000 });
+// The report module loads once up front, so it renders without suspending under fake timers.
+beforeAll(async () => {
+  await loadResults();
+});
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -33,14 +35,15 @@ describe("cold close", () => {
     act(() => incident().skipPrepage());
     act(() => incident().acknowledge());
     act(() => incident().dispatch("checkout.rollback"));
-    seconds(45);
+    // Stop the moment the run ends, so the report (1.5 s after the caption) is not open yet.
+    for (let s = 0; s < 60 && incident().phase !== "ended"; s++) seconds(1);
     expect(incident().phase).toBe("ended");
     act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
     const end = incident().result!.endTick;
-    expect(screen.getByRole("status").textContent).toBe(`Checkout is back. Resolved in ${formatClock(end)}.`);
+    expect(document.querySelector(".cold-close [role=status]")!.textContent).toBe(`Checkout is back. Resolved in ${formatClock(end)}.`);
     // The shift report opens by itself and takes focus (M2.5 spec §6).
     await act(async () => vi.advanceTimersByTimeAsync(RESULTS_DELAY_MS));
-    const report = await vi.waitFor(() => screen.getByRole("dialog", { name: "Shift report" }), { timeout: 15000 });
+    const report = await vi.waitFor(() => screen.getByRole("dialog", { name: "Shift report" }));
     expect(document.activeElement).toBe(report);
     fireEvent.click(screen.getByRole("button", { name: "Read the postmortem" }));
     expect(screen.queryByRole("dialog", { name: "Shift report" })).toBeNull();
@@ -65,9 +68,9 @@ describe("cold close", () => {
     seconds(481);
     act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
     // The lazy café chunk's first import can take over 1 s under a full parallel `pnpm test`.
-    await vi.waitFor(() => expect(screen.getByRole("img", { name: /^A café in .* at night$/ })).toBeTruthy(), { timeout: 5000 });
+    await vi.waitFor(() => expect(screen.getByRole("img", { name: /^A café in .* at night$/ })).toBeTruthy());
     await act(async () => vi.advanceTimersByTimeAsync(RESULTS_DELAY_MS));
-    fireEvent.click(await vi.waitFor(() => screen.getByRole("button", { name: "Read the postmortem" }), { timeout: 15000 }));
+    fireEvent.click(await vi.waitFor(() => screen.getByRole("button", { name: "Read the postmortem" })));
     fireEvent.keyDown(window, { key: "l" });
     expect(screen.getByRole("img", { name: /^A café in / }).getAttribute("aria-label")).toMatch(/at night$/);
     expect(document.querySelector(".patron.at-table")).toBeNull();

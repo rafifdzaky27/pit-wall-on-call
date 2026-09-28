@@ -1,8 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-// Preloaded, so the Stage's lazy import of the report resolves from the module cache under fake time.
-import "./cafe/ResultsCard";
+import { loadResults } from "./cafe/Stage";
 
 // The run loop reads performance.now(); setImmediate stays real so lazy chunks can finish loading.
 beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance", "requestAnimationFrame", "cancelAnimationFrame"] }));
@@ -53,6 +52,11 @@ async function toNewShift() {
   fireEvent.click(await until(() => screen.getByRole("button", { name: "New shift" })));
   seconds(2);
 }
+
+// The report renders without suspending once loaded (see loadResults).
+beforeAll(async () => {
+  await loadResults();
+});
 
 // Whole-app flows load lazy chunks; a full parallel suite needs more than the default 5 s.
 vi.setConfig({ testTimeout: 30_000 });

@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, type ComponentType, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { formatClock } from "../game/format";
 import { motionGate } from "../game/motionGate";
 import { useIncident } from "../os/incident/IncidentProvider";
@@ -17,8 +17,21 @@ import { useViewport } from "./useViewport";
 /** The café's art, sound and hotspots load on Start shift, apart from the main chunk (cold-open spec §9). */
 const CafeView = lazy(() => import("./CafeView"));
 /** The shift report and its leaderboard load when a run ends, apart from the main chunk (M2.5 spec §6). */
-const loadResults = () => import("./ResultsCard");
-const ResultsCard = lazy(() => loadResults().then((m) => ({ default: m.ResultsCard })));
+type ResultsModule = { default: ComponentType };
+let resultsModule: ResultsModule | null = null;
+/**
+ * Once loaded, the report resolves synchronously (a plain thenable), so React renders it without
+ * suspending. Tests call this first; the app's first use loads it.
+ */
+export function loadResults(): PromiseLike<ResultsModule> {
+  if (resultsModule) {
+    const loaded = resultsModule;
+    return { then: (onLoaded) => Promise.resolve(onLoaded ? onLoaded(loaded) : loaded) as never, [Symbol.toStringTag]: "Loaded" } as PromiseLike<ResultsModule>;
+  }
+  return import("./ResultsCard").then((m) => (resultsModule = { default: m.ResultsCard }));
+}
+// React only needs `then`; the loaded case is deliberately a plain thenable.
+const ResultsCard = lazy(loadResults as () => Promise<ResultsModule>);
 
 /** If the café cannot load, the plain backdrop keeps the shift playable (cold-open spec §9). */
 class CafeBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
