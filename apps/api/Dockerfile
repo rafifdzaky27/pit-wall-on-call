@@ -11,6 +11,8 @@ FROM node:22-alpine
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /repo/apps/api/dist ./dist
+# deploy.sh runs "node dist/migrate.js", which reads the SQL migrations from ../drizzle.
+COPY --from=build /repo/apps/api/drizzle ./drizzle
 USER node
 EXPOSE 8787
 CMD ["node", "dist/server.js"]
