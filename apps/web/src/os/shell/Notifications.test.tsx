@@ -1,6 +1,7 @@
 import { resolveWorld } from "@pitwall/world";
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { usePrefs } from "../PrefsProvider";
 import { renderOs } from "../testing";
 import { useStartShift } from "../useStartShift";
 import { useNoticeFeed } from "./noticeFeed";
@@ -12,6 +13,15 @@ function Shell() {
   const start = useStartShift();
   useNoticeFeed(start);
   return <Notifications />;
+}
+
+function NoFullScreen() {
+  const { update } = usePrefs();
+  return (
+    <button type="button" onClick={() => update({ fullscreenOnStart: false })}>
+      No full screen
+    </button>
+  );
 }
 
 beforeEach(() => vi.useFakeTimers());
@@ -84,5 +94,21 @@ describe("Notifications", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dismiss notification" }));
     expect(screen.queryByRole("region", { name: `Shift ready · ${world.city.name}` })).toBeNull();
     expect(os().notices).toHaveLength(1);
+  });
+
+  it("honours a full-screen preference changed after the Start shift notice appeared", () => {
+    const request = vi.fn(async () => undefined);
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    const { incident } = renderOs(
+      <>
+        <NoFullScreen />
+        <Shell />
+      </>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "No full screen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
+    expect(incident().phase).toBe("prepage");
+    expect(request).not.toHaveBeenCalled();
+    delete (document.documentElement as { requestFullscreen?: unknown }).requestFullscreen;
   });
 });
