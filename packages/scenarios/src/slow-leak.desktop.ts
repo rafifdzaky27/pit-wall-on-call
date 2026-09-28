@@ -67,6 +67,9 @@ export const slowLeakDesktop: DesktopContent = {
       author: "secondary",
       text: "5xx are gone, but checkout's pool is climbing again. Is the cause actually fixed, or did something just reset it?",
     },
+    { id: "dm.deployer.changes", channel: "dm:deployer", trigger: { kind: "action", actionId: "ask.deployer.changes" }, author: "deployer", text: "v142, the checkout refactor. I moved transaction handling into a middleware, tests were green. Why, is it acting up?" },
+    { id: "dm.infra.db", channel: "dm:infra", trigger: { kind: "action", actionId: "ask.infra.db" }, author: "infra", text: "postgres looks noisy today, probably the nightly batch jobs. CPU is fine though, so I wouldn't panic." },
+    { id: "dm.support.impact", channel: "dm:support", trigger: { kind: "action", actionId: "ask.support.impact" }, author: "support", text: "about 1 in 25 payments fail right now. Customers get a 502 page at the payment step, and some retry and get charged nothing." },
     { id: "dm.secondary.deploy", channel: "dm:secondary", trigger: { kind: "action", actionId: "global.ask_secondary" }, author: "secondary", text: "{deployer} shipped v142 about an hour ago. Could that be it?" },
   ],
   requests: [

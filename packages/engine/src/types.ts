@@ -78,7 +78,13 @@ export interface ActionDef<S extends State> {
    * effect and reveals land when its time is up (M2.5 plan B1).
    */
   async?: boolean;
+  /** The PitOS tool this action lives in (M2.5 plan B4). Content only; the engine never reads it. */
+  tool?: ActionTool;
+  /** A question to a teammate: who, the slash-command topic, and what the player says (M2.5 plan B3). */
+  ask?: { to: string; topic: string; prompt: string };
 }
+
+export type ActionTool = "dashboards" | "logs" | "deploys" | "db" | "incident" | "chat";
 
 export interface HotspotDef {
   kind: "clue" | "herring";
