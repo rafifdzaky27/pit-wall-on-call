@@ -2,6 +2,7 @@ import type { RunResult } from "@pitwall/engine";
 import { slowLeak } from "@pitwall/scenarios";
 import { useEffect, useState } from "react";
 import { fetchApiVersion } from "./api";
+import { M15_SURFACES, reachableClueCount } from "./os/surfaces";
 import { Debrief } from "./screens/Debrief";
 import { ErrorBoundary } from "./screens/ErrorBoundary";
 import { Incident } from "./screens/Incident";
@@ -57,7 +58,7 @@ export function App({ fetchVersion = fetchApiVersion, newSeed = randomSeed, prep
     );
   }
   if (screen.name === "debrief") {
-    return <Debrief scenario={slowLeak} result={screen.result} onPlayAgain={start} onHome={home} />;
+    return <Debrief scenario={slowLeak} result={screen.result} clueTotal={reachableClueCount(slowLeak, M15_SURFACES)} onPlayAgain={start} onHome={home} />;
   }
 
   const apiLine =

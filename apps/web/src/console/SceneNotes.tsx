@@ -1,8 +1,8 @@
 import type { ScenarioDef, State } from "@pitwall/engine";
-import { fillBrand } from "../game/brand";
+import { fillWorld, type World } from "@pitwall/world";
 
 /** Everything the player looked at before the console opened, clue or not (no spoilers). */
-export function SceneNotes({ scenario, inspected, brand }: { scenario: ScenarioDef<State>; inspected: string[]; brand: string }) {
+export function SceneNotes({ scenario, inspected, world }: { scenario: ScenarioDef<State>; inspected: string[]; world: World }) {
   return (
     <section className="panel notes" aria-labelledby="notes-h">
       <div className="ph">
@@ -18,7 +18,7 @@ export function SceneNotes({ scenario, inspected, brand }: { scenario: ScenarioD
               return (
                 <li key={id}>
                   <span className="note-src">{hotspot.label}</span>
-                  <span>{fillBrand(hotspot.text, brand)}</span>
+                  <span>{`${hotspot.author ? `${world.colleagues[hotspot.author]}: ` : ""}${fillWorld(hotspot.text, world)}`}</span>
                 </li>
               );
             })}

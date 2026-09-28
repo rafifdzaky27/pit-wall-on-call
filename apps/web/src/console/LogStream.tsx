@@ -1,4 +1,5 @@
 import type { LogEntry, ScenarioDef, State } from "@pitwall/engine";
+import { fillWorld, type World } from "@pitwall/world";
 import { useLayoutEffect, useRef } from "react";
 import { formatClock } from "../game/format";
 
@@ -6,12 +7,13 @@ const VISIBLE = 200;
 
 interface Props {
   scenario: ScenarioDef<State>;
+  world: World;
   logs: readonly LogEntry[];
   filter: string | null;
   onClearFilter: () => void;
 }
 
-export function LogStream({ scenario, logs, filter, onClearFilter }: Props) {
+export function LogStream({ scenario, world, logs, filter, onClearFilter }: Props) {
   const labels = new Map(scenario.services.map((s) => [s.id, s.label]));
   const visible = (filter ? logs.filter((l) => l.serviceId === filter || l.serviceId === "global") : logs).slice(-VISIBLE);
   const listRef = useRef<HTMLOListElement>(null);
@@ -50,7 +52,7 @@ export function LogStream({ scenario, logs, filter, onClearFilter }: Props) {
             <span className="svc" data-testid="log-service">
               {labels.get(l.serviceId) ?? "you"}
             </span>
-            <span className="msg">{l.text}</span>
+            <span className="msg">{fillWorld(l.text, world)}</span>
           </li>
         ))}
       </ol>

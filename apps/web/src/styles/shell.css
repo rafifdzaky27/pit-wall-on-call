@@ -22,3 +22,22 @@
 .app-phone { --app-color: var(--app-phone); }
 .app-postmortem { --app-color: var(--app-postmortem); }
 .wallpaper { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Apps: shared */
+.app-pad { padding: var(--space-5); display: grid; gap: var(--space-4); align-content: start; }
+.app-pad h2 { font-size: var(--fs-lg); font-weight: 600; }
+
+/* Monitoring */
+.mon { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; }
+.mon .console { min-height: 0; }
+.mon-paging { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-4); background: var(--crit-soft); border-bottom: 1px solid var(--crit); }
+.mon-paging .btn { margin-left: auto; }
+.mon-calm { max-width: 640px; }
+.mon-calm-head { display: grid; gap: var(--space-2); }
+.mon-calm-head .tag { justify-self: start; }
+.mon-services { display: grid; gap: var(--space-2); }
+.mon-services li { display: flex; justify-content: space-between; padding: var(--space-3); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
+.mon-calm .btn, .mon-ended .btn { justify-self: start; }
+
+/* Postmortem */
+.postmortem { padding: var(--space-5); display: grid; gap: var(--space-5); background: var(--bg); min-height: 100%; }

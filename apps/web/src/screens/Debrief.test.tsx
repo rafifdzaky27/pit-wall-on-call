@@ -17,7 +17,7 @@ const dnf = replay(slowLeak, 1, []);
 
 const show = (result = perfect) => {
   const handlers = { onPlayAgain: vi.fn(), onHome: vi.fn() };
-  render(<Debrief scenario={slowLeak} result={result} {...handlers} />);
+  render(<Debrief scenario={slowLeak} result={result} clueTotal={2} {...handlers} />);
   return handlers;
 };
 
@@ -28,7 +28,7 @@ describe("Debrief", () => {
     const tiles = screen.getByRole("list", { name: "Score" });
     expect(within(tiles).getByText("Found")).toBeTruthy();
     expect(within(tiles).getByText("00:02")).toBeTruthy();
-    expect(within(tiles).getByText("1/3")).toBeTruthy();
+    expect(within(tiles).getByText("1/2")).toBeTruthy();
   });
 
   it("headlines a DNF and says the secondary was paged", () => {

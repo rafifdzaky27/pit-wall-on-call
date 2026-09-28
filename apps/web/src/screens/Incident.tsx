@@ -1,3 +1,4 @@
+import { resolveWorld } from "@pitwall/world";
 import { ACK, ActionRejected, inspectAction, Run, type RunResult, type ScenarioDef, type State } from "@pitwall/engine";
 import { useCallback, useEffect, useState } from "react";
 import { Console } from "../console/Console";
@@ -69,7 +70,7 @@ export function Incident({ scenario, seed, onFinish, prepageMs = PREPAGE_MS, now
             snapshot={snapshot}
             logs={run.logs}
             history={history}
-            brand={brand}
+            world={resolveWorld(seed)}
             check={(id) => run.check(id)}
             onAction={dispatch}
             onPause={pause}

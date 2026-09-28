@@ -1,5 +1,7 @@
 import type { LogEntry, RejectReason, ScenarioDef, Snapshot, State } from "@pitwall/engine";
+import type { World } from "@pitwall/world";
 import { useCallback, useEffect, useState } from "react";
+import { isTypingTarget } from "../os/useShortcuts";
 import { ActionsPanel } from "./ActionsPanel";
 import { AlertFeed } from "./AlertFeed";
 import { LogStream } from "./LogStream";
@@ -13,13 +15,15 @@ export interface ConsoleProps {
   snapshot: Snapshot;
   logs: readonly LogEntry[];
   history: Record<string, number[]>;
-  brand: string;
+  world: World;
   check: (actionId: string) => RejectReason | null;
   onAction: (actionId: string) => void;
   onPause: () => void;
+  /** Single-key shortcuts (Settings → Accessibility). */
+  shortcuts?: boolean;
 }
 
-export function Console({ scenario, snapshot, logs, history, brand, check, onAction, onPause }: ConsoleProps) {
+export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true }: ConsoleProps) {
   const [selected, setSelected] = useState(scenario.services[0]!.id);
   const [filter, setFilter] = useState<string | null>(null);
 
@@ -30,7 +34,7 @@ export function Console({ scenario, snapshot, logs, history, brand, check, onAct
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!shortcuts || e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
       if (e.key === "Escape") {
         setFilter(null);
         return;
@@ -41,7 +45,7 @@ export function Console({ scenario, snapshot, logs, history, brand, check, onAct
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [scenario, select]);
+  }, [scenario, select, shortcuts]);
 
   const service = scenario.services.find((s) => s.id === selected)!;
   const metrics = scenario.metrics.filter((m) => m.serviceId === selected).slice(0, 2);
@@ -49,10 +53,10 @@ export function Console({ scenario, snapshot, logs, history, brand, check, onAct
   return (
     <div className="console">
       <TopBar scenario={scenario} snapshot={snapshot} onPause={onPause} />
-      <main className="console-main">
+      <div className="console-main">
         <div className="col col-left">
           <AlertFeed scenario={scenario} alerts={snapshot.alerts} />
-          <SceneNotes scenario={scenario} inspected={snapshot.inspected} brand={brand} />
+          <SceneNotes scenario={scenario} inspected={snapshot.inspected} world={world} />
         </div>
         <div className="col col-center">
           <ServiceMap scenario={scenario} health={snapshot.health} details={snapshot.details} selected={selected} onSelect={select} />
@@ -65,8 +69,8 @@ export function Console({ scenario, snapshot, logs, history, brand, check, onAct
         <div className="col col-right">
           <ActionsPanel scenario={scenario} service={service} snapshot={snapshot} check={check} onAction={onAction} />
         </div>
-      </main>
-      <LogStream scenario={scenario} logs={logs} filter={filter} onClearFilter={() => setFilter(null)} />
+      </div>
+      <LogStream scenario={scenario} world={world} logs={logs} filter={filter} onClearFilter={() => setFilter(null)} />
     </div>
   );
 }
