@@ -83,6 +83,14 @@ describe("visibleMessages", () => {
     expect(ids).toEqual(expect.arrayContaining(["incidents.opened", "incidents.support", "dm.secondary.deploy"]));
   });
 
+  it("shows a status message only after its status has lasted long enough (M2.5 spec §7)", () => {
+    const view = (since: number | null, tick: number) =>
+      visibleMessages(content, { paged: true, timeline: [], statusSince: { mitigated: since }, tick }).map((m) => m.id);
+    expect(view(null, 500)).not.toContain("dm.secondary.mitigated");
+    expect(view(100, 299)).not.toContain("dm.secondary.mitigated");
+    expect(view(100, 300)).toContain("dm.secondary.mitigated");
+  });
+
   it("resolves hotspot-linked messages to the hotspot's author and text", () => {
     const msg = content.chat.find((m) => m.id === "deploys.dimas")!;
     expect(messageAuthor(msg, slowLeak)).toBe("deployer");

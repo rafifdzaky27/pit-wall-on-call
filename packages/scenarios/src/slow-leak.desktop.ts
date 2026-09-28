@@ -60,6 +60,13 @@ export const slowLeakDesktop: DesktopContent = {
     { id: "dm.support.refund", channel: "dm:support", trigger: { kind: "prepage" }, minutesAgo: 25, author: "support", text: "hey, are you on call today? a customer asked about a refund, not urgent" },
     { id: "incidents.opened", channel: "incidents", trigger: { kind: "page" }, author: "bot", text: "SEV2 opened: Checkout returning 5xx. Primary: you. Secondary: {secondary}." },
     { id: "incidents.support", channel: "incidents", trigger: { kind: "alert", alertId: "checkout_latency" }, author: "support", text: "Customers are writing in: the payment step shows a gateway error." },
+    {
+      id: "dm.secondary.mitigated",
+      channel: "dm:secondary",
+      trigger: { kind: "status", status: "mitigated", afterTicks: 200 },
+      author: "secondary",
+      text: "5xx are gone, but checkout's pool is climbing again. Is the cause actually fixed, or did something just reset it?",
+    },
     { id: "dm.secondary.deploy", channel: "dm:secondary", trigger: { kind: "action", actionId: "global.ask_secondary" }, author: "secondary", text: "{deployer} shipped v142 about an hour ago. Could that be it?" },
   ],
   requests: [

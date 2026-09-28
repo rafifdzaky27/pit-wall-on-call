@@ -1,4 +1,5 @@
 import { defineScenario, type Rng } from "@pitwall/engine";
+import { duckAction } from "./duck";
 
 /** checkout-api pool, in milli-connections so the leak stays integer (spec §5, rule 3). */
 const POOL_MAX = 100_000;
@@ -12,6 +13,7 @@ type SlowLeak = {
   failovers: number;
   dbMaxConns: number;
   statusPosted: number;
+  ducks: number;
 };
 
 const inUse = (s: SlowLeak) => Math.floor(s.pool / 1000);
@@ -22,6 +24,13 @@ const p99Ms = (s: SlowLeak): number =>
   s.pool <= 85_000 ? 140 : Math.min(5000, 140 + Math.floor(((s.pool - 85_000) * 4860) / 15_000));
 const jitter = (rng: Rng, spread: number) => (rng.next() - 0.5) * spread;
 const hex4 = (rng: Rng) => rng.int(0x10000).toString(16).padStart(4, "0");
+
+/** The duck's questions, in order (M2.5 spec §9). They point at the reasoning, never at the fix. */
+const SLOW_LEAK_HINTS = [
+  "What changed recently, and when did the errors start?",
+  "Is the loudest service the cause, or a victim of something it depends on?",
+  "If the errors stopped, did the cause go away, or did something just reset?",
+];
 
 export const slowLeak = defineScenario<SlowLeak>({
   id: "db-pool-exhaustion",
@@ -53,6 +62,7 @@ export const slowLeak = defineScenario<SlowLeak>({
     failovers: 0,
     dbMaxConns: 120,
     statusPosted: 0,
+    ducks: 0,
   }),
   dynamics: (s) => ({ ...s, pool: Math.min(POOL_MAX, s.pool + s.leak) }),
   errorRateBp,
@@ -138,10 +148,12 @@ export const slowLeak = defineScenario<SlowLeak>({
       available: (s) => s.statusPosted === 0,
       effect: (s) => ({ ...s, statusPosted: 1 }),
       reveals: () => [`status page: "Investigating elevated checkout errors"`] },
+    duckAction<SlowLeak>(SLOW_LEAK_HINTS),
     { id: "global.ask_secondary", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful",
       reveals: () => [`{secondary} (secondary): "{deployer} shipped v142 about an hour ago. Could that be it?"`] },
   ],
   rootCauseActionIds: ["checkout.rollback"],
+  hints: SLOW_LEAK_HINTS,
 
   coldOpen: {
     scene: "cafe",

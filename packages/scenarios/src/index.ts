@@ -9,3 +9,4 @@ export function getScenario(id: string): ScenarioDef<State> | undefined {
   return SCENARIOS.find((s) => s.id === id);
 }
 export * from "./desktop";
+export { DUCK, DUCK_DONE, duckAction } from "./duck";

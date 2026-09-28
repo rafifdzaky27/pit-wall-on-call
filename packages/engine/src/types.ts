@@ -122,6 +122,8 @@ export interface ScenarioDef<S extends State> {
   alerts: AlertRule<S>[];
   actions: ActionDef<S>[];
   rootCauseActionIds: string[];
+  /** The rubber duck's questions, in order (M2.5 spec §9). */
+  hints?: string[];
   coldOpen: ColdOpenDef;
   /** First match wins; the last lesson must match everything. */
   lessons: LessonDef[];
