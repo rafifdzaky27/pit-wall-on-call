@@ -96,6 +96,34 @@ describe("checklist", () => {
     expect(done([], "resolved", { ...NONE, postmortemOpened: true })).toEqual(["verify", "close"]);
   });
 
+  it("works for any scenario, from its categories, services and edges", () => {
+    // A made-up shape: the entry point is "lb", not "edge", and no action id matches The Slow Leak's.
+    const other = {
+      ...slowLeak,
+      services: [
+        { id: "lb", label: "lb", x: 0, y: 0, detail: () => "" },
+        { id: "web", label: "web", x: 0, y: 0, detail: () => "" },
+        { id: "cache", label: "cache", x: 0, y: 0, detail: () => "" },
+      ],
+      edges: [
+        { from: "lb", to: "web" },
+        { from: "web", to: "cache" },
+      ],
+      actions: [
+        { id: "lb.look", label: "", serviceId: "lb", category: "investigate", durationS: 1, verdict: "useful" },
+        { id: "cache.look", label: "", serviceId: "cache", category: "investigate", durationS: 1, verdict: "useful" },
+        { id: "web.undo", label: "", serviceId: "web", category: "fix", durationS: 1, verdict: "useful" },
+      ],
+    } as typeof slowLeak;
+    const items = (timeline: TimelineEntry[]) =>
+      checklist(other, timeline, RUNNING, NONE)
+        .filter((i) => i.done)
+        .map((i) => i.id);
+    expect(items([doneAction(10, "cache.look")])).toEqual([]);
+    expect(items([doneAction(10, "lb.look")])).toEqual(["impact"]);
+    expect(items([doneAction(10, "lb.look"), doneAction(20, "cache.look"), doneAction(30, "web.undo")])).toEqual(["impact", "hypothesis", "mitigate"]);
+  });
+
   it("ticks everything for a full, tidy run", () => {
     const r = replay(slowLeak, 1, [
       at(20, ACK),

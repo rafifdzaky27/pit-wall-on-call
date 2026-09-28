@@ -18,7 +18,10 @@ export interface ChecklistExtra {
   postmortemOpened: boolean;
 }
 
-/** The action that posts to the public status page. */
+/**
+ * The action that posts to the public status page. Every scenario shares this global action id; the
+ * other global "communicate" action, asking the secondary, is not a status update.
+ */
 export const STATUS_UPDATE = "global.status_update";
 
 /**
@@ -39,7 +42,7 @@ export function checklist(scenario: ScenarioDef<State>, timeline: readonly Timel
     ["hypothesis", "Form a hypothesis", "Investigate at least two services before you change anything.", investigated.size >= 2],
     ["mitigate", "Stop the bleeding", "Mitigate or fix, so fewer requests fail.", completed.some((a) => a.category === "mitigate" || a.category === "fix")],
     ["verify", "Verify", "The fix holds for 10 s, with no alerts.", snapshot.status === "holding" || snapshot.status === "resolved"],
-    ["communicate", "Communicate", "Post a status update, so customers know you are on it.", completed.some((a) => a.id === STATUS_UPDATE)],
+    ["communicate", "Communicate", "Post a status update, so customers know you are on it.", completed.some((a) => a.category === "communicate" && a.id === STATUS_UPDATE)],
     ["close", "Close", "Read the postmortem: what happened, and what to do next time.", extra.postmortemOpened],
   ];
   return items.map(([id, label, hint, done]) => ({ id, label, hint, done }));
