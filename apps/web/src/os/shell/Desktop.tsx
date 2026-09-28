@@ -82,7 +82,7 @@ export function Desktop() {
         {wm.windows.map((w) => {
           const App = APP_COMPONENTS[w.appId as AppId];
           return (
-            <Window key={w.id} win={w} area={wm.area} focused={w.id === focused} dispatch={dispatchWm}>
+            <Window key={w.id} win={w} area={wm.area} focused={w.id === focused} layer={10 + w.z} dispatch={dispatchWm}>
               <Suspense
                 fallback={
                   <p className="app-pad empty" aria-busy="true">
