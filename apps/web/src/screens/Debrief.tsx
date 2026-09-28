@@ -55,10 +55,12 @@ interface BodyProps {
   result: RunResult;
   /** Clues the player could reach in this build (desktop spec §6). */
   clueTotal: number;
+  /** The leaderboard section, right under the score tiles (M2 spec §6). */
+  board?: ReactNode;
   actions: ReactNode;
 }
 
-export function DebriefBody({ scenario, result, clueTotal, actions }: BodyProps) {
+export function DebriefBody({ scenario, result, clueTotal, board, actions }: BodyProps) {
   const resolved = result.outcome === "resolved";
   const lesson = pickLesson(scenario, result);
   const burns = Object.entries(result.burnByTag)
@@ -98,6 +100,8 @@ export function DebriefBody({ scenario, result, clueTotal, actions }: BodyProps)
           <span className="tile-v mono">{`${result.cluesFound.length}/${clueTotal}`}</span>
         </li>
       </ul>
+
+      {board}
 
       <section className="panel" aria-labelledby="burn-h">
         <div className="ph">
