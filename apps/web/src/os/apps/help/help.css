@@ -1,0 +1,26 @@
+/* Help: the GNOME Settings layout, with its own classes (M2.5 spec §4; os/apps/css-scope.test.ts) */
+.help { display: grid; grid-template-columns: 200px minmax(0, 1fr); height: 100%; background: var(--bg); }
+.help-nav { display: grid; align-content: start; gap: 2px; padding: var(--space-2); background: var(--sunken); border-right: 1px solid var(--border); overflow: auto; }
+.help-nav button { padding: 8px 12px; border: 0; border-radius: var(--radius-md); background: transparent; text-align: left; }
+.help-nav button:hover { background: var(--raised); }
+.help-nav button[aria-current="page"] { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+.help-page { display: grid; gap: var(--space-4); align-content: start; padding: var(--space-5) var(--space-6); overflow: auto; }
+.help-title { font-size: var(--fs-lg); font-weight: 700; }
+.help-page > p { max-width: 680px; }
+.help-group { display: grid; gap: var(--space-2); max-width: 680px; }
+.help-group-title { font-size: var(--fs-sm); font-weight: 700; }
+.help-box { max-width: 680px; margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); overflow: hidden; }
+.help-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: 48px; padding: 10px 14px; }
+.help-row + .help-row { border-top: 1px solid var(--border); }
+.help-row-text { display: grid; gap: 2px; min-width: 0; }
+.help-row-title { font-weight: 600; }
+.help-row-sub { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+.help-row .tag { flex: none; }
+.help-loop { counter-reset: help-step; }
+.help-loop .help-row { justify-content: flex-start; counter-increment: help-step; }
+.help-loop .help-row::before { content: counter(help-step); flex: none; width: 22px; height: 22px; border-radius: 11px; background: var(--sunken); color: var(--muted); font: 600 var(--fs-xs) / 22px var(--font); text-align: center; }
+.help-terms .help-row { display: grid; justify-content: stretch; gap: 2px; }
+.help-keys { width: 100%; border-collapse: separate; border-spacing: 0; }
+.help-keys th, .help-keys td { padding: 10px 14px; text-align: left; font-weight: 400; }
+.help-keys tr + tr > * { border-top: 1px solid var(--border); }
+.help-keys th { width: 1%; white-space: nowrap; }

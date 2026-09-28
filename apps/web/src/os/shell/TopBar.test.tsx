@@ -95,6 +95,15 @@ describe("TopBar", () => {
     expect(request).toHaveBeenCalled();
   });
 
+  it("the ? button in the tray opens Help", () => {
+    const { os } = setup();
+    const help = screen.getByRole("button", { name: "Help" });
+    expect(help.textContent).toBe("?");
+    expect(help.closest(".os-tray")).not.toBeNull();
+    fireEvent.click(help);
+    expect(os().wm.windows.map((w) => w.appId)).toEqual(["help"]);
+  });
+
   it("About PitOS opens Settings on its About page, and Lock locks", async () => {
     const { os, onLock } = setup();
     await openSystem();

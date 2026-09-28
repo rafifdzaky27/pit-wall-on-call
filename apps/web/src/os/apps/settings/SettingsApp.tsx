@@ -7,6 +7,7 @@ import { enterFullscreen, exitFullscreen, fullscreenSupported, useFullscreen } f
 import type { WallpaperChoice } from "../../prefs";
 import { usePrefs } from "../../PrefsProvider";
 import { useOs, type SettingsPageId } from "../../shell/OsContext";
+import { SHORTCUTS } from "../../shortcutList";
 import { audio, type Cue } from "../../audio/engine";
 import { AccountPage } from "./AccountPage";
 import { Group, Row } from "./rows";
@@ -38,16 +39,6 @@ const LEVEL_ROWS: ["ambience" | "music" | "alerts", string, string][] = [
   ["ambience", "Ambience", "The café: voices, cups, rain"],
   ["music", "Music", "The lo-fi radio"],
   ["alerts", "Alerts", "The pager, the phone and every PitOS sound"],
-];
-
-const SHORTCUTS: [string, string][] = [
-  ["O", "Overview"],
-  ["M", "Maximize or restore the focused window"],
-  ["[ / ]", "Snap the focused window left or right"],
-  ["X", "Close the focused window"],
-  ["A", "Acknowledge the page"],
-  ["P", "Pause or resume the incident"],
-  ["1–9, Esc", "Select a service, clear the log filter (Monitoring)"],
 ];
 
 function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (on: boolean) => void }) {
@@ -183,7 +174,7 @@ export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?:
             <Row title="Use system cursor" subtitle="Your browser's own cursors instead of PitOS cursors">
               <Switch label="Use system cursor" checked={prefs.systemCursor} onChange={(on) => update({ systemCursor: on })} />
             </Row>
-            <Row title="Single-key shortcuts" subtitle="O, M, [, ], X, A, P and number keys. Turn off if they get in your way.">
+            <Row title="Single-key shortcuts" subtitle="O, M, [, ], X, A, P, ? and number keys. Turn off if they get in your way.">
               <Switch label="Single-key shortcuts" checked={prefs.singleKeyShortcuts} onChange={(on) => update({ singleKeyShortcuts: on })} />
             </Row>
           </Group>

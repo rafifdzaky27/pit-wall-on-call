@@ -90,6 +90,18 @@ test.describe("flow (M2.5 spec §11)", () => {
     await expect(page.getByRole("button", { name: "Start shift" }).first()).toBeVisible();
   });
 
+  test("? opens Help, and its glossary explains the terms (M2.5 spec §4)", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Start shift" }).first()).toBeVisible();
+    await page.keyboard.press("?");
+    const help = page.getByRole("region", { name: "Help" });
+    await expect(help).toBeVisible();
+    await expect(help.getByRole("heading", { level: 2, name: "How to play" })).toBeVisible();
+    await help.getByRole("navigation", { name: "Help pages" }).getByRole("button", { name: "Glossary" }).click();
+    await expect(help.getByRole("heading", { level: 2, name: "Glossary" })).toBeVisible();
+    await expect(help.getByLabel("Glossary")).toContainText("Error budget");
+  });
+
   // @perf runs alone (PERF=1 playwright test --workers=1, a CI step of its own): frame times mean nothing while other browsers share the CPU.
   test("looking up and back down stays smooth @perf", async ({ page }) => {
     await page.goto("/");

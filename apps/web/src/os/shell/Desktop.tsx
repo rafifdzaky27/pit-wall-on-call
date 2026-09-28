@@ -25,7 +25,7 @@ import { Window } from "./Window";
 
 export function Desktop() {
   const incident = useIncident();
-  const { wm, dispatchWm, openApp, read, setDragging } = useOs();
+  const { wm, dispatchWm, openApp, read, setDragging, markSeen } = useOs();
   const { prefs } = usePrefs();
   const [overview, setOverview] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -49,6 +49,17 @@ export function Desktop() {
     if (incident.phase === "active") openApp("monitoring");
     if (incident.phase === "ended") openApp("postmortem");
   }, [incident.phase, openApp]);
+
+  // The checklist counts the Browser when the player brings it forward during the incident (not when it
+  // opened by itself before the page), and the postmortem once there is one to read (M2.5 spec §4).
+  const focusedApp = wm.windows.find((w) => w.id === focused)?.appId as AppId | undefined;
+  const lastFocused = useRef(focusedApp);
+  useEffect(() => {
+    const moved = lastFocused.current !== focusedApp;
+    lastFocused.current = focusedApp;
+    if (focusedApp === "browser" && moved && running) markSeen("browser");
+    if (focusedApp === "postmortem" && incident.phase === "ended") markSeen("postmortem");
+  }, [focusedApp, running, incident.phase, markSeen]);
 
   // In the café the desktop is out of reach: only the ack and pause work from there (M1.6 plan R6).
   const acknowledge = () => incident.acknowledge();
@@ -74,6 +85,7 @@ export function Desktop() {
     },
     a: acknowledge,
     p: togglePause,
+    "?": () => openApp("help"),
   };
   useShortcuts(camera.view === "cafe" ? { a: acknowledge, p: togglePause } : desktopKeys, prefs.singleKeyShortcuts && !locked);
 

@@ -60,7 +60,9 @@ describe("SettingsApp", () => {
   it("Keyboard lists the shortcuts", () => {
     renderOs(<SettingsApp fetchVersion={ok} />);
     open("Keyboard");
-    expect(screen.getByRole("table", { name: "Keyboard shortcuts" }).textContent).toContain("Acknowledge");
+    const table = screen.getByRole("table", { name: "Keyboard shortcuts" });
+    expect(table.textContent).toContain("Acknowledge");
+    expect(within(table).getByRole("rowheader", { name: "?" }).closest("tr")!.textContent).toContain("Help");
   });
 
   it("About shows the build, the API version and the photo credits", async () => {
