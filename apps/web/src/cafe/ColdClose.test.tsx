@@ -3,11 +3,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { formatClock } from "../game/format";
 import { renderOs } from "../os/testing";
 import { RESULTS_DELAY_MS } from "./ResultsCard";
-import { COLD_CLOSE_DELAY_MS, loadResults, Stage } from "./Stage";
+import { COLD_CLOSE_DELAY_MS, loadCafe, loadResults, Stage } from "./Stage";
 
 // The report module loads once up front, so it renders without suspending under fake timers.
 beforeAll(async () => {
-  await loadResults();
+  await Promise.all([loadCafe(), loadResults()]);
 });
 
 beforeEach(() => vi.useFakeTimers());
@@ -55,7 +55,8 @@ describe("cold close", () => {
     act(() => incident().start());
     act(() => incident().skipPrepage());
     act(() => incident().acknowledge());
-    seconds(481);
+    // One act for the whole shift: React batches the per-tick renders of the loaded café.
+    act(() => vi.advanceTimersByTime(481_000));
     act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
     expect(screen.getByRole("status").textContent).toBe(`Checkout is still down. The shift ended at ${formatClock(incident().result!.endTick)}.`);
   });
@@ -65,7 +66,8 @@ describe("cold close", () => {
     act(() => incident().start());
     act(() => incident().skipPrepage());
     act(() => incident().acknowledge());
-    seconds(481);
+    // One act for the whole shift: React batches the per-tick renders of the loaded café.
+    act(() => vi.advanceTimersByTime(481_000));
     act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
     // The lazy café chunk's first import can take over 1 s under a full parallel `pnpm test`.
     await vi.waitFor(() => expect(screen.getByRole("img", { name: /^A café in .* at night$/ })).toBeTruthy());

@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { loadResults } from "./cafe/Stage";
+import { loadCafe, loadResults } from "./cafe/Stage";
 
 // The run loop reads performance.now(); setImmediate stays real so lazy chunks can finish loading.
 beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance", "requestAnimationFrame", "cancelAnimationFrame"] }));
@@ -55,7 +55,7 @@ async function toNewShift() {
 
 // The report renders without suspending once loaded (see loadResults).
 beforeAll(async () => {
-  await loadResults();
+  await Promise.all([loadCafe(), loadResults()]);
 });
 
 // Whole-app flows load lazy chunks; a full parallel suite needs more than the default 5 s.
