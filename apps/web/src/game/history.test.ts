@@ -22,4 +22,19 @@ describe("MetricHistory", () => {
     h.snapshot().a!.push(99);
     expect(h.snapshot().a).toEqual([1]);
   });
+
+  it("prefills a calm baseline so a sparkline starts as a line, not a dot", () => {
+    const h = new MetricHistory(120);
+    h.prefill({ a: 100, zero: 0 });
+    h.record(0, { a: 100, zero: 0 });
+    const { a, zero } = h.snapshot();
+    expect(a).toHaveLength(120);
+    expect(a!.every((v) => v >= 98 && v <= 102)).toBe(true);
+    expect(new Set(a).size).toBeGreaterThan(10);
+    expect(zero!.every((v) => v === 0)).toBe(true);
+    const again = new MetricHistory(120);
+    again.prefill({ a: 100, zero: 0 });
+    again.record(0, { a: 100, zero: 0 });
+    expect(again.snapshot()).toEqual(h.snapshot());
+  });
 });

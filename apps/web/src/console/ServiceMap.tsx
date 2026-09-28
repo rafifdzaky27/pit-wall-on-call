@@ -10,6 +10,10 @@ interface Props {
   onSelect: (serviceId: string) => void;
 }
 
+/**
+ * Service positions are percentages of an inset box, half a node in from every side, so each
+ * node stays whole at any panel size and each edge ends at a node's centre (polish spec S23).
+ */
 export function ServiceMap({ scenario, health, details, selected, onSelect }: Props) {
   const byId = new Map(scenario.services.map((s) => [s.id, s]));
   return (
@@ -27,29 +31,31 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
             return <line key={`${e.from}-${e.to}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={hot ? "edge hot" : "edge"} vectorEffect="non-scaling-stroke" />;
           })}
         </svg>
-        {scenario.services.map((svc, i) => {
-          const h = health[svc.id] ?? "ok";
-          const isSelected = svc.id === selected;
-          return (
-            <button
-              key={svc.id}
-              type="button"
-              className={`node ${h}${isSelected ? " selected" : ""}`}
-              style={{ left: `${svc.x}%`, top: `${svc.y}%` }}
-              aria-pressed={isSelected}
-              onClick={() => onSelect(svc.id)}
-            >
-              <span className="node-top">
-                <span className="node-name">{svc.label}</span>
-                <span className={`node-health ${h}`}>{HEALTH_LABEL[h]}</span>
-              </span>
-              <span className="node-detail mono">{details[svc.id]}</span>
-              <kbd className="node-key" aria-hidden="true">
-                {i + 1}
-              </kbd>
-            </button>
-          );
-        })}
+        <div className="map-nodes">
+          {scenario.services.map((svc, i) => {
+            const h = health[svc.id] ?? "ok";
+            const isSelected = svc.id === selected;
+            return (
+              <button
+                key={svc.id}
+                type="button"
+                className={`node ${h}${isSelected ? " selected" : ""}`}
+                style={{ left: `${svc.x}%`, top: `${svc.y}%` }}
+                aria-pressed={isSelected}
+                onClick={() => onSelect(svc.id)}
+              >
+                <span className="node-top">
+                  <span className="node-name">{svc.label}</span>
+                  <span className={`node-health ${h}`}>{HEALTH_LABEL[h]}</span>
+                </span>
+                <span className="node-detail mono">{details[svc.id]}</span>
+                <kbd className="node-key" aria-hidden="true">
+                  {i + 1}
+                </kbd>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
