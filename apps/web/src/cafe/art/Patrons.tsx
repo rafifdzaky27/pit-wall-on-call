@@ -18,7 +18,6 @@ function Floor({ model, t }: { model: SceneModel; t: Tone }) {
     <>
       <Prop name="floor">
         <rect x={-40} y={620} width={1680} height={330} fill="url(#cf-floor-tex)" />
-        <rect x={-40} y={620} width={1680} height={330} fill="url(#cf-floor)" opacity={0.35} />
         <rect x={-40} y={620} width={1680} height={40} fill="#000000" opacity={0.25} />
       </Prop>
       <Prop name="rug">

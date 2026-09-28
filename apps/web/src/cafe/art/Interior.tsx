@@ -24,7 +24,8 @@ function WallSurface({ model, t }: { model: SceneModel; t: Tone }) {
   return (
     <Prop name="back-wall">
       <path d={`${outer} ${hole}`} fillRule="evenodd" fill="url(#cf-wall-tex)" />
-      <path d={`${outer} ${hole}`} fillRule="evenodd" fill="url(#cf-wall-light)" />
+      {/* Shadow gathers under the ceiling; a band, not a full-wall overlay, to keep overdraw low. */}
+      <rect x={-40} y={-40} width={1680} height={200} fill="url(#cf-ceiling-shadow)" />
       {style === "kissaten" && <rect x={-40} y={40} width={1680} height={10} fill="url(#cf-trim-v)" />}
       {/* Below the window: a panelled dado. */}
       <rect x={-40} y={WINDOW.y + WINDOW.h} width={960} height={110} fill={t(darken(model.sign.decor.wall[1], 0.2))} />
@@ -554,14 +555,14 @@ function Glass({ model }: { model: SceneModel }) {
   const neon = model.sign.decor.style === "kopi";
   return (
     <Prop name="window-glass">
-      <defs>
-        <mask id="cf-fog-mask">
-          <rect x={WINDOW.x} y={WINDOW.y} width={WINDOW.w} height={WINDOW.h} fill="#ffffff" />
-          {misty && <path d="M 180 470 c -18 -22 -40 -2 -20 18 l 20 18 l 20 -18 c 20 -20 -2 -40 -20 -18 z" fill="none" stroke="#000000" strokeWidth={5} strokeLinecap="round" />}
-          {misty && <path d="M 236 488 l 22 -26 m -8 24 l 16 -18" stroke="#000000" strokeWidth={4} strokeLinecap="round" />}
-        </mask>
-      </defs>
-      <rect x={WINDOW.x} y={WINDOW.y} width={WINDOW.w} height={WINDOW.h} fill="url(#cf-fog)" mask="url(#cf-fog-mask)" />
+      <rect x={WINDOW.x} y={WINDOW.y} width={WINDOW.w} height={WINDOW.h} fill="url(#cf-fog)" />
+      {/* A heart someone drew in the mist with a finger: the glass shows through clearer there. */}
+      {misty && (
+        <g className="fog-heart" fill="none" stroke={model.palette.street} strokeLinecap="round" opacity={0.55}>
+          <path d="M 180 470 c -18 -22 -40 -2 -20 18 l 20 18 l 20 -18 c 20 -20 -2 -40 -20 -18 z" strokeWidth={5} />
+          <path d="M 236 488 l 22 -26 m -8 24 l 16 -18" strokeWidth={4} />
+        </g>
+      )}
       <path d={`M ${WINDOW.x + 40} ${WINDOW.y + WINDOW.h} L ${WINDOW.x + 200} ${WINDOW.y} L ${WINDOW.x + 250} ${WINDOW.y} L ${WINDOW.x + 90} ${WINDOW.y + WINDOW.h} Z`} fill="url(#cf-glass)" opacity={0.35} />
       <path d={`M ${WINDOW.x + 400} ${WINDOW.y + WINDOW.h} L ${WINDOW.x + 520} ${WINDOW.y} L ${WINDOW.x + 540} ${WINDOW.y} L ${WINDOW.x + 420} ${WINDOW.y + WINDOW.h} Z`} fill="url(#cf-glass)" opacity={0.25} />
       {(wet || misty) &&

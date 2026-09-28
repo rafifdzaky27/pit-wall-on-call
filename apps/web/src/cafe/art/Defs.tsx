@@ -68,6 +68,10 @@ export const Defs = memo(function Defs({ model }: { model: SceneModel }) {
         <stop offset="0" stopColor="#fff4dc" stopOpacity={palette.daylight * 0.5} />
         <stop offset="1" stopColor="#fff4dc" stopOpacity={0} />
       </linearGradient>
+      <linearGradient id="cf-ceiling-shadow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#000000" stopOpacity={0.45} />
+        <stop offset="1" stopColor="#000000" stopOpacity={0} />
+      </linearGradient>
       <linearGradient id="cf-wall-light" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stopColor="#000000" stopOpacity={0.35} />
         <stop offset="0.35" stopColor="#000000" stopOpacity={0.05} />
@@ -163,6 +167,10 @@ export const Defs = memo(function Defs({ model }: { model: SceneModel }) {
         <circle cx={24} cy={24} r={2.4} fill="#e8d4a8" opacity={0.7} />
         <circle cx={24} cy={0} r={2.4} fill="#e8d4a8" opacity={0.7} />
         <circle cx={0} cy={24} r={2.4} fill="#e8d4a8" opacity={0.7} />
+      </pattern>
+      {/* Film grain: its bitmap is filled in at runtime (useGrain). */}
+      <pattern id="cf-noise" width="160" height="160" patternUnits="userSpaceOnUse">
+        <image width="160" height="160" />
       </pattern>
       <pattern id="cf-stripes" width="24" height="10" patternUnits="userSpaceOnUse">
         <rect width="12" height="10" fill="#ffffff" opacity={0.5} />

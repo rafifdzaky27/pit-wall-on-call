@@ -1,14 +1,9 @@
 /* The café scene (cold-open spec §6, M2.5 spec §12). Only transform and opacity animate. */
 .cafe { position: absolute; inset: 0; overflow: hidden; background: #1d1512; }
 .cafe-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-/* Film grain over the art (not over the laptop screen, which sits above the café art). A static tile: no filter runs per frame. */
-.cafe-grain {
-  position: absolute; inset: 0; pointer-events: none; opacity: 0.3; mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 
 /* Only the loops that turn or grow about their own centre use their own box; everything else keeps the scene's coordinates. */
-.lamp-glow, .patron-head, .radio-grille, .cat-body, .cat-tail, .pendulum, .flame, .phone-buzz, .phone-glow { transform-box: fill-box; }
+.patron-head, .radio-grille, .cat-body, .cat-tail, .pendulum, .flame, .phone-buzz, .phone-glow { transform-box: fill-box; }
 
 /* Parallax: the street drifts most, the wall and counter less, the room a little, the table not at all. */
 .cafe .layer-far { transform: translate(calc(var(--px, 0) * -8px), calc(var(--py, 0) * -4px)); transition: transform 0.4s ease-out; }
@@ -46,9 +41,8 @@
 .steam { animation: cafe-steam 3s ease-in-out infinite; opacity: 0; }
 @keyframes cafe-steam { 0% { opacity: 0; transform: translateY(6px); } 40% { opacity: 0.35; } 100% { opacity: 0; transform: translateY(-26px); } }
 
-.lamp-glow { transform-origin: center; animation: cafe-breathe 6s ease-in-out infinite alternate; }
-.lamp-glow.flicker { animation: cafe-breathe 6s ease-in-out infinite alternate, cafe-lamp-flicker 9s steps(1) infinite; }
-@keyframes cafe-breathe { from { transform: scale(1); } to { transform: scale(1.05); } }
+/* The big lamp glows hold still (a breathing 300 px glow would repaint the room every frame); one flickers now and then. */
+.lamp-glow.flicker { animation: cafe-lamp-flicker 9s steps(1) infinite; }
 @keyframes cafe-lamp-flicker { 0%, 86% { opacity: 1; } 88% { opacity: 0.55; } 89% { opacity: 0.95; } 91% { opacity: 0.6; } 93%, 100% { opacity: 1; } }
 .lit-window { animation: cafe-flicker 7s steps(1) infinite; }
 @keyframes cafe-flicker { 0%, 90% { opacity: 1; } 93% { opacity: 0.35; } 96%, 100% { opacity: 1; } }
@@ -60,8 +54,6 @@
 @keyframes cafe-hum { from { opacity: 0.8; } to { opacity: 1; } }
 .flame { transform-origin: 50% 100%; animation: cafe-flame 0.9s ease-in-out infinite alternate; }
 @keyframes cafe-flame { from { transform: scaleY(0.85); } to { transform: scaleY(1.1); } }
-.screen-glow { animation: cafe-screen 8s ease-in-out infinite alternate; }
-@keyframes cafe-screen { from { opacity: 0.85; } to { opacity: 1; } }
 
 /* People idle: heads nod, arms lift cups, the barista works the jug. */
 .patron-head { transform-origin: 50% 100%; animation: cafe-nod 7s ease-in-out infinite alternate; }
@@ -101,6 +93,8 @@
 
 /* Paused: everything holds still (Review Focus 3). Reduced motion: nothing loops at all. */
 .cafe.paused *, .cafe.paused .layer-far, .cafe.paused .layer-mid { animation-play-state: paused !important; }
+/* While the camera moves, the art's loops hold too, so the art is not rastered again on every frame of the zoom. */
+.cafe.moving .cafe-art * { animation-play-state: paused !important; }
 [data-motion="reduce"] .cafe *, [data-motion="reduce"] .cafe .layer-far, [data-motion="reduce"] .cafe .layer-mid { animation: none !important; transition: none; }
 /* Parallax layers only: every other element keeps its drawn transform. */
 [data-motion="reduce"] .cafe .layer-far, [data-motion="reduce"] .cafe .layer-wall, [data-motion="reduce"] .cafe .layer-mid { transform: none; }

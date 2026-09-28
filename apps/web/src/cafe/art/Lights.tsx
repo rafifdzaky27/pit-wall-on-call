@@ -68,14 +68,13 @@ export const Lights = memo(function Lights({ model }: { model: SceneModel }) {
     <g className="lights" data-layer="light">
       {daylight > 0 && (
         <Prop name="daylight">
-          <path d="M 110 520 L 760 520 L 1200 940 L 380 940 Z" fill="url(#cf-daylight)" />
+          <Glow cx={420} cy={560} r={360} ry={60} fill="url(#cf-bokeh-white)" o={daylight * 0.35} />
         </Prop>
       )}
       <Prop name="pendant-lamps">
         {LAMPS.map((x, i) => (
           <g key={x}>
-            <path d={`M ${x - 110} ${DROP + 36} L ${x + 110} ${DROP + 36} L ${x + 190} 410 L ${x - 190} 410 Z`} fill="url(#cf-glow-soft)" opacity={lampGlow * 0.6} />
-            <circle className={`lamp-glow${i === 1 ? " flicker" : ""}`} cx={x} cy={DROP + 34} r={150} fill="url(#cf-glow)" opacity={lampGlow} style={{ animationDelay: `${i * 1.7}s` }} />
+            <circle className={`lamp-glow${i === 1 ? " flicker" : ""}`} cx={x} cy={DROP + 34} r={120} fill="url(#cf-glow)" opacity={lampGlow} />
             <line x1={x} y1={40} x2={x} y2={DROP + 2} stroke="#2a2320" strokeWidth={1.5} opacity={0.6} />
             <Shade x={x} model={model} t={t} />
             <Glow cx={x} cy={404} r={100} ry={14} o={lampGlow * 0.8} />
@@ -83,13 +82,12 @@ export const Lights = memo(function Lights({ model }: { model: SceneModel }) {
         ))}
       </Prop>
       <Prop name="table-lamp-pool">
-        <Glow cx={620} cy={770} r={520} ry={130} fill="url(#cf-glow-soft)" o={0.35 + lampGlow * 0.4} />
-        <Glow cx={1200} cy={600} r={220} ry={60} fill="url(#cf-glow-soft)" o={lampGlow * 0.6} />
+        <Glow cx={560} cy={760} r={380} ry={90} fill="url(#cf-glow-soft)" o={0.35 + lampGlow * 0.4} />
+        <Glow cx={1200} cy={600} r={180} ry={40} fill="url(#cf-glow-soft)" o={lampGlow * 0.6} />
       </Prop>
       <Prop name="screen-glow">
-        <Glow cx={800} cy={770} r={300} ry={70} fill="url(#cf-screen-glow)" o={dark ? 0.9 : 0.4} className="screen-glow" />
+        <Glow cx={800} cy={770} r={280} ry={60} fill="url(#cf-screen-glow)" o={dark ? 0.9 : 0.4} />
       </Prop>
-      <rect x={-40} y={-40} width={1680} height={980} fill="url(#cf-vignette)" pointerEvents="none" />
     </g>
   );
 });
