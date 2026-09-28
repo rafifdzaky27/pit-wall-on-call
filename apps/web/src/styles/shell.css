@@ -151,7 +151,6 @@
 .widgets { position: absolute; top: 16px; right: 16px; display: grid; gap: var(--space-3); width: 260px; }
 .widget { padding: var(--space-3); border-radius: var(--radius-window); background: color-mix(in srgb, var(--panel) 85%, transparent); border: 1px solid var(--border); box-shadow: var(--shadow-window-rest); display: grid; gap: var(--space-2); }
 .widget-h { color: var(--muted); font-size: var(--fs-xs); }
-.fortune .btn { justify-self: start; }
 .worldclock li { display: flex; justify-content: space-between; }
 .sticky { background: #f3e39b; border-color: #d9c56a; }
 .sticky textarea { width: 100%; resize: vertical; border: 0; background: transparent; color: #3b3313; font: var(--fs) / 1.5 var(--font); }
@@ -231,8 +230,6 @@
 .lock-card .tag, .lock-card .btn { justify-self: start; }
 .lock-card h1 { font-size: var(--fs-xl); font-weight: 600; }
 .lock-card h2 { font-size: var(--fs-lg); font-weight: 600; }
-.lock-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.lock-facts { list-style: decimal; padding-left: 20px; display: grid; gap: 4px; color: var(--muted); }
 @media (max-width: 480px) {
   .lock-clock { font-size: 48px; }
   .lock-content { padding-top: var(--space-6); }

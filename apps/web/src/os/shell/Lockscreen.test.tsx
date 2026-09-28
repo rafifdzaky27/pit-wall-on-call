@@ -1,6 +1,5 @@
-import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { FACTS, FAVORITES } from "../../content/aboutRafif";
 import { renderOs } from "../testing";
 import { Lockscreen } from "./Lockscreen";
 
@@ -14,12 +13,9 @@ describe("Lockscreen", () => {
     expect(screen.queryByRole("button", { name: "Unlock" })).toBeNull();
   });
 
-  it("rotates Rafif's favourite facts and can list all of them", () => {
+  it("shows no personal facts about the developer", () => {
     renderOs(<Lockscreen />);
-    expect(screen.getByText(FACTS[FAVORITES[0]!]!)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Another fact" }));
-    expect(screen.getByText(FACTS[FAVORITES[1]!]!)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "All 20 facts" }));
-    expect(screen.getAllByRole("listitem")).toHaveLength(20);
+    expect(screen.queryByRole("heading", { name: "About the developer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Another fact" })).toBeNull();
   });
 });

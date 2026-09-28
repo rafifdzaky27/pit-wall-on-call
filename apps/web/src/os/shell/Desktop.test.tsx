@@ -12,7 +12,8 @@ describe("Desktop", () => {
     const { container } = renderOs(<Desktop />);
     expect(screen.getByRole("heading", { name: `Shift ready · ${world.city.name}` })).toBeTruthy();
     expect(container.querySelector(`svg.wallpaper[data-city="${world.city.id}"]`)).toBeTruthy();
-    expect(screen.getByRole("region", { name: "fortune" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "fortune" })).toBeNull();
+    expect(screen.getByRole("region", { name: "World clock" })).toBeTruthy();
     const dock = screen.getByRole("navigation", { name: "Dock" });
     expect(dock.querySelectorAll("button")).toHaveLength(6);
     expect(screen.getByRole("button", { name: "Chat, 5 unread" })).toBeTruthy();

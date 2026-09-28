@@ -1,5 +1,3 @@
-import { ABOUT_TXT } from "./aboutRafif";
-
 export interface VFile {
   name: string;
   content: string;
@@ -23,7 +21,6 @@ Settings → Accessibility turns single-key shortcuts off.
 `;
 
 export const HOME_FILES: VFile[] = [
-  { name: "about-rafif.txt", content: ABOUT_TXT },
   { name: "README.md", content: README },
 ];
 
@@ -31,11 +28,11 @@ export const TRASH_FILES: VFile[] = [
   { name: "final_final_v3.yaml", content: 'replicas: 1        # was 3, "temporarily"\ntimeout: 0         # infinite is a kind of fast\nretries: 1000000   # it will work eventually\n' },
   { name: "prod-backup.sql", content: "", note: "0 bytes. Last night's backup job reported success anyway." },
   { name: "postmortem-draft-DO-NOT-READ.md", content: "## Root cause\nIt was DNS.\n\n## Actually\nIt was not DNS. It is never DNS.\n\n## Actually actually\nIt was DNS.\n" },
-  { name: "rackets-compared-v12.csv", content: "racket,weight_g,balance_mm,swingweight,verdict\nA,300,320,290,maybe\nB,305,315,295,maybe\nC,300,320,291,need to hit with it first\n" },
+  { name: "nginx.conf.bak.bak", content: "# a backup of a backup of the config that worked once\nworker_connections 4;    # plenty\nkeepalive_timeout 0;     # nobody stays\n" },
 ];
 
 export const TRASH_REFUSALS: readonly string[] = [
   "Empty Trash refused: final_final_v3.yaml is load-bearing.",
   "Empty Trash refused: someone might still need prod-backup.sql. It is 0 bytes, but still.",
-  "Empty Trash refused: the racket spreadsheet is still under review.",
+  "Empty Trash refused: nginx.conf.bak.bak might be the only copy that ever worked.",
 ];

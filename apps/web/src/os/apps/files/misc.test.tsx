@@ -1,8 +1,7 @@
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FACTS } from "../../../content/aboutRafif";
 import { loadPrefs } from "../../prefs";
-import { Fortune, StickyNote, WorldClock } from "../../shell/Widgets";
+import { StickyNote, WorldClock } from "../../shell/Widgets";
 import { renderOs } from "../../testing";
 import { SettingsApp } from "../settings/SettingsApp";
 import { FilesApp } from "./FilesApp";
@@ -15,13 +14,10 @@ afterEach(() => {
 });
 
 describe("FilesApp", () => {
-  it("opens on about-rafif.txt with every fact", () => {
+  it("opens on README.md with how to play, and holds no personal facts", () => {
     renderOs(<FilesApp />);
-    const view = screen.getByRole("article", { name: "about-rafif.txt" });
-    expect(view.textContent).toContain(FACTS[0]);
-    expect(view.textContent).toContain(FACTS[19]);
-    fireEvent.click(screen.getByRole("button", { name: /README\.md/ }));
     expect(screen.getByRole("article", { name: "README.md" }).textContent).toContain("How to play");
+    expect(screen.queryByRole("button", { name: /about-rafif/ })).toBeNull();
   });
 });
 
@@ -29,6 +25,7 @@ describe("TrashApp", () => {
   it("shows its files and refuses to be emptied, with a reason", () => {
     renderOs(<TrashApp />);
     expect(screen.getByRole("button", { name: /final_final_v3\.yaml/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /rackets/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /prod-backup\.sql/ }));
     expect(screen.getByText(/0 bytes/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Empty Trash" }));
@@ -68,14 +65,6 @@ describe("SettingsApp", () => {
 });
 
 describe("widgets", () => {
-  it("fortune shows a fact and moves to the next one", () => {
-    vi.spyOn(Math, "random").mockReturnValue(0);
-    renderOs(<Fortune />);
-    expect(screen.getByText(FACTS[0]!)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Another" }));
-    expect(screen.getByText(FACTS[1]!)).toBeTruthy();
-  });
-
   it("the world clock lists the four cities", () => {
     renderOs(<WorldClock />);
     for (const city of ["Jakarta", "Yogyakarta", "Tokyo", "Melbourne"]) expect(screen.getByText(city)).toBeTruthy();
