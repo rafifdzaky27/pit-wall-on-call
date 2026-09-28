@@ -50,4 +50,18 @@ describe("cold close", () => {
     act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
     expect(screen.getByRole("status").textContent).toBe(`Checkout is still down. The shift ended at ${formatClock(incident().result!.endTick)}.`);
   });
+
+  it("keeps its end state when you look up again after reading the postmortem", async () => {
+    const { incident } = stage();
+    act(() => incident().start());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    seconds(481);
+    act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
+    await vi.waitFor(() => expect(screen.getByRole("img", { name: /^A café in .* at night$/ })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Read the postmortem" }));
+    fireEvent.keyDown(window, { key: "l" });
+    expect(screen.getByRole("img", { name: /^A café in / }).getAttribute("aria-label")).toMatch(/at night$/);
+    expect(document.querySelector(".patron.at-table")).toBeNull();
+  });
 });

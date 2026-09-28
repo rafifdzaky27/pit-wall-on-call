@@ -62,6 +62,19 @@ describe("Stage", () => {
     await waitFor(() => expect(document.activeElement?.getAttribute("data-hotspot")).toBe("laptop"));
   });
 
+  it("after zooming into the laptop, focus lands inside the focused window", () => {
+    const { incident } = renderOs(
+      <Stage>
+        <section className="window focused">
+          <button type="button">inside PitOS</button>
+        </section>
+      </Stage>,
+    );
+    act(() => incident().start());
+    press("l");
+    expect(document.activeElement?.textContent).toBe("inside PitOS");
+  });
+
   it("ignores L when single-key shortcuts are off", () => {
     const { incident } = renderOs(
       <Stage>

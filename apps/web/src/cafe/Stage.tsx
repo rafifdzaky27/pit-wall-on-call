@@ -28,9 +28,13 @@ class CafeBoundary extends Component<{ children: ReactNode }, { failed: boolean 
 /** The resolved chord plays over the postmortem opening before the camera pulls back (cold-open spec §3). */
 export const COLD_CLOSE_DELAY_MS = 1500;
 
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+
 function focusAfter(view: View): void {
   if (view === "desktop") {
-    (document.querySelector<HTMLElement>(".stage-screen .window.focused") ?? document.querySelector<HTMLElement>(".stage-screen .os-topbar button"))?.focus();
+    // A window's frame cannot take focus; its first control can.
+    const inWindow = document.querySelector<HTMLElement>(".stage-screen .window.focused")?.querySelector<HTMLElement>(FOCUSABLE);
+    (inWindow ?? document.querySelector<HTMLElement>(".stage-screen .os-topbar button"))?.focus();
   } else {
     // The cold close's button first, when it is up; otherwise the laptop, ready to look back down.
     (document.querySelector<HTMLElement>(".stage-cafe .cold-close button") ?? document.querySelector<HTMLElement>('.stage-cafe [data-hotspot="laptop"]'))?.focus();

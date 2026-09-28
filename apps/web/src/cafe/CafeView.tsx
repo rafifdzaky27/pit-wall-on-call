@@ -12,7 +12,8 @@ export default function CafeView() {
   const incident = useIncident();
   const camera = useCamera();
   const { prefs } = usePrefs();
-  const close = camera.closing && incident.result ? closeState(incident.result.endTick) : null;
+  // Once the run is over the café stays as it ended, however often you look up again.
+  const close = incident.result ? closeState(incident.result.endTick) : null;
   const weather = useMemo(() => resolveScene(incident.seed).weather, [incident.seed]);
   useCafeAudio(camera.view, weather === "rain" && close !== "late");
   return (
