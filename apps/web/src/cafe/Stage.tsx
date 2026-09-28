@@ -1,13 +1,29 @@
-import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { useIncident } from "../os/incident/IncidentProvider";
 import { animation, DUR, EASE_IN_OUT } from "../os/motion";
 import { usePrefs } from "../os/PrefsProvider";
 import { PausedOverlay } from "../os/shell/PausedOverlay";
 import { useShortcuts } from "../os/useShortcuts";
+import { CafeControls } from "./CafeControls";
 import { CafeFallback } from "./CafeFallback";
 import { cameraReducer, INITIAL_CAMERA, laptopFit, type View } from "./camera";
 import { CameraContext, type CameraApi } from "./CameraContext";
+import { ColdClose } from "./ColdClose";
 import { useViewport } from "./useViewport";
+
+/** The café's art, sound and hotspots load on Start shift, apart from the main chunk (cold-open spec §9). */
+const CafeView = lazy(() => import("./CafeView"));
+
+/** If the café cannot load, the plain backdrop keeps the shift playable (cold-open spec §9). */
+class CafeBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? <CafeFallback /> : this.props.children;
+  }
+}
 
 /** The resolved chord plays over the postmortem opening before the camera pulls back (cold-open spec §3). */
 export const COLD_CLOSE_DELAY_MS = 1500;
@@ -16,7 +32,8 @@ function focusAfter(view: View): void {
   if (view === "desktop") {
     (document.querySelector<HTMLElement>(".stage-screen .window.focused") ?? document.querySelector<HTMLElement>(".stage-screen .os-topbar button"))?.focus();
   } else {
-    document.querySelector<HTMLElement>('.stage-cafe [data-hotspot="laptop"]')?.focus();
+    // The cold close's button first, when it is up; otherwise the laptop, ready to look back down.
+    (document.querySelector<HTMLElement>(".stage-cafe .cold-close button") ?? document.querySelector<HTMLElement>('.stage-cafe [data-hotspot="laptop"]'))?.focus();
   }
 }
 
@@ -101,7 +118,13 @@ export function Stage({ children }: { children: ReactNode }) {
         <div className="stage-world" ref={world}>
           {camera.started && (
             <div className="stage-cafe" hidden={!cafeShown && !inCafe} inert={!inCafe} aria-hidden={!inCafe}>
-              <CafeFallback />
+              <CafeBoundary>
+                <Suspense fallback={<CafeFallback />}>
+                  <CafeView />
+                </Suspense>
+              </CafeBoundary>
+              <CafeControls />
+              <ColdClose />
             </div>
           )}
           <div

@@ -6,11 +6,12 @@ import { usePrefs } from "../PrefsProvider";
 import { useNow } from "../useNow";
 import { useOs, type MenuId } from "./OsContext";
 import { PhoneWidget } from "./PhoneWidget";
-import { QuickSettings } from "./QuickSettings";
 
 const loadCalendar = () => import("./CalendarMenu");
-/** The calendar opens only on a click on the clock, so it loads apart from the main chunk (M1.6 budget). */
+const loadQuickSettings = () => import("./QuickSettings");
+/** The calendar and quick settings open only on a click, so they load apart from the main chunk (M1.6 budget). */
 const CalendarMenu = lazy(() => loadCalendar().then((m) => ({ default: m.CalendarMenu })));
+const QuickSettings = lazy(() => loadQuickSettings().then((m) => ({ default: m.QuickSettings })));
 
 interface Props {
   overview: boolean;
@@ -46,9 +47,12 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
     };
   }, [openMenu, setOpenMenu]);
 
-  // Fetch the calendar while the browser is idle, so the first click opens it at once.
+  // Fetch both menus shortly after boot, so the first click opens them at once.
   useEffect(() => {
-    const id = window.setTimeout(() => void loadCalendar(), 2000);
+    const id = window.setTimeout(() => {
+      void loadCalendar();
+      void loadQuickSettings();
+    }, 2000);
     return () => window.clearTimeout(id);
   }, []);
 
@@ -84,12 +88,14 @@ export function TopBar({ overview, onActivities, onLock }: Props) {
             <Glyph name="power" />
           </button>
           {openMenu === "system" && (
-            <QuickSettings
-              onLock={() => {
-                setOpenMenu(null);
-                onLock();
-              }}
-            />
+            <Suspense fallback={null}>
+              <QuickSettings
+                onLock={() => {
+                  setOpenMenu(null);
+                  onLock();
+                }}
+              />
+            </Suspense>
           )}
         </div>
       </div>

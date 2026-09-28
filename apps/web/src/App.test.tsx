@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 
@@ -24,8 +24,9 @@ describe("App", () => {
   it("plays from the desktop to an acknowledged incident in Monitoring", async () => {
     render(<App newSeed={() => 1} />);
     fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
-    fireEvent.click(screen.getByRole("button", { name: "Skip to the page" }));
-    fireEvent.click(screen.getByRole("button", { name: /Acknowledge/ }));
+    // Start shift pulls back to the café; its own controls skip ahead, and A acknowledges from anywhere.
+    fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
+    fireEvent.keyDown(window, { key: "a" });
     const monitoring = await screen.findByRole("region", { name: "Monitoring" });
     expect(monitoring.querySelector('[aria-labelledby="alerts-h"]')).toBeTruthy();
   });

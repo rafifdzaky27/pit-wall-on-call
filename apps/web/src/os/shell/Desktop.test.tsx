@@ -8,6 +8,12 @@ import { Desktop } from "./Desktop";
 afterEach(cleanup);
 const world = resolveWorld(1);
 
+/** The System menu loads on its first open (M1.6 main-chunk budget), so tests wait for it. */
+const openSystem = async () => {
+  fireEvent.click(screen.getByRole("button", { name: "System" }));
+  await screen.findByRole("group", { name: "Quick settings" });
+};
+
 describe("Desktop", () => {
   it("greets with the shift notification, wallpaper, widgets and dock", () => {
     const { container } = renderOs(<Desktop />);
@@ -78,9 +84,9 @@ describe("Desktop", () => {
     expect(screen.queryByRole("dialog", { name: "Paused" })).toBeNull();
   });
 
-  it("the System menu locks the screen, and Unlock returns", () => {
+  it("the System menu locks the screen, and Unlock returns", async () => {
     renderOs(<Desktop />);
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     fireEvent.click(screen.getByRole("button", { name: "Lock" }));
     expect(screen.getByRole("main", { name: "Lock screen" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Unlock" }));

@@ -14,29 +14,35 @@ afterEach(() => {
 
 const setup = (onLock = vi.fn()) => ({ onLock, ...renderOs(<TopBar overview={false} onActivities={() => {}} onLock={onLock} />) });
 
+/** The System menu loads on its first open (M1.6 main-chunk budget), so tests wait for it. */
+const openSystem = async () => {
+  fireEvent.click(screen.getByRole("button", { name: "System" }));
+  await screen.findByRole("group", { name: "Quick settings" });
+};
+
 describe("TopBar", () => {
-  it("opens one menu at a time", () => {
+  it("opens one menu at a time", async () => {
     setup();
     fireEvent.click(screen.getByRole("button", { name: "Phone" }));
     expect(screen.getByRole("dialog", { name: "Phone notifications" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     expect(screen.getByRole("group", { name: "Quick settings" })).toBeTruthy();
     expect(screen.queryByRole("dialog", { name: "Phone notifications" })).toBeNull();
   });
 
-  it("closes the menu with Esc or a click outside the top bar", () => {
+  it("closes the menu with Esc or a click outside the top bar", async () => {
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("group", { name: "Quick settings" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("group", { name: "Quick settings" })).toBeNull();
   });
 
-  it("quick settings change the volume, mute and theme", () => {
+  it("quick settings change the volume, mute and theme", async () => {
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     fireEvent.change(screen.getByRole("slider", { name: "Volume" }), { target: { value: "40" } });
     expect(loadPrefs().volume).toBe(40);
     fireEvent.click(screen.getByRole("button", { name: "Mute" }));
@@ -62,7 +68,7 @@ describe("TopBar", () => {
   it("quick settings play the lo-fi radio and skip to the next progression", async () => {
     const next = vi.spyOn(radio, "next").mockImplementation(() => {});
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     expect(screen.queryByRole("button", { name: "Next track" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Play lo-fi radio" }));
     expect(loadPrefs().radio).toBe(true);
@@ -73,26 +79,26 @@ describe("TopBar", () => {
     next.mockRestore();
   });
 
-  it("offers Full screen only where the browser supports it", () => {
+  it("offers Full screen only where the browser supports it", async () => {
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     expect(screen.queryByRole("button", { name: /Full screen/ })).toBeNull();
     cleanup();
     const request = vi.fn(async () => undefined);
     Object.assign(document.documentElement, { requestFullscreen: request });
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     fireEvent.click(screen.getByRole("button", { name: /Full screen/ }));
     expect(request).toHaveBeenCalled();
   });
 
-  it("About PitOS opens Settings on its About page, and Lock locks", () => {
+  it("About PitOS opens Settings on its About page, and Lock locks", async () => {
     const { os, onLock } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     fireEvent.click(screen.getByRole("button", { name: "About PitOS" }));
     expect(os().settingsPage).toBe("about");
     expect(os().wm.windows.map((w) => w.appId)).toEqual(["settings"]);
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    await openSystem();
     fireEvent.click(screen.getByRole("button", { name: "Lock" }));
     expect(onLock).toHaveBeenCalled();
   });
