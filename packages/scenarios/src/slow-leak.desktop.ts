@@ -63,10 +63,12 @@ export const slowLeakDesktop: DesktopContent = {
     { id: "dm.secondary.deploy", channel: "dm:secondary", trigger: { kind: "action", actionId: "global.ask_secondary" }, author: "secondary", text: "{deployer} shipped v142 about an hour ago. Could that be it?" },
   ],
   requests: [
-    { method: "GET", path: "/", weight: 3, okStatus: 200, failsWithSymptom: false, okMs: [40, 110], failMs: [40, 110] },
-    { method: "GET", path: "/products/{id}", weight: 4, okStatus: 200, failsWithSymptom: false, okMs: [25, 90], failMs: [25, 90] },
-    { method: "GET", path: "/assets/app.js", weight: 2, okStatus: 304, failsWithSymptom: false, okMs: [8, 20], failMs: [8, 20] },
-    { method: "POST", path: "/cart", weight: 2, okStatus: 201, failsWithSymptom: false, okMs: [60, 140], failMs: [60, 140] },
-    { method: "POST", path: "/checkout", weight: 3, okStatus: 200, failsWithSymptom: true, okMs: [180, 420], failMs: [5000, 5200] },
+    { method: "GET", path: "/", type: "document", initiator: "Other", weight: 3, okStatus: 200, failsWithSymptom: false, okMs: [40, 110], failMs: [40, 110] },
+    { method: "GET", path: "/assets/app.js", type: "script", initiator: "(index)", weight: 2, okStatus: 304, failsWithSymptom: false, okMs: [8, 20], failMs: [8, 20] },
+    { method: "GET", path: "/assets/app.css", type: "stylesheet", initiator: "(index)", weight: 1, okStatus: 304, failsWithSymptom: false, okMs: [6, 16], failMs: [6, 16] },
+    { method: "GET", path: "/img/p/{id}.webp", type: "img", initiator: "(index)", weight: 3, okStatus: 200, failsWithSymptom: false, okMs: [20, 80], failMs: [20, 80] },
+    { method: "GET", path: "/products/{id}", type: "fetch", initiator: "app.js", weight: 4, okStatus: 200, failsWithSymptom: false, okMs: [25, 90], failMs: [25, 90] },
+    { method: "POST", path: "/cart", type: "fetch", initiator: "app.js", weight: 2, okStatus: 201, failsWithSymptom: false, okMs: [60, 140], failMs: [60, 140] },
+    { method: "POST", path: "/checkout", type: "fetch", initiator: "app.js", weight: 3, okStatus: 200, failsWithSymptom: true, okMs: [180, 420], failMs: [5000, 5200] },
   ],
 };

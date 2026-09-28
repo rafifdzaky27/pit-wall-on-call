@@ -2,6 +2,7 @@ import { mulberry32, streamSeed } from "@pitwall/engine";
 import { CITIES, type Brand, type City, type ColleagueRole, type CurrencyCode } from "./cities";
 
 export * from "./cities";
+export * from "./catalog";
 
 export interface World {
   city: City;

@@ -60,6 +60,10 @@ export interface RequestPattern {
   method: "GET" | "POST";
   /** `{id}` is replaced with a random product id. */
   path: string;
+  /** DevTools' resource type, for the Network panel's filter chips. */
+  type: "document" | "fetch" | "script" | "stylesheet" | "img";
+  /** DevTools' Initiator column. */
+  initiator: string;
   weight: number;
   okStatus: number;
   failsWithSymptom: boolean;
