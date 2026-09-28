@@ -7,6 +7,8 @@ export type ActionCategory = "investigate" | "mitigate" | "fix" | "communicate";
 export type Verdict = "useful" | "wasted" | "harmful";
 export type LogLevel = "INFO" | "WARN" | "ERROR";
 export type Outcome = "running" | "resolved" | "dnf";
+/** Where the incident stands, derived each tick for the UI (M2.5 spec §3). Scoring never reads it. */
+export type IncidentStatus = "paging" | "investigating" | "mitigated" | "holding" | "resolved" | "dnf";
 
 // Function members use method syntax on purpose: it lets a ScenarioDef<SlowLeak> be stored
 // as a ScenarioDef<State> in the registry.
@@ -177,6 +179,7 @@ export interface Snapshot {
   cluesFound: string[];
   /** The tick the resolve condition started holding, or null; read only, for the countdown (cold-open spec §4). */
   stableSinceTick: number | null;
+  status: IncidentStatus;
 }
 
 export interface RunResult {

@@ -253,3 +253,31 @@ describe("determinism guards", () => {
     expect(() => new Run({ ...fixture, lessons: [] }, 1)).toThrow(/lesson/);
   });
 });
+
+describe("snapshot status (M2.5 spec §3)", () => {
+  const until = (run: Run<Record<string, number>>, pred: () => boolean, max = 2000) => {
+    for (let i = 0; i < max && !pred(); i++) run.step();
+  };
+
+  it("walks paging → investigating → mitigated → holding → resolved", () => {
+    const run = newRun();
+    expect(run.snapshot().status).toBe("paging");
+    run.dispatch(ACK);
+    expect(run.snapshot().status).toBe("investigating");
+    run.dispatch("svc.patch");
+    until(run, () => run.snapshot().busy === null);
+    expect(run.snapshot().status).toBe("mitigated");
+    run.dispatch("svc.fix");
+    until(run, () => run.snapshot().stableSinceTick !== null);
+    expect(run.snapshot().status).toBe("holding");
+    until(run, () => run.outcome !== "running");
+    expect(run.snapshot().status).toBe("resolved");
+  });
+
+  it("is dnf when time runs out", () => {
+    const run = newRun();
+    run.dispatch(ACK);
+    until(run, () => run.outcome !== "running", 5000);
+    expect(run.snapshot().status).toBe("dnf");
+  });
+});

@@ -5,6 +5,7 @@ import type {
   ActionRecord,
   AlertState,
   BusyState,
+  IncidentStatus,
   LogEntry,
   LogLevel,
   Outcome,
@@ -197,7 +198,15 @@ export class Run<S extends State> {
       inspected: [...this.inspected],
       cluesFound: [...this.cluesFound],
       stableSinceTick: this.stableSince,
+      status: this.status(),
     };
+  }
+
+  private status(): IncidentStatus {
+    if (this.outcome !== "running") return this.outcome;
+    if (!this.acked) return "paging";
+    if (this.stableSince !== null) return "holding";
+    return this.scenario.mitigated(this.s) ? "mitigated" : "investigating";
   }
 
   result(): RunResult {
