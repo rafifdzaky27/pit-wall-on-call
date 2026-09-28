@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { radio } from "../audio/lofi";
 import { loadPrefs } from "../prefs";
 import { renderOs } from "../testing";
 import { TopBar } from "./TopBar";
@@ -42,6 +43,20 @@ describe("TopBar", () => {
     expect((screen.getByRole("slider", { name: "Volume" }) as HTMLInputElement).value).toBe("0");
     fireEvent.click(screen.getByRole("button", { name: "Light" }));
     expect(document.documentElement.dataset.theme).toBe("light");
+  });
+
+  it("quick settings play the lo-fi radio and skip to the next progression", () => {
+    const next = vi.spyOn(radio, "next").mockImplementation(() => {});
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    expect(screen.queryByRole("button", { name: "Next track" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Play lo-fi radio" }));
+    expect(loadPrefs().radio).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+    expect(next).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Pause lo-fi radio" }));
+    expect(loadPrefs().radio).toBe(false);
+    next.mockRestore();
   });
 
   it("offers Full screen only where the browser supports it", () => {

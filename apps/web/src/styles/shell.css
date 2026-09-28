@@ -198,3 +198,7 @@
   .lock-clock { font-size: 48px; }
   .lock-content { padding-top: var(--space-6); }
 }
+
+/* Quick settings: lo-fi radio (cold-open spec C8) */
+.qs-radio { display: flex; align-items: center; gap: var(--space-2); }
+.qs-radio span { flex: 1; }

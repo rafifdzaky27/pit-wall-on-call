@@ -5,6 +5,7 @@ import { APP_COMPONENTS } from "../apps/registry";
 import { Wallpaper } from "../brand/Wallpaper";
 import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
+import { useRadio } from "../audio/useRadio";
 import { useShortcuts } from "../useShortcuts";
 import { useSoundCues } from "../useSoundCues";
 import { useStartShift } from "../useStartShift";
@@ -32,6 +33,7 @@ export function Desktop() {
 
   useNoticeFeed(startShift);
   useSoundCues(locked);
+  useRadio(incident.phase === "paging");
 
   // Each phase brings the right app forward (desktop spec §6).
   const previous = useRef(incident.phase);
