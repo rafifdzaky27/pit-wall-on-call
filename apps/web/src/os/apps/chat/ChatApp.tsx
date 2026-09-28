@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useIncident } from "../../incident/IncidentProvider";
 import { useOs } from "../../shell/OsContext";
 import { authorName, channelLabel, visibleFor } from "./unread";
+import "./chat.css";
 
 function when(minutesAgo: number | undefined): string {
   if (minutesAgo === undefined) return "just now";

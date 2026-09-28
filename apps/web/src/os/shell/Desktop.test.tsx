@@ -81,4 +81,23 @@ describe("Desktop", () => {
     fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
     expect(screen.getByRole("main", { name: "Desktop" })).toBeTruthy();
   });
+  it("stacks windows by rank, focused on top, below the dock layer", async () => {
+    const { os } = renderOs(<Desktop />);
+    fireEvent.click(screen.getByRole("button", { name: "Files" }));
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    const files = await screen.findByRole("region", { name: "Files" });
+    const settings = await screen.findByRole("region", { name: "Settings" });
+    expect([files.style.zIndex, settings.style.zIndex]).toEqual(["10", "11"]);
+    act(() => os().dispatchWm({ type: "focus", id: os().wm.windows[0]!.id }));
+    expect([files.style.zIndex, settings.style.zIndex]).toEqual(["11", "10"]);
+  });
+
+  it("tucks the dock under maximized Monitoring after the ack", async () => {
+    const { incident } = renderOs(<Desktop />);
+    act(() => incident().start());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    await screen.findByRole("region", { name: "Monitoring" });
+    expect(screen.getByRole("navigation", { name: "Dock" }).className).toContain("hidden");
+  });
 });

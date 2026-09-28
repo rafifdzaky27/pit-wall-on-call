@@ -1,0 +1,15 @@
+/* Settings */
+.settings { display: grid; grid-template-columns: 200px minmax(0, 1fr); height: 100%; background: var(--panel); }
+.settings-nav { display: grid; align-content: start; gap: 2px; padding: var(--space-2); background: var(--sunken); border-right: 1px solid var(--border); }
+.settings-nav button { padding: 8px 12px; border: 0; border-radius: var(--radius-md); background: transparent; text-align: left; }
+.settings-nav button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-text); }
+.settings-page { padding: var(--space-5); display: grid; gap: var(--space-4); align-content: start; overflow: auto; }
+.settings fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3); display: flex; gap: var(--space-4); }
+.setting { display: grid; grid-template-columns: auto 1fr; gap: var(--space-3); align-items: start; }
+.setting span { display: grid; gap: 2px; }
+.setting-inline { display: inline-flex; gap: var(--space-2); align-items: center; }
+.setting-select { display: grid; gap: var(--space-2); max-width: 320px; }
+.setting-select select { padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--raised); color: var(--text); font: inherit; }
+.about { display: grid; grid-template-columns: 120px 1fr; gap: var(--space-2) var(--space-4); }
+.about dt { color: var(--muted); }
+.shortcuts th { text-align: left; padding: 4px 16px 4px 0; font-weight: 400; }

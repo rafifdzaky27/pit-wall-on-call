@@ -28,7 +28,7 @@ describe("art", () => {
   it("every cursor referenced by the stylesheet exists", () => {
     const css = readFileSync(resolve(WEB, "src/styles/shell.css"), "utf8");
     const files = [...css.matchAll(/url\("\/cursors\/([a-z-]+\.svg)"\)/g)].map((m) => m[1]!);
-    expect(new Set(files).size).toBe(7);
+    expect(new Set(files).size).toBe(10);
     for (const f of files) expect(existsSync(resolve(WEB, "public/cursors", f)), f).toBe(true);
   });
 });

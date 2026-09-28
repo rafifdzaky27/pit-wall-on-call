@@ -7,6 +7,7 @@ import { REASON } from "./http";
 import { NetworkPanel } from "./NetworkPanel";
 import { ROW_EVERY_TICKS, rowForTick, type NetRow } from "./network";
 import { CheckoutPage, StorePage } from "./StorePage";
+import "./browser.css";
 
 type Route = "/" | "/checkout";
 const MAX_ROWS = 100;

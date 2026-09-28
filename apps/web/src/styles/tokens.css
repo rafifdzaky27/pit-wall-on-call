@@ -108,3 +108,42 @@
   --fs-md: 17px;
   --fs-lg: 22px;
 }
+
+/* Motion and layers (DESIGN.md §9, polish spec S16, S24) */
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 240ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.3, 0, 1, 1);
+  --z-window: 10;
+  --z-dock: 1000;
+  --z-banner: 1200;
+  --z-topbar: 1300;
+  --z-overview: 1400;
+  --z-dock-over: 1450;
+  --z-paused: 1500;
+  --z-lock: 1600;
+  --avatar-1: #3d7a5c;
+  --avatar-2: #7a4f9e;
+  --avatar-3: #b5562f;
+  --avatar-4: #2f6fa3;
+  --avatar-5: #a33f63;
+  --avatar-6: #6b7a2f;
+  --avatar-7: #2f8a8a;
+  --avatar-8: #8a6a2f;
+}
+
+[data-motion="reduce"] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+  --motion-slow: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+}

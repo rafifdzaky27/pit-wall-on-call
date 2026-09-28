@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { VFile } from "../../../content/files";
+import "./files.css";
 
 const size = (f: VFile) => `${new TextEncoder().encode(f.content).length} B`;
 

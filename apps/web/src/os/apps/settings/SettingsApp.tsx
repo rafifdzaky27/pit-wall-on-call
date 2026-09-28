@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { fetchApiVersion } from "../../../api";
 import type { WallpaperChoice } from "../../prefs";
 import { usePrefs } from "../../PrefsProvider";
+import "./settings.css";
 
 type Page = "appearance" | "accessibility" | "about";
 
