@@ -16,6 +16,8 @@ interface Props {
 export function LogStream({ scenario, world, logs, filter, onClearFilter }: Props) {
   const labels = new Map(scenario.services.map((s) => [s.id, s.label]));
   const visible = (filter ? logs.filter((l) => l.serviceId === filter || l.serviceId === "global") : logs).slice(-VISIBLE);
+  // Findings stay in view after the stream scrolls past them (M1.6 F8).
+  const pinned = logs.filter((l) => l.finding).slice(-3).reverse();
   const listRef = useRef<HTMLOListElement>(null);
   const stickToBottom = useRef(true);
 
@@ -36,6 +38,18 @@ export function LogStream({ scenario, world, logs, filter, onClearFilter }: Prop
           <span className="hint">All services</span>
         )}
       </div>
+      {pinned.length > 0 && (
+        <ul className="log-pinned mono" aria-label="Pinned findings">
+          {pinned.map((l) => (
+            <li key={l.seq} className="ll finding">
+              <time>{formatClock(l.tick)}</time>
+              <span className="lvl FOUND">FOUND</span>
+              <span className="svc">{labels.get(l.serviceId) ?? "you"}</span>
+              <span className="msg">{fillWorld(l.text, world)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <ol
         className="log-lines mono"
         ref={listRef}
