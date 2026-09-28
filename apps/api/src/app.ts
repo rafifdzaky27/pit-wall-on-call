@@ -5,6 +5,7 @@ import type { AppEnv, RouteContext } from "./http/context";
 import { ApiError, errorBody } from "./http/errors";
 import { createMetrics, type Metrics } from "./http/metrics";
 import { createRateLimiter, DEFAULT_LIMITS, type Limits, type RateLimiter } from "./http/rateLimit";
+import { leaderboardRoutes } from "./leaderboard/routes";
 import { playersRoutes } from "./players/routes";
 import { runsRoutes } from "./runs/routes";
 
@@ -102,6 +103,7 @@ export function createApp(deps: AppDeps) {
     };
     app.route("/api", playersRoutes(ctx));
     app.route("/api", runsRoutes(ctx));
+    app.route("/api", leaderboardRoutes(ctx));
   }
 
   return app;
