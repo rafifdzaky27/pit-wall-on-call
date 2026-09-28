@@ -20,7 +20,9 @@
 [data-motion="reduce"] .loadbar::after { animation: none; width: 60%; }
 .browser-main { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; }
 .browser-main.with-net { grid-template-rows: minmax(0, 1fr) minmax(180px, 42%); }
-.browser-page { overflow: auto; background: #ffffff; color: #111111; }
+/* The page is the positioned box, and the scroller sits inside it, so in-page drawers cover the visible page. */
+.browser-page { position: relative; overflow: hidden; min-height: 0; background: #ffffff; color: #111111; }
+.browser-scroll { height: 100%; overflow: auto; }
 
 /* Error pages: server defaults, no vendor branding */
 .errpage { font-family: "Times New Roman", serif; text-align: center; padding: 32px 16px; color: #000; }
@@ -30,7 +32,7 @@
 .errpage-cdn .errpage-code { color: #666; font-size: 14px; }
 
 /* The store: an in-world page with the brand's own palette */
-.store { position: relative; min-height: 100%; background: var(--store-paper); color: var(--store-ink); font: 14px / 1.45 var(--font); }
+.store { min-height: 100%; background: var(--store-paper); color: var(--store-ink); font: 14px / 1.45 var(--font); }
 .st-promo { padding: 6px 24px; background: var(--store-primary); color: #ffffff; font-size: 12px; text-align: center; }
 .st-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 14px 24px; background: #ffffff; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
 .st-head.slim { grid-template-columns: auto 1fr; }
@@ -41,7 +43,7 @@
 .st-count { min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--store-primary); color: #ffffff; font-size: 12px; text-align: center; }
 .st-step { justify-self: end; color: rgba(0, 0, 0, 0.55); }
 .st-cats { display: flex; gap: 20px; padding: 10px 24px; overflow-x: auto; background: #ffffff; border-bottom: 1px solid rgba(0, 0, 0, 0.06); font-size: 13px; color: rgba(0, 0, 0, 0.7); white-space: nowrap; }
-.st-hero { position: relative; margin: 16px 24px 0; border-radius: 12px; overflow: hidden; aspect-ratio: 3 / 1; max-height: 260px; background: var(--store-primary); }
+.st-hero { position: relative; height: clamp(150px, 24vw, 260px); margin: 16px 24px 0; border-radius: 12px; overflow: hidden; background: var(--store-primary); }
 .st-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .st-hero-text { position: absolute; inset: auto 0 0 0; padding: 40px 24px 18px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.62)); color: #ffffff; }
 .st-hero-text h2 { font-size: 24px; font-weight: 800; }

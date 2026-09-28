@@ -188,7 +188,9 @@ export function BrowserApp() {
         {loading && <div className="loadbar" role="progressbar" aria-label="Loading page" />}
       </div>
       <div className={showNet ? "browser-main with-net" : "browser-main"}>
-        <div className="browser-page">{page}</div>
+        <div className="browser-page">
+          <div className="browser-scroll">{page}</div>
+        </div>
         {showNet && (
           <NetworkPanel
             rows={rows}

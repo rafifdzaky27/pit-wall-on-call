@@ -44,11 +44,11 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
                 aria-pressed={isSelected}
                 onClick={() => onSelect(svc.id)}
               >
-                <span className="node-top">
-                  <span className="node-name">{svc.label}</span>
+                <span className="node-name">{svc.label}</span>
+                <span className="node-sub" title={details[svc.id]}>
                   <span className={`node-health ${h}`}>{HEALTH_LABEL[h]}</span>
+                  <span className="node-detail mono">{details[svc.id]}</span>
                 </span>
-                <span className="node-detail mono">{details[svc.id]}</span>
                 <kbd className="node-key" aria-hidden="true">
                   {i + 1}
                 </kbd>

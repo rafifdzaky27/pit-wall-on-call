@@ -81,6 +81,16 @@ describe("ChatApp", () => {
     expect((box as HTMLTextAreaElement).value).toBe("");
   });
 
+  it("opens a channel at its first unread message, like Slack", () => {
+    const seen: string[] = [];
+    Element.prototype.scrollIntoView = function (this: Element) {
+      seen.push(this.textContent ?? "");
+    };
+    renderOs(<ChatApp />);
+    fireEvent.click(screen.getByRole("button", { name: /^# deploys/ }));
+    expect(seen.at(-1)).toBe("New messages");
+  });
+
   it("toggles your reaction and opens a thread", () => {
     renderOs(<ChatApp />);
     const eyes = screen.getByRole("button", { name: /^👀 2, reacted by/ });

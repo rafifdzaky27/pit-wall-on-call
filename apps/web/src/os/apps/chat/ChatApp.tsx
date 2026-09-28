@@ -1,6 +1,6 @@
 import { messageAuthor, messageText, typingFor, type Author, type ChatMessage, type DeployCard, type Person } from "@pitwall/scenarios";
 import { fillWorld, type World } from "@pitwall/world";
-import { Fragment, useEffect, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Glyph } from "../../brand/Glyph";
 import { useIncident } from "../../incident/IncidentProvider";
 import { useOs } from "../../shell/OsContext";
@@ -72,6 +72,8 @@ export function ChatApp() {
   const [mine, setMine] = useState<ReadonlySet<string>>(() => new Set());
   const [threadId, setThreadId] = useState<string | null>(null);
 
+  const log = useRef<HTMLOListElement>(null);
+  const shownIn = useRef<string | null>(null);
   const messages = inChannel(current);
   const ids = messages.map((m) => m.id).join(",");
 
@@ -81,6 +83,18 @@ export function ChatApp() {
     for (const m of messages) if ("hotspotId" in m) inspect(m.hotspotId);
     // Re-run when the channel or its visible messages change.
   }, [current, ids]);
+
+  // Like Slack: a channel opens at its first unread message, otherwise at the newest; new
+  // messages in the open channel keep it scrolled to the bottom.
+  useLayoutEffect(() => {
+    const el = log.current;
+    if (!el) return;
+    const opened = shownIn.current !== current;
+    shownIn.current = current;
+    const marker = opened ? el.querySelector(".chat-new") : null;
+    if (marker) marker.scrollIntoView?.({ block: "start" });
+    else el.scrollTop = el.scrollHeight;
+  }, [current, messages.length]);
 
   const select = (ch: string) => {
     setMark(firstUnread(ch));
@@ -180,7 +194,7 @@ export function ChatApp() {
         {items.length === 0 ? (
           <p className="chat-empty">{dm ? `This is the very beginning of your direct message history with ${world.colleagues[dm]}.` : `This is the very beginning of #${current}.`}</p>
         ) : (
-          <ol className="chat-log" aria-label={`Messages in ${label}`}>
+          <ol ref={log} className="chat-log" aria-label={`Messages in ${label}`}>
             {items.map((it, i) => {
               const head = heads.has(it.id);
               const bot = it.author !== "you" && isBot(it.author);
@@ -199,7 +213,7 @@ export function ChatApp() {
                       <span>New messages</span>
                     </li>
                   )}
-                  <li className={head ? "msg head" : "msg"}>
+                  <li className={head ? "chat-msg head" : "chat-msg"}>
                     <div className="msg-gutter">
                       {head ? (
                         <Avatar name={it.name} bot={bot} />
@@ -295,7 +309,7 @@ export function ChatApp() {
           <ol className="chat-log">
             {[{ author: thread.author, name: thread.name, text: thread.text, at: thread.at }, ...thread.msg.thread.map((r) => ({ author: r.author, name: authorName(r.author, world), text: fillWorld(r.text, world), at: bootAt - r.minutesAgo * MINUTE }))].map(
               (r, i) => (
-                <li key={i} className="msg head">
+                <li key={i} className="chat-msg head">
                   <div className="msg-gutter">
                     <Avatar name={r.name} bot={r.author !== "you" && isBot(r.author)} />
                   </div>

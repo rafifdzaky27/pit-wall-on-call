@@ -17,6 +17,8 @@ for (const [width, height] of VIEWPORTS) {
     await page.getByRole("button", { name: "Start shift" }).click();
     await page.getByRole("button", { name: "Skip to the page" }).click();
     await page.keyboard.press("a");
+    // Measure after the window's open motion settles (looping CSS animations never finish).
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.effect?.getTiming().iterations === Infinity));
     const panel = page.locator(".map-panel");
     await expect(panel).toBeVisible();
     const box = (await page.locator(".map").boundingBox())!;
