@@ -53,7 +53,8 @@
 .postmortem { padding: var(--space-5); display: grid; gap: var(--space-5); background: var(--bg); min-height: 100%; }
 
 /* Desktop frame */
-.desktop { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+/* clip, not hidden: a hidden box can still be scrolled by focus or scrollIntoView, and PitOS must never move (M1.6 F1). */
+.desktop { position: fixed; inset: 0; overflow: clip; background: var(--bg); }
 .workspace { position: absolute; top: var(--topbar-h); left: 0; right: 0; bottom: 0; }
 .overlay.opaque { background: var(--bg); z-index: var(--z-paused); }
 

@@ -7,7 +7,7 @@ export function CafeFallback() {
   const incident = useIncident();
   const page = incident.scenario.coldOpen.page;
   return (
-    <section className="cafe-fallback" aria-label="Café">
+    <div className="cafe-fallback">
       <button type="button" className="cafe-fallback-laptop" data-hotspot="laptop" onClick={camera.enterLaptop}>
         Laptop
       </button>
@@ -22,6 +22,6 @@ export function CafeFallback() {
           </button>
         </div>
       )}
-    </section>
+    </div>
   );
 }

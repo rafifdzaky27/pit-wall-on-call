@@ -117,7 +117,7 @@ export function Stage({ children }: { children: ReactNode }) {
       <div className={`stage${inCafe ? " in-cafe" : ""}`}>
         <div className="stage-world" ref={world}>
           {camera.started && (
-            <div className="stage-cafe" hidden={!cafeShown && !inCafe} inert={!inCafe} aria-hidden={!inCafe}>
+            <div className="stage-cafe" role="region" aria-label="Café" hidden={!cafeShown && !inCafe} inert={!inCafe} aria-hidden={!inCafe}>
               <CafeBoundary>
                 <Suspense fallback={<CafeFallback />}>
                   <CafeView />

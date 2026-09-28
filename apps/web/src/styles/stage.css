@@ -1,5 +1,5 @@
 /* The camera around PitOS (cold-open spec §12). Only transform animates. */
-.stage { position: fixed; inset: 0; overflow: hidden; background: #000; }
+.stage { position: fixed; inset: 0; overflow: clip; background: #000; }
 .stage-world { position: absolute; inset: 0; transform-origin: 0 0; }
 .stage-cafe { position: absolute; inset: 0; }
 .stage-cafe[hidden] { display: none; }

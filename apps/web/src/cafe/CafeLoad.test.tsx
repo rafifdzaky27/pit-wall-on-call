@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderOs } from "../os/testing";
 
@@ -33,7 +33,8 @@ describe("loading the café", () => {
       </Stage>,
     );
     act(() => incident().start());
-    expect(await screen.findByRole("region", { name: "Café" })).toBeTruthy();
+    await waitFor(() => expect(document.querySelector(".cafe-fallback")).not.toBeNull());
+    expect(screen.queryByRole("img", { name: /^A café in / })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Skip to the page" }));
     expect(incident().phase).toBe("paging");
     fireEvent.click(await screen.findByRole("button", { name: /Acknowledge/ }));
