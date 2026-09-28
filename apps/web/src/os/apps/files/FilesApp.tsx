@@ -1,6 +1,5 @@
-import { HOME_FILES } from "../../../content/files";
-import { FileBrowser } from "./FileBrowser";
+import { FileManager } from "./FileManager";
 
 export function FilesApp() {
-  return <FileBrowser files={HOME_FILES} label="Home" />;
+  return <FileManager start="home" />;
 }

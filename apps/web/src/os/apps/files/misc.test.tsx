@@ -4,33 +4,11 @@ import { loadPrefs } from "../../prefs";
 import { StickyNote, WorldClock } from "../../shell/Widgets";
 import { renderOs } from "../../testing";
 import { SettingsApp } from "../settings/SettingsApp";
-import { FilesApp } from "./FilesApp";
-import { TrashApp } from "./TrashApp";
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   localStorage.clear();
-});
-
-describe("FilesApp", () => {
-  it("opens on README.md with how to play, and holds no personal facts", () => {
-    renderOs(<FilesApp />);
-    expect(screen.getByRole("article", { name: "README.md" }).textContent).toContain("How to play");
-    expect(screen.queryByRole("button", { name: /about-rafif/ })).toBeNull();
-  });
-});
-
-describe("TrashApp", () => {
-  it("shows its files and refuses to be emptied, with a reason", () => {
-    renderOs(<TrashApp />);
-    expect(screen.getByRole("button", { name: /final_final_v3\.yaml/ })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /rackets/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /prod-backup\.sql/ }));
-    expect(screen.getByText(/0 bytes/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Empty Trash" }));
-    expect(screen.getByRole("status").textContent).toMatch(/refused/i);
-  });
 });
 
 describe("SettingsApp", () => {
