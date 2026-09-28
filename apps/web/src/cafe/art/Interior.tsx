@@ -1,6 +1,6 @@
 import type { Brand, SceneModel } from "@pitwall/world";
 import { memo } from "react";
-import { Books, darken, FONT, Frame, Jar, lighten, Plant, Prop, rnd, toner } from "./kit";
+import { Books, circlesPath, darken, FONT, Frame, Jar, lighten, Plant, Prop, rectsPath, rnd, toner } from "./kit";
 import { WINDOW } from "./Street";
 
 export { RADIO } from "./Counter";
@@ -45,12 +45,8 @@ function Ceiling({ model, t }: { model: SceneModel; t: Tone }) {
       <rect x={-40} y={-40} width={1680} height={88} fill={t(darken(d.wall[1], 0.45))} />
       <rect x={-40} y={-40} width={1680} height={88} fill="url(#cf-counter)" opacity={0.6} />
       {/* Boards overhead, a strip of shadow where the ceiling meets the wall, speakers and a sprinkler or two. */}
-      {Array.from({ length: 56 }, (_, i) => (
-        <rect key={`b${i}`} x={-40 + i * 31} y={-40} width={1.5} height={88} fill="#000000" opacity={0.25} />
-      ))}
-      {Array.from({ length: 56 }, (_, i) => (
-        <rect key={`h${i}`} x={-38 + i * 31} y={-40} width={1} height={88} fill="#ffffff" opacity={0.05} />
-      ))}
+      <path d={rectsPath(Array.from({ length: 56 }, (_, i) => [-40 + i * 31, -40, 1.5, 88]))} fill="#000000" opacity={0.25} />
+      <path d={rectsPath(Array.from({ length: 56 }, (_, i) => [-38 + i * 31, -40, 1, 88]))} fill="#ffffff" opacity={0.05} />
       <rect x={-40} y={40} width={1680} height={10} fill="#000000" opacity={0.3} />
       {[330, 1030].map((x) => (
         <g key={x}>
@@ -116,29 +112,26 @@ function StringLights({ model }: { model: SceneModel }) {
     [820, 1240, 92],
     [1240, 1640, 100],
   ];
+  const bulbs = swags.flatMap(([a, b, sag], k) =>
+    Array.from({ length: 11 }, (_, i) => {
+      const u = (i + 0.5) / 11;
+      const x = (1 - u) * (1 - u) * a + 2 * u * (1 - u) * ((a + b) / 2) + u * u * b;
+      const y = (1 - u) * (1 - u) * 50 + 2 * u * (1 - u) * (sag + 40) + u * u * 50;
+      return { x, y, k, i };
+    }),
+  );
   return (
     <Prop name="string-lights">
-      {swags.map(([a, b, sag], k) => {
-        const n = 11;
-        return (
-          <g key={k}>
-            <path d={`M ${a} 50 Q ${(a + b) / 2} ${sag + 40} ${b} 50`} fill="none" stroke="#2a2320" strokeWidth={1.4} />
-            {Array.from({ length: n }, (_, i) => {
-              const u = (i + 0.5) / n;
-              const x = (1 - u) * (1 - u) * a + 2 * u * (1 - u) * ((a + b) / 2) + u * u * b;
-              const y = (1 - u) * (1 - u) * 50 + 2 * u * (1 - u) * (sag + 40) + u * u * 50;
-              const tw = (i + k) % 4 === 0;
-              return (
-                <g key={i}>
-                  <rect x={x - 1.5} y={y} width={3} height={4} fill="#2a2320" />
-                  {lit && <circle className={tw ? "particle twinkle" : undefined} cx={x} cy={y + 8} r={9} fill="url(#cf-bokeh-warm)" opacity={0.8} style={tw ? { animationDelay: `${-rnd(i + k * 11) * 3}s` } : undefined} />}
-                  <ellipse cx={x} cy={y + 8} rx={2.6} ry={3.6} fill={lit ? "#fff0c0" : "#e8e2d4"} />
-                </g>
-              );
-            })}
-          </g>
-        );
-      })}
+      <path d={swags.map(([a, b, sag]) => `M ${a} 50 Q ${(a + b) / 2} ${sag + 40} ${b} 50`).join(" ")} fill="none" stroke="#2a2320" strokeWidth={1.4} />
+      <path d={rectsPath(bulbs.map(({ x, y }) => [x - 1.5, y, 3, 4]))} fill="#2a2320" />
+      {lit &&
+        bulbs.map(({ x, y, k, i }) => {
+          const tw = (i + k) % 4 === 0;
+          return (
+            <circle key={`${k}-${i}`} className={tw ? "particle twinkle" : undefined} cx={x} cy={y + 8} r={9} fill="url(#cf-bokeh-warm)" opacity={0.8} style={tw ? { animationDelay: `${-rnd(i + k * 11) * 3}s` } : undefined} />
+          );
+        })}
+      <path d={circlesPath(bulbs.map(({ x, y }) => [x, y + 8, 3]))} fill={lit ? "#fff0c0" : "#e8e2d4"} />
     </Prop>
   );
 }
@@ -547,6 +540,21 @@ function Signature({ model, t }: { model: SceneModel; t: Tone }) {
   );
 }
 
+/** Droplets on the inside of the glass, each with a glint: two paths for all of them. */
+function Droplets({ count, big }: { count: number; big: boolean }) {
+  const drops = Array.from({ length: count }, (_, i): [number, number, number] => [
+    WINDOW.x + 8 + rnd(i + 100) * (WINDOW.w - 16),
+    WINDOW.y + 10 + Math.pow(rnd(i + 200), 0.7) * (WINDOW.h - 20),
+    1 + rnd(i + 300) * (big ? 3 : 1.6),
+  ]);
+  return (
+    <g className="droplets">
+      <path d={circlesPath(drops)} fill="#eef4f8" opacity={0.28} />
+      <path d={circlesPath(drops.map(([x, y, r]) => [x - r * 0.3, y - r * 0.35, r * 0.35]))} fill="#ffffff" opacity={0.7} />
+    </g>
+  );
+}
+
 /** The glass: mist, droplets on the inside, drops that run, a heart someone drew, and the sign. */
 function Glass({ model }: { model: SceneModel }) {
   const { palette, weather } = model;
@@ -565,18 +573,7 @@ function Glass({ model }: { model: SceneModel }) {
       )}
       <path d={`M ${WINDOW.x + 40} ${WINDOW.y + WINDOW.h} L ${WINDOW.x + 200} ${WINDOW.y} L ${WINDOW.x + 250} ${WINDOW.y} L ${WINDOW.x + 90} ${WINDOW.y + WINDOW.h} Z`} fill="url(#cf-glass)" opacity={0.35} />
       <path d={`M ${WINDOW.x + 400} ${WINDOW.y + WINDOW.h} L ${WINDOW.x + 520} ${WINDOW.y} L ${WINDOW.x + 540} ${WINDOW.y} L ${WINDOW.x + 420} ${WINDOW.y + WINDOW.h} Z`} fill="url(#cf-glass)" opacity={0.25} />
-      {(wet || misty) &&
-        Array.from({ length: wet ? 70 : 30 }, (_, i) => {
-          const x = WINDOW.x + 8 + rnd(i + 100) * (WINDOW.w - 16);
-          const y = WINDOW.y + 10 + Math.pow(rnd(i + 200), 0.7) * (WINDOW.h - 20);
-          const r = 1 + rnd(i + 300) * (wet ? 3 : 1.6);
-          return (
-            <g key={i}>
-              <circle cx={x} cy={y} r={r} fill="#eef4f8" opacity={0.28} />
-              <circle cx={x - r * 0.3} cy={y - r * 0.35} r={r * 0.35} fill="#ffffff" opacity={0.7} />
-            </g>
-          );
-        })}
+      {(wet || misty) && <Droplets count={wet ? 70 : 30} big={wet} />}
       {wet &&
         Array.from({ length: 10 }, (_, i) => {
           const x = WINDOW.x + 30 + rnd(i + 500) * (WINDOW.w - 60);

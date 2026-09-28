@@ -21,7 +21,15 @@ export function toner(model: SceneModel): (c: string, k?: number) => string {
   return (c, k = 1) => mix(c, shade, Math.min(0.9, shadeOpacity * k));
 }
 
-export const lighten = (c: string, t: number) => mix(c, "#ffffff", t);
+/**
+ * Many small same-coloured shapes as one path: far fewer elements to render and to raster
+ * (keys, bulbs, droplets, lit windows) than one element each.
+ */
+export const rectsPath = (rects: [x: number, y: number, w: number, h: number][]) => rects.map(([x, y, w, h]) => `M${x} ${y}h${w}v${h}h${-w}Z`).join("");
+export const circlesPath = (circles: [cx: number, cy: number, r: number][]) =>
+  circles.map(([cx, cy, r]) => `M${(cx - r).toFixed(1)} ${cy.toFixed(1)}a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${(2 * r).toFixed(2)} 0a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${(-2 * r).toFixed(2)} 0Z`).join("");
+
+export const lighten =(c: string, t: number) => mix(c, "#ffffff", t);
 export const darken = (c: string, t: number) => mix(c, "#000000", t);
 
 /** A soft contact shadow under something resting on a surface. */

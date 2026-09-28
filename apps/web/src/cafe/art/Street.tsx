@@ -1,6 +1,6 @@
 import type { SceneModel } from "@pitwall/world";
 import { memo, type ReactNode } from "react";
-import { darken, FONT, lighten, Prop, rnd } from "./kit";
+import { darken, FONT, lighten, Prop, rectsPath, rnd } from "./kit";
 
 /** The window opening in scene units; everything in this file is clipped to it. */
 export const WINDOW = { x: 80, y: 90, w: 680, h: 430 } as const;
@@ -59,18 +59,31 @@ function Skyline({ model, glow = false }: { model: SceneModel; glow?: boolean })
   const roof = model.sign.decor.style === "joglo" ? 36 : 0;
   // Only the windows that show above the shops across the road.
   const hidden = (cx: number, cy: number) => shops.some((s) => cx + 6 > s.x - roof && cx < s.x + s.w + roof && cy + 9 > s.top - roof);
-  const windows = model.sign.skyline.flatMap(([x, w, h], i) => {
+  // A fixed pattern of lit windows, so the same city looks the same every night; a few of them flicker.
+  const steady: [number, number, number, number][] = [];
+  const flicker: [number, number][] = [];
+  model.sign.skyline.forEach(([x, w, h], i) => {
     const cols = Math.floor((w - 12) / 18);
-    return Array.from({ length: Math.floor((h - 20) / 22) * cols }, (_, j) => {
+    for (let j = 0; j < Math.floor((h - 20) / 22) * cols; j++) {
       const cx = x + 8 + (j % cols) * 18;
       const cy = BASELINE - h + 12 + Math.floor(j / cols) * 22;
-      if (hidden(cx, cy)) return null;
-      // A fixed pattern of lit windows, so the same city looks the same every night.
-      const on = (j * 7 + i * 3) % 5 < 2;
-      if (!lit) return (j + i) % 3 === 0 ? <rect key={`${i}-${j}`} x={cx} y={cy} width={6} height={9} fill="#ffffff" opacity={0.25} /> : null;
-      return on ? <rect key={`${i}-${j}`} className="lit-window" x={cx} y={cy} width={6} height={9} fill="#ffd98a" style={{ animationDelay: `${(j % 7) * 1.1}s` }} /> : null;
-    });
+      if (hidden(cx, cy)) continue;
+      if (!lit) {
+        if ((j + i) % 3 === 0) steady.push([cx, cy, 6, 9]);
+      } else if ((j * 7 + i * 3) % 5 < 2) {
+        if ((j + i) % 6 === 0) flicker.push([cx, cy]);
+        else steady.push([cx, cy, 6, 9]);
+      }
+    }
   });
+  const windows = (
+    <g>
+      <path d={rectsPath(steady)} fill={lit ? "#ffd98a" : "#ffffff"} opacity={lit ? 1 : 0.25} />
+      {flicker.map(([cx, cy], k) => (
+        <rect key={k} className="lit-window" x={cx} y={cy} width={6} height={9} fill="#ffd98a" style={{ animationDelay: `${(k % 7) * 1.1}s` }} />
+      ))}
+    </g>
+  );
   if (glow) return <g className="skyline-lights">{windows}</g>;
   return (
     <Prop name="skyline">

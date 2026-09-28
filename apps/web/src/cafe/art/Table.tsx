@@ -1,5 +1,5 @@
 import type { CloseState, SceneModel } from "@pitwall/world";
-import { memo, type ReactNode } from "react";
+import { memo } from "react";
 import { SCENE } from "../camera";
 import { darken, FONT, lighten, MONO, Plant, Prop, Shadow, toner } from "./kit";
 
@@ -36,25 +36,25 @@ const ROWS: number[][] = [
 ];
 const ROW_H = [0.11, 0.178, 0.178, 0.178, 0.178, 0.178];
 
+/** The keys as three paths (caps, their lit top edge, the backlight at night): one element per key would be ~200. */
 function Keyboard({ night }: { night: boolean }) {
-  const keys: ReactNode[] = [];
+  const caps: string[] = [];
+  const tops: string[] = [];
+  const lights: string[] = [];
+  const d = (q: string) => `M${q.replace(/ /g, "L")}Z`;
   let v = 0;
   ROWS.forEach((row, r) => {
     const total = row.reduce((a, b) => a + b, 0);
     const h = ROW_H[r]!;
     let u = 0;
-    row.forEach((w, k) => {
+    row.forEach((w) => {
       const u0 = u / total + 0.004;
       const u1 = (u + w) / total - 0.004;
       const v0 = v + 0.022;
       const v1 = v + h - 0.022;
-      keys.push(
-        <g key={`${r}-${k}`}>
-          <polygon points={quad(WELL, u0, v0, u1, v1)} fill="#23272d" />
-          <polygon points={quad(WELL, u0 + 0.002, v0, u1 - 0.002, v0 + (v1 - v0) * 0.3)} fill="#3a4049" />
-          {night && r > 0 && w < 2 && <polygon points={quad(WELL, u0 + (u1 - u0) * 0.35, v0 + (v1 - v0) * 0.35, u1 - (u1 - u0) * 0.35, v1 - (v1 - v0) * 0.35)} fill="#cfe0ff" opacity={0.35} />}
-        </g>,
-      );
+      caps.push(d(quad(WELL, u0, v0, u1, v1)));
+      tops.push(d(quad(WELL, u0 + 0.002, v0, u1 - 0.002, v0 + (v1 - v0) * 0.3)));
+      if (r > 0 && w < 2) lights.push(d(quad(WELL, u0 + (u1 - u0) * 0.35, v0 + (v1 - v0) * 0.35, u1 - (u1 - u0) * 0.35, v1 - (v1 - v0) * 0.35)));
       u += w;
     });
     v += h;
@@ -62,7 +62,9 @@ function Keyboard({ night }: { night: boolean }) {
   return (
     <Prop name="keyboard">
       <polygon points={quad(DECK, 0.06, 0.07, 0.94, 0.63)} fill="#1a1d22" opacity={0.85} />
-      {keys}
+      <path d={caps.join("")} fill="#23272d" />
+      <path d={tops.join("")} fill="#3a4049" />
+      {night && <path d={lights.join("")} fill="#cfe0ff" opacity={0.35} />}
     </Prop>
   );
 }
