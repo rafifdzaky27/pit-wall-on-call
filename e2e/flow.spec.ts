@@ -39,8 +39,14 @@ test.describe("flow (M2.5 spec §11)", () => {
     await page.keyboard.press("2");
     await page.clock.runFor(3_000);
     await page.getByRole("button", { name: /Roll back to v141/ }).click();
-    await page.clock.runFor(41_000);
-    await expect(page.getByText(/^Fix confirmed · resolved in/)).toBeVisible();
+    // "Fix confirmed" shows for 1.5 s before the cold close: step the clock and catch it in its window.
+    await page.clock.runFor(38_000);
+    let confirmed = false;
+    for (let i = 0; i < 20 && !confirmed; i++) {
+      await page.clock.runFor(500);
+      confirmed = await page.getByText(/^Fix confirmed · resolved in/).isVisible();
+    }
+    expect(confirmed).toBe(true);
     await page.clock.runFor(4_000);
     await page.getByRole("button", { name: "Read the postmortem" }).click();
     await page.clock.runFor(1_000);
