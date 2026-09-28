@@ -2,6 +2,7 @@
 //   node scripts/ambience.mjs
 // Sources go in .cache/ambience/ (downloaded from Wikimedia Commons; see apps/web/public/audio/CREDITS.md).
 // Needs ffmpeg on PATH, or FFMPEG=<path to ffmpeg>.
+/* global console, process */
 import { execFileSync } from "node:child_process";
 import { statSync } from "node:fs";
 import { join } from "node:path";
