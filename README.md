@@ -17,6 +17,8 @@ Start shift goes full screen and the pager rings (synthesized with WebAudio, no 
 3. **Monitoring.** A service map, focused metrics, a log stream and per-service actions. Actions take time, you can run one at a time, and some of them make things worse.
 4. **The postmortem.** It opens as `postmortem.md` and shows budget burned, when you mitigated, whether you found the root cause, how fast you acknowledged, the clues you found, the burn broken down by cause, a timeline with a verdict on each action, and one lesson.
 
+![Chat before the page: the deploy that started it](docs/media/chat.png)
+
 ![Monitoring during an incident](docs/media/monitoring.png)
 
 Windows open, snap and maximize like on a GNOME desktop, and single-key shortcuts (`O` overview, `M` maximize, `[` `]` snap, `X` close, `A` acknowledge, `P` pause) can be turned off in Settings. On screens narrower than 1024 px, the site shows an on-call lockscreen instead.
