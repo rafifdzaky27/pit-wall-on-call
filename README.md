@@ -4,6 +4,8 @@
 
 A browser game about being on call. The game runs inside **PitOS**, a small made-up Linux desktop. The pager goes off, checkout is failing, and the loudest service is not necessarily the one at fault. You acknowledge the page, dig through chat, the failing site and your monitoring, act under a real-time clock, and then read a postmortem showing where your error budget went.
 
+Start shift goes full screen and the pager rings (synthesized with WebAudio, no audio files). Every app is modelled on the real thing: a Slack-style chat, a Chromium-style browser with DevTools, a Nautilus-style file manager and GNOME-style Settings.
+
 **Play:** [pitwall.rafifdzaky.com](https://pitwall.rafifdzaky.com) (desktop browser, 1024 px or wider)
 
 ![The PitOS desktop](docs/media/desktop.png)
@@ -65,9 +67,9 @@ Every pull request runs lint, typecheck, tests, the deploy-script tests and Dock
 
 - [Design spec](docs/specs/2026-09-27-pit-wall-on-call-design.md) and [cold open spec](docs/specs/2026-09-28-cold-open-design.md)
 - [Roadmap](docs/plans/2026-09-27-roadmap.md)
-- [PitOS desktop spec](docs/specs/2026-09-28-pitos-desktop-design.md) and [usability test protocol](docs/research/m1.5-usability-protocol.md)
+- [PitOS desktop spec](docs/specs/2026-09-28-pitos-desktop-design.md), [polish spec](docs/specs/2026-09-28-pitos-polish-design.md), [persona walkthrough](docs/research/2026-09-28-m1.5-persona-walkthrough.md) and [usability test protocol](docs/research/m1.5-usability-protocol.md)
 - [Design system](docs/DESIGN.md)
 
 ## License
 
-The code is licensed under [AGPL-3.0-only](LICENSE). Game content, names and art are all rights reserved; see [`NOTICE.md`](NOTICE.md).
+The code is licensed under [AGPL-3.0-only](LICENSE). Game content, names and art are all rights reserved; see [`NOTICE.md`](NOTICE.md). The store photos are from Unsplash under the Unsplash License; credits are in [`apps/web/public/store/CREDITS.md`](apps/web/public/store/CREDITS.md).

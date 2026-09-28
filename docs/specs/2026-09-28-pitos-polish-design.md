@@ -1,6 +1,6 @@
 # Pit Wall On-Call: PitOS Polish Design Spec
 
-- **Status:** Draft for review, 2026-09-28
+- **Status:** Approved (#18) and implemented in M1.5.1, 2026-09-28. Deviations are recorded as R1–R13 in the plan.
 - **Parent spec:** `2026-09-28-pitos-desktop-design.md` (decisions S1–S10). This spec adds S11–S24 and overrides the parent where they conflict.
 - **Inputs:** Rafif's play session on production (2026-09-28) and the persona walkthrough in `docs/research/2026-09-28-m1.5-persona-walkthrough.md`
 - **Delivery:** milestone **M1.5.1**. M1.5 closes when M1.5.1 ships.
