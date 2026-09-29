@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cameraReducer, INITIAL_CAMERA, laptopFit, SCENE, sceneFit, toViewport, type Camera } from "./camera";
+import { cameraReducer, INITIAL_CAMERA, laptopFit, SCENE, sceneFit, toViewport, zoomKeyframes, zoomOrigin, type Camera } from "./camera";
 
 const run = (events: Parameters<typeof cameraReducer>[1][], from: Camera = INITIAL_CAMERA) => events.reduce(cameraReducer, from);
 
@@ -65,5 +65,29 @@ describe("scene geometry", () => {
       expect(Math.abs(x + w / 2 - (r.x + r.w / 2))).toBeLessThan(1);
       expect(Math.abs(y + h / 2 - (r.y + r.h / 2))).toBeLessThan(1);
     }
+  });
+});
+
+describe("the zoom path (M2.5 follow-up: the camera swung across the street on every move)", () => {
+  const fit = laptopFit(1440, 900);
+  const origin = zoomOrigin(fit);
+  /** Where a point lands under `scale(s)` about the zoom origin. */
+  const at = (s: number, p: { x: number; y: number }) => ({ x: origin.x + (p.x - origin.x) * s, y: origin.y + (p.y - origin.y) * s });
+
+  it("zooms about one fixed point, so the laptop stays put on screen for the whole move", () => {
+    // The laptop's screen, seen from the café, ends up filling the viewport at the laptop's scale.
+    const end = at(1 / fit.k, { x: fit.x, y: fit.y });
+    expect(end.x).toBeCloseTo(0, 6);
+    expect(end.y).toBeCloseTo(0, 6);
+  });
+
+  it("every keyframe is a pure scale, spaced evenly in zoom, from where the camera is to where it goes", () => {
+    const frames = zoomKeyframes(1, 1 / fit.k);
+    const scales = frames.map((f) => Number(/^scale\(([\d.e-]+)\)$/.exec(String(f.transform))![1]));
+    expect(scales[0]).toBeCloseTo(1, 6);
+    expect(scales.at(-1)).toBeCloseTo(1 / fit.k, 6);
+    const steps = scales.slice(1).map((s, i) => Math.log(s / scales[i]!));
+    for (const d of steps) expect(d).toBeCloseTo(steps[0]!, 6);
+    expect(frames.map((f) => f.offset)).toEqual(frames.map((_, i) => i / (frames.length - 1)));
   });
 });

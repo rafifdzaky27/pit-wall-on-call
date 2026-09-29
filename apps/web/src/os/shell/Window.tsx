@@ -50,8 +50,8 @@ export function Window({ win, area, focused, layer, dispatch, onDragChange, chil
   const [shown, setShown] = useState(!win.minimized);
   const maximized = win.mode === "maximized";
 
-  // Open: fade in and grow from 96 %.
-  useEffect(() => {
+  // Open: fade in and grow from 96 %. Before the first paint, so the window never shows once at full size first.
+  useLayoutEffect(() => {
     const el = ref.current;
     if (el && !win.minimized) animate(el, [{ opacity: 0, transform: "scale(0.96)" }, { opacity: 1, transform: "none" }], { duration: DUR.base, easing: EASE_OUT });
   }, []);

@@ -1,10 +1,13 @@
 import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Desktop } from "../os/shell/Desktop";
 import { renderOs } from "../os/testing";
 import { motionGate } from "../game/motionGate";
-import { laptopFit } from "./camera";
-import { Stage } from "./Stage";
+import { laptopFit, zoomOrigin } from "./camera";
+import { loadCafe, Stage } from "./Stage";
+
+// The café chunk is in, as after the desktop's idle warm-up: a pull-back never waits on it here (StageCold covers that).
+beforeAll(() => loadCafe());
 
 afterEach(() => {
   cleanup();
@@ -135,5 +138,32 @@ describe("Stage", () => {
     motionGate.set(true);
     press("l");
     expect(motionGate.moving).toBe(false);
+  });
+
+  it("every move, on L and on a new shift, is a pure zoom about the laptop: never a swing across the street (M2.5 follow-up)", () => {
+    const calls: { keyframes: Keyframe[]; origin: string }[] = [];
+    const animate = vi.fn(function (this: HTMLElement, keyframes: Keyframe[]) {
+      calls.push({ keyframes, origin: this.style.transformOrigin });
+      return { finished: new Promise(() => undefined), cancel: () => undefined } as unknown as Animation;
+    });
+    Object.assign(HTMLElement.prototype, { animate });
+    try {
+      const { incident } = renderOs(
+        <Stage>
+          <p>laptop screen</p>
+        </Stage>,
+      );
+      act(() => incident().start());
+      press("l");
+      press("l");
+      const o = zoomOrigin(laptopFit(window.innerWidth, window.innerHeight));
+      expect(calls.length).toBeGreaterThanOrEqual(2);
+      for (const c of calls) {
+        expect(c.origin).toBe(`${o.x}px ${o.y}px`);
+        for (const f of c.keyframes) expect(String(f.transform)).toMatch(/^scale\([\d.e-]+\)$/);
+      }
+    } finally {
+      delete (HTMLElement.prototype as { animate?: unknown }).animate;
+    }
   });
 });

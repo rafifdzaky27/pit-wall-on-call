@@ -2,8 +2,9 @@
 .stage { position: fixed; inset: 0; overflow: clip; background: #000; }
 .stage-world { position: absolute; inset: 0; transform-origin: 0 0; }
 .stage-cafe { position: absolute; inset: 0; }
-/* Out of sight, the café keeps its layout and layers, so looking up again never paints it from scratch (the L flicker); its loops hold. */
-.stage-cafe.off { visibility: hidden; }
+/* Out of sight, the café stays painted under the laptop's screen, controls and all, so a pull-back never waits on
+   rasterising it mid-move (the stutter on every new shift) and looking up never paints it from scratch (the L flicker); its loops hold. */
+.stage-cafe.off { z-index: 0; }
 .stage-cafe.off * { animation-play-state: paused !important; }
 /* The laptop's screen sits above the café art (layer 1) and below the café's own UI: hotspots, captions, the phone, controls (layer 2). */
 .stage-screen { position: absolute; inset: 0; transform-origin: 0 0; z-index: 1; }

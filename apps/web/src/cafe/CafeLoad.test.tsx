@@ -38,7 +38,7 @@ describe("loading the café", () => {
     act(() => incident().start());
     await waitFor(() => expect(document.querySelector(".cafe-fallback")).not.toBeNull());
     expect(screen.queryByRole("img", { name: /^A café in / })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Skip to the page" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Skip to the page" }));
     expect(incident().phase).toBe("paging");
     fireEvent.click(await screen.findByRole("button", { name: /Acknowledge/ }));
     expect(incident().phase).toBe("active");
