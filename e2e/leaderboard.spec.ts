@@ -53,7 +53,7 @@ test.describe("the runs API contract (M2)", () => {
     await board.getByRole("button", { name: "View leaderboard" }).click();
     await expect(page.getByRole("tab", { name: "Leaderboard · Pit Wall On-Call", selected: true })).toBeVisible();
     // Today's daily leads; this was a practice shift, so it is on the second tab (M3 spec Y11).
-    await page.getByRole("tablist", { name: "Boards" }).getByRole("tab", { name: "Practice" }).click();
+    await page.getByRole("group", { name: "Boards" }).getByRole("button", { name: "Practice" }).click();
     await expect(page.getByRole("table", { name: "Practice leaderboard" }).getByText(`${handle}#`, { exact: false })).toBeVisible();
     await expect(page.getByRole("table", { name: "Practice leaderboard" }).locator(".lb-you")).toContainText("(you)");
   });

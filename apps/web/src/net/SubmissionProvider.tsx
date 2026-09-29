@@ -89,6 +89,10 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
   const runKey = useRef<{ shiftId: number; key: string } | null>(null);
   const pendingHandle = useRef<string | undefined>(undefined);
   const alive = useRef(true);
+  // Read at call time: markPlayed changes at the UTC rollover, and that must not re-post a run (review 1).
+  const markRef = useRef(markPlayed);
+  markRef.current = markPlayed;
+  const autoPosted = useRef<number | null>(null);
 
   useEffect(() => {
     alive.current = true;
@@ -106,34 +110,37 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
       const live = () => alive.current && current.current === mine;
       pendingHandle.current = handle;
       setState({ kind: "posting" });
+      const body: RunPost = {
+        scenarioId: result.scenarioId,
+        seed: result.seed,
+        ...(daily ? { mode: "daily", dailyDate: daily.date } : { mode: "practice" }),
+        engineVersion: ENGINE_VERSION,
+        runKey: key,
+        actions: result.actions,
+      };
       for (let attempt = 0; ; attempt++) {
         try {
           let player = loadPlayer();
+          if (!player && handle === undefined) {
+            setState({ kind: "ask" });
+            return;
+          }
+          // Kept until the server has it, so a closed tab or a dropped network never loses it (spec Y10),
+          // even before a first-time player has registered (review 2).
+          enqueue(body);
           if (!player) {
-            if (handle === undefined) {
-              setState({ kind: "ask" });
-              return;
-            }
-            const created = await registerPlayer(handle);
+            const created = await registerPlayer(handle!);
             player = { playerId: created.playerId, handle: created.handle, tag: created.tag, token: created.token };
             savePlayer(player);
+            // Runs queued while there was no player go out now.
+            void sendQueued(key, markRef.current);
           }
-          const body: RunPost = {
-            scenarioId: result.scenarioId,
-            seed: result.seed,
-            ...(daily ? { mode: "daily", dailyDate: daily.date } : { mode: "practice" }),
-            engineVersion: ENGINE_VERSION,
-            runKey: key,
-            actions: result.actions,
-          };
-          // Kept until the server has it, so a closed tab or a dropped network never loses it (spec Y10).
-          enqueue(body);
           if (!claim(key)) return;
           let run: PostedRun;
           try {
             run = await postRun(player.token, body);
             drop(key);
-            recordDaily(body, run, markPlayed);
+            recordDaily(body, run, markRef.current);
           } catch (e) {
             if (final(e)) drop(key);
             throw e;
@@ -167,28 +174,31 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [result, shiftId, daily, markPlayed],
+    [result, shiftId, daily],
   );
 
   // Runs an earlier page could not send go out on load and whenever the browser is back online.
   useEffect(() => {
     const resend = () => {
-      void sendQueued(runKey.current?.key ?? null, markPlayed).then((sent) => {
+      void sendQueued(runKey.current?.key ?? null, markRef.current).then((sent) => {
         if (sent && alive.current) setLeaderboardVersion((v) => v + 1);
       });
     };
     resend();
     window.addEventListener("online", resend);
     return () => window.removeEventListener("online", resend);
-  }, [markPlayed]);
+  }, []);
 
   // A finished shift posts at once when this device has a player, and asks for a handle otherwise.
   useEffect(() => {
     // Training is never posted (M2.5 spec D4): the report says so instead.
     if (!result || scenario.training) return;
+    // Once per shift, whatever re-renders later (review 1).
+    if (autoPosted.current === shiftId) return;
+    autoPosted.current = shiftId;
     if (loadPlayer()) void post();
     else setState({ kind: "ask" });
-  }, [result, post, scenario]);
+  }, [result, post, scenario, shiftId]);
 
   const value = useMemo<Submission>(
     () => ({

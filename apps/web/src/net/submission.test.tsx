@@ -1,8 +1,9 @@
 import { ENGINE_VERSION } from "@pitwall/engine";
-import { dailyFor, utcDate } from "@pitwall/scenarios";
+import { dailyFor, dayStartMs, utcDate } from "@pitwall/scenarios";
 import { act, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderOs } from "../os/testing";
+import { ROLLOVER_CHECK_MS } from "./daily";
 import { loadPlayer, savePlayer } from "./player";
 import { useSubmission, type Submission } from "./SubmissionProvider";
 
@@ -240,5 +241,38 @@ describe("the daily and the queue (M3 spec Y6, Y10)", () => {
     await flush();
     expect(calls).toHaveLength(1);
     expect(localStorage.getItem("pitwall.pending")).toBe("[]");
+  });
+});
+
+describe("M3 review fixes", () => {
+  it("the UTC rollover never posts a finished shift again (review 1)", async () => {
+    savePlayer(PLAYER);
+    // Finish just before midnight UTC, then let the day roll over with the report open.
+    vi.setSystemTime(dayStartMs(utcDate(Date.now())) + 86_400_000 - 70_000);
+    serve(() => json(201, POSTED));
+    const { incident } = renderOs(<Probe />);
+    finishShift(incident);
+    await flush();
+    expect(calls.filter((c) => c.url === "/api/runs")).toHaveLength(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ROLLOVER_CHECK_MS * 2);
+    });
+    expect(calls.filter((c) => c.url === "/api/runs")).toHaveLength(1);
+    expect(submission.state.kind).toBe("posted");
+  });
+
+  it("a first-time player's shift is queued even when registering fails (review 2)", async () => {
+    serve(() => {
+      throw new TypeError("offline");
+    });
+    const { incident } = renderOs(<Probe />);
+    finishShift(incident);
+    await flush();
+    await act(async () => {
+      void submission.post("newbie");
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+    expect(submission.state.kind).toBe("error");
+    expect(JSON.parse(localStorage.getItem("pitwall.pending")!)).toHaveLength(1);
   });
 });

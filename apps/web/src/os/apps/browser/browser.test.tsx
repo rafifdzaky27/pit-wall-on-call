@@ -238,11 +238,12 @@ describe("BrowserApp: the leaderboard site (M2)", () => {
     expect(within(screen.getByRole("tablist", { name: "Tabs" })).getByRole("tab", { selected: true }).textContent).toBe("Leaderboard · Pit Wall On-Call");
     expect((screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement).value).toBe(`${window.location.origin}/leaderboard`);
     // Today's daily first; the practice board is its second tab (M3 spec Y11).
-    const boards = screen.getByRole("tablist", { name: "Boards" });
-    expect(within(boards).getByRole("tab", { name: "Daily", selected: true })).toBeTruthy();
+    // Toggle buttons, not a tablist: no arrow-key contract to break (M3 review 7).
+    const boards = screen.getByRole("group", { name: "Boards" });
+    expect(within(boards).getByRole("button", { name: "Daily", pressed: true })).toBeTruthy();
     expect(screen.getByRole("table", { name: "Daily leaderboard" })).toBeTruthy();
     expect(fetchMock.mock.calls.at(-1)![0]).toMatch(/^\/api\/leaderboard\?date=\d{4}-\d{2}-\d{2}$/);
-    fireEvent.click(within(boards).getByRole("tab", { name: "Practice" }));
+    fireEvent.click(within(boards).getByRole("button", { name: "Practice" }));
     await flush();
     expect(screen.getByRole("table", { name: "Practice leaderboard" })).toBeTruthy();
   });

@@ -39,9 +39,9 @@ export function LeaderboardTab({ bookmarks, opened }: { bookmarks: ReactNode; op
       <div className="browser-main">
         <div className="browser-page">
           <div className="browser-scroll">
-            <div className="lb-tabs" role="tablist" aria-label="Boards">
+            <div className="lb-tabs" role="group" aria-label="Boards">
               {(["daily", "practice"] as const).map((b) => (
-                <button key={b} type="button" role="tab" className="lb-tab" aria-selected={board === b} onClick={() => setBoard(b)}>
+                <button key={b} type="button" className="lb-tab" aria-pressed={board === b} onClick={() => setBoard(b)}>
                   {b === "daily" ? "Daily" : "Practice"}
                 </button>
               ))}
