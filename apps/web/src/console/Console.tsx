@@ -25,16 +25,19 @@ export interface ConsoleProps {
   active?: boolean;
   /** Open in links from the selected service to its tools. */
   onOpen?: OpenIn;
+  /** The player picked a service on the map or with a number key. */
+  onSelect?: (serviceId: string) => void;
 }
 
-export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true, active = true, onOpen }: ConsoleProps) {
+export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true, active = true, onOpen, onSelect }: ConsoleProps) {
   const [selected, setSelected] = useState(scenario.services[0]!.id);
   const [filter, setFilter] = useState<string | null>(null);
 
   const select = useCallback((serviceId: string) => {
     setSelected(serviceId);
     setFilter(serviceId);
-  }, []);
+    onSelect?.(serviceId);
+  }, [onSelect]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
