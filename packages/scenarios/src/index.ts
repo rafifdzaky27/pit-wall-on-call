@@ -11,3 +11,4 @@ export function getScenario(id: string): ScenarioDef<State> | undefined {
 }
 export * from "./desktop";
 export { DUCK, DUCK_DONE, duckAction } from "./duck";
+export { DAILY_EPOCH, dailyFor, dailyNumber, isDailyDate, utcDate, type Daily } from "./daily";
