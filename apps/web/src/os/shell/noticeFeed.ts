@@ -35,7 +35,7 @@ export function useNoticeFeed(startShift: () => void): void {
           app: "Shift",
           title: played.rank === null ? `Daily #${daily.number} done` : `Daily #${daily.number} done · #${played.rank} of ${played.total}`,
           body: "Your ranked attempt for today is in. Anything you play now is practice. The next daily is at 00:00 UTC.",
-          actions: [practice, again, drill],
+          actions: [practice, again, { ...drill, primary: false }],
         });
       } else {
         const today = { label: "Start daily", run: startDaily, primary: prefs.trainingDone };

@@ -46,4 +46,11 @@ describe("the daily on the landing (M3 spec Y8)", () => {
     expect(n.title).toBe(`Daily #${today.number} done · #12 of 340`);
     expect(n.actions.map((a) => a.label)).toEqual(["Practice shift", "Daily again (practice)", "Training shift (about 3 min)"]);
   });
+
+  it("has exactly one primary action, even before the training is done (M3 walkthrough W1)", () => {
+    const today = dailyFor(utcDate(Date.now()));
+    localStorage.setItem(`pitwall.daily.${today.date}`, JSON.stringify({ rank: 1, total: 1 }));
+    const { os } = renderOs(<Feed />);
+    expect(shiftNotice(os).actions.filter((a) => a.primary).map((a) => a.label)).toEqual(["Practice shift"]);
+  });
 });
