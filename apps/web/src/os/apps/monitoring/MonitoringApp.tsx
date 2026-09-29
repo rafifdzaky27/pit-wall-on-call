@@ -1,6 +1,7 @@
 import { Console } from "../../../console/Console";
 import { useIncident } from "../../incident/IncidentProvider";
 import { usePrefs } from "../../PrefsProvider";
+import { Objective } from "../../shell/Objective";
 import { useOs } from "../../shell/OsContext";
 import { useStartDaily, useStartShift } from "../../useStartShift";
 
@@ -49,7 +50,7 @@ function CalmView() {
 export function MonitoringApp() {
   const incident = useIncident();
   const { prefs } = usePrefs();
-  const { wm, openApp, openTool } = useOs();
+  const { wm, openApp, openTool, signal } = useOs();
   const mine = wm.windows.find((w) => w.appId === "monitoring" && !w.closing);
   const active = !!mine && wm.focusedId === mine.id && !mine.minimized;
 
@@ -79,6 +80,7 @@ export function MonitoringApp() {
           </button>
         </div>
       )}
+      {incident.phase === "active" && <Objective scenario={incident.scenario} snapshot={incident.snapshot} compact />}
       <Console
         scenario={incident.scenario}
         snapshot={incident.snapshot}
@@ -90,6 +92,7 @@ export function MonitoringApp() {
         onPause={incident.pause}
         shortcuts={prefs.singleKeyShortcuts}
         active={active}
+        onSelect={(id) => signal(`service:${id}`)}
         onOpen={(app, serviceId) => (app === "incident" ? openApp("incident") : openTool(app, serviceId))}
       />
     </div>

@@ -14,6 +14,7 @@ import { useStartShift } from "../useStartShift";
 import { DesktopIcons } from "./DesktopIcons";
 import { Dock } from "./Dock";
 import { Lockscreen } from "./Lockscreen";
+import { useGuide } from "../guide/useGuide";
 import { useNoticeFeed } from "./noticeFeed";
 import { useUpdateNotice } from "./useUpdateNotice";
 import { Notifications } from "./Notifications";
@@ -35,6 +36,7 @@ export function Desktop() {
   const running = incident.phase === "paging" || incident.phase === "active";
 
   useNoticeFeed(startShift);
+  useGuide();
   useUpdateNotice();
   useSoundCues(locked);
   useRadio(incident.phase === "paging");

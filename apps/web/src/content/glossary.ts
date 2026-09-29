@@ -17,7 +17,25 @@ export type GlossaryId =
   | "on-call"
   | "secondary"
   | "mitigation-vs-fix"
-  | "status-page";
+  | "status-page"
+  | "replication-slot"
+  | "wal"
+  | "replica-lag"
+  | "dead-letter-queue"
+  | "consumer-lag"
+  | "offset"
+  | "circuit-breaker"
+  | "retries-backoff"
+  | "cache-hit-ratio"
+  | "request-coalescing"
+  | "tls-certificate"
+  | "config-rollback"
+  | "waf-rule"
+  | "disk-volume"
+  | "log-level"
+  | "deploy-vs-config"
+  | "severity"
+  | "alert-level";
 
 export interface GlossaryEntry {
   id: GlossaryId;
@@ -41,6 +59,24 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
   { id: "secondary", term: "Secondary", definition: "The backup on-call engineer. They get paged if the primary does not answer, and can be asked for help." },
   { id: "mitigation-vs-fix", term: "Mitigation versus fix", definition: "A mitigation eases the symptoms for now; a fix removes the cause. Mitigate first if it helps, but the incident ends with the fix." },
   { id: "status-page", term: "Status page", definition: "A public page where the company tells customers what is broken and what is being done about it." },
+  { id: "replication-slot", term: "Replication slot", definition: "A marker on a database that remembers how far a copy of it has read, so the database keeps the changes that copy still needs." },
+  { id: "wal", term: "WAL", definition: "Write-ahead log: the running record of every change a database makes, written before the change itself. Copies of the database replay it to stay current." },
+  { id: "replica-lag", term: "Replica lag", definition: "How far behind a database copy is compared with the main one. Readers of the copy see older data the further behind it falls." },
+  { id: "dead-letter-queue", term: "Dead-letter queue", definition: "A side queue where messages that could not be processed are set aside, so they do not hold up the ones behind them." },
+  { id: "consumer-lag", term: "Consumer lag", definition: "How many messages are waiting that a reader of a queue has not yet processed. It grows when readers are slower than writers." },
+  { id: "offset", term: "Offset", definition: "In Kafka, the position of a message in a log. A reader keeps its offset to remember where it stopped." },
+  { id: "circuit-breaker", term: "Circuit breaker", definition: "A guard that stops calling a struggling service for a while, so callers fail fast instead of piling up waiting." },
+  { id: "retries-backoff", term: "Retries and backoff", definition: "Trying a failed call again, and waiting a little longer before each new try, so repeated tries do not add to the load." },
+  { id: "cache-hit-ratio", term: "Cache hit ratio", definition: "The share of requests answered from a fast store of recent results instead of going to the slower source. Higher is better." },
+  { id: "request-coalescing", term: "Request coalescing", definition: "Merging many identical requests into one, and sharing the single answer with everyone who asked." },
+  { id: "tls-certificate", term: "TLS certificate", definition: "A digital ID a server shows so browsers can trust the connection and know who they are talking to." },
+  { id: "config-rollback", term: "Config rollback", definition: "Putting the previous settings back in place, undoing a recent settings change without touching the code." },
+  { id: "waf-rule", term: "WAF rule", definition: "A rule in a web application firewall, the filter at the front door, that decides which web requests to let through or refuse." },
+  { id: "disk-volume", term: "Disk volume", definition: "A slice of storage attached to a server. It has a fixed size, and when it fills up nothing more can be saved to it." },
+  { id: "log-level", term: "Log level", definition: "How serious a log line is. ERROR means something failed, WARN means something looks wrong, INFO is routine news." },
+  { id: "deploy-vs-config", term: "Deploy versus config change", definition: "A deploy ships new code. A settings change alters how the code behaves while the code itself stays the same. Either can change how a service behaves." },
+  { id: "severity", term: "Severity (SEV1–3)", definition: "How serious an incident is. SEV1 is the worst, a major outage. SEV2 is serious. SEV3 is minor. Higher severity means a faster, wider response." },
+  { id: "alert-level", term: "Alert level", definition: "Warn means a measure has crossed a line worth watching. Critical means it has crossed the line where customers are likely feeling it." },
 ];
 
 export function glossaryEntry(id: GlossaryId): GlossaryEntry {

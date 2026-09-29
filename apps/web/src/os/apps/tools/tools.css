@@ -42,3 +42,4 @@
 .inc-item { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); font-size: var(--fs-sm); }
 .inc-item > span:first-child { display: grid; gap: 2px; }
 .inc-timeline { display: grid; gap: 4px; font-size: var(--fs-sm); max-height: 420px; overflow: auto; }
+.inc-objective { grid-column: 1 / -1; }

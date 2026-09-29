@@ -85,9 +85,18 @@
   cursor: pointer;
   transition: border-color var(--motion-fast);
 }
-.node:hover { border-color: var(--muted); }
+.map-ph { flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
+.map-legend { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0 auto 0 0; padding: 0; font-size: var(--fs-xs); text-transform: none; letter-spacing: 0; }
+.map-legend li { display: flex; align-items: baseline; gap: var(--space-1); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; align-self: center; background: var(--muted); }
+.legend-dot.ok { background: var(--ok); }
+.legend-dot.warn { background: var(--warn); }
+.legend-dot.crit { background: var(--crit); }
+.node:hover { border-color: var(--accent); background: var(--sunken); }
+.node:hover .node-name { text-decoration: underline; text-underline-offset: 3px; }
+.node:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .node:active { background: var(--sunken); }
-.node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.node.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); background: var(--sunken); }
 .node-sub { display: flex; gap: var(--space-2); align-items: baseline; min-width: 0; }
 .node-name, .node-detail { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node-name { font-weight: 500; }

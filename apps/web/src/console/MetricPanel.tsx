@@ -1,20 +1,18 @@
 import type { MetricDef, State } from "@pitwall/engine";
-import type { GlossaryId } from "../content/glossary";
+import { metricTerm } from "../content/metricTerms";
 import { formatMetric } from "../game/format";
 import { Term } from "../os/Term";
 
-/** Metric labels whose first word is a glossary term (M2.5 spec §4). */
-const TERMS: Record<string, GlossaryId> = { "5xx": "5xx", p99: "p99", Pool: "connection-pool" };
-
 function Label({ text }: { text: string }) {
-  const [first, ...rest] = text.split(" ");
-  const id = TERMS[first!];
-  if (!id) return text;
-  return (
-    <>
-      <Term id={id}>{first}</Term> {rest.join(" ")}
-    </>
-  );
+  const found = metricTerm(text);
+  if (found)
+    return (
+      <>
+        <Term id={found.id}>{found.match}</Term>
+        {text.slice(found.match.length)}
+      </>
+    );
+  return text;
 }
 
 const WIDTH = 120;
@@ -43,7 +41,7 @@ export function MetricPanel({ metric, value, history }: { metric: MetricDef<Stat
         <h3>
           <Label text={metric.label} />
         </h3>
-        {level !== "ok" && <span className={`tag ${level}`}>{level === "crit" ? "Crit" : "Warn"}</span>}
+        {level !== "ok" && <span className={`tag ${level}`}><Term id="alert-level">{level === "crit" ? "Crit" : "Warn"}</Term></span>}
       </div>
       <div className="pb">
         <div className={`metric-value mono ${level}`}>
