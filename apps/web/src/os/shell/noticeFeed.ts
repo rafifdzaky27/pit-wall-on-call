@@ -6,6 +6,7 @@ import { authorName, visibleFor } from "../apps/chat/unread";
 import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useStartDaily, useStartTraining } from "../useStartShift";
+import { objectiveText } from "./Objective";
 import { useOs } from "./OsContext";
 
 /**
@@ -69,7 +70,7 @@ export function useNoticeFeed(startShift: () => void): void {
         id: "acked",
         app: "Shift",
         title: "You're on it",
-        body: "The pager is quiet. Start where you would at work: the dashboards, or the incident itself. The dock has every tool.",
+        body: `${objectiveText(scenario).broken} Find the cause and fix it before the error budget runs out. Start with the dashboards or the incident; the dock has every tool.`,
         actions: [
           { label: "Open Monitoring", run: () => openApp("monitoring"), primary: true },
           { label: "Open Incident", run: () => openApp("incident") },

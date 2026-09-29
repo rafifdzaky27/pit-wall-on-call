@@ -1,0 +1,6 @@
+.objective { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
+.objective h3 { font-size: var(--fs-sm); font-weight: 600; }
+.objective p { margin: 0; }
+.objective-clock { font-size: var(--fs-sm); }
+.objective.compact { border-radius: 0; border-width: 0 0 1px; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: var(--space-3); }
+.objective.compact .objective-clock { grid-column: 2; }

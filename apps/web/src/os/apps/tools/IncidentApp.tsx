@@ -6,6 +6,7 @@ import { formatClock } from "../../../game/format";
 import { useIncident } from "../../incident/IncidentProvider";
 import { useTeamActions } from "../../incident/useTeamActions";
 import { useOs } from "../../shell/OsContext";
+import { Objective } from "../../shell/Objective";
 import { statusLabel } from "../../shell/StatusChip";
 import { PAGE_ACTION, STATUS_ACTION } from "../chat/commands";
 import { actionsIn, offered } from "./toolActions";
@@ -82,6 +83,9 @@ export function IncidentApp() {
         <span className="mono muted">{formatClock(snapshot.tick)}</span>
       </header>
       <div className="inc-grid">
+        <div className="inc-objective">
+          <Objective scenario={scenario} snapshot={snapshot} />
+        </div>
         <section className="tool-card" aria-labelledby="inc-status-h">
           <h3 id="inc-status-h">Status page</h3>
           <form className="inc-compose" onSubmit={post}>

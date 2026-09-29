@@ -75,6 +75,7 @@ describe("Desktop", () => {
     expect(os().wm.windows.map((w) => w.appId)).toEqual(["browser"]);
     const notice = os().notices.find((n) => n.id === "acked")!;
     expect(notice.title).toBe("You're on it");
+    expect(notice.body).toContain("Customers get");
     expect(notice.actions.map((a) => a.label)).toEqual(["Open Monitoring", "Open Incident"]);
     act(() => notice.actions[0]!.run());
     expect(os().wm.windows.find((w) => w.appId === "monitoring")?.mode).toBe("maximized");

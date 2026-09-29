@@ -1,6 +1,7 @@
 import { Console } from "../../../console/Console";
 import { useIncident } from "../../incident/IncidentProvider";
 import { usePrefs } from "../../PrefsProvider";
+import { Objective } from "../../shell/Objective";
 import { useOs } from "../../shell/OsContext";
 import { useStartDaily, useStartShift } from "../../useStartShift";
 
@@ -79,6 +80,7 @@ export function MonitoringApp() {
           </button>
         </div>
       )}
+      {incident.phase === "active" && <Objective scenario={incident.scenario} snapshot={incident.snapshot} compact />}
       <Console
         scenario={incident.scenario}
         snapshot={incident.snapshot}
