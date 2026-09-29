@@ -25,7 +25,7 @@ describe("ServiceMap", () => {
 
   it("says how many services there are and that they can be clicked", () => {
     setup();
-    expect(screen.getByText(`${slowLeak.services.length} services · click one to see its metrics and checks`)).toBeTruthy();
+    expect(screen.getByText(`${slowLeak.services.length} services · click one or press 1–${slowLeak.services.length}`)).toBeTruthy();
   });
 
   it("renders every service as a named button that selects it", () => {

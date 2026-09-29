@@ -2,5 +2,4 @@
 .objective h3 { font-size: var(--fs-sm); font-weight: 600; }
 .objective p { margin: 0; }
 .objective-clock { font-size: var(--fs-sm); }
-.objective.compact { border-radius: 0; border-width: 0 0 1px; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: var(--space-3); }
-.objective.compact .objective-clock { grid-column: 2; }
+.objective.compact { padding: var(--space-2) var(--space-4); border-radius: 0; border-width: 0 0 1px; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: var(--space-3); }

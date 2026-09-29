@@ -21,6 +21,6 @@ test("a first shift says what the job is, and points where to look when the play
   await page.getByRole("button", { name: "Open Monitoring" }).first().click();
   const monitoring = page.getByRole("region", { name: "Monitoring" });
   await expect(monitoring.getByText("Your job")).toBeVisible();
-  await expect(monitoring.getByText(/\d+ services · click one to see its metrics and checks/)).toBeVisible();
-  await expect(monitoring.getByText("failing now, customers feel it")).toBeVisible();
+  await expect(monitoring.getByText(/\d+ services · click one or press 1–\d+/)).toBeVisible();
+  await expect(monitoring.getByText("customers feel it")).toBeVisible();
 });

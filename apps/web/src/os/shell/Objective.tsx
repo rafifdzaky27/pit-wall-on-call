@@ -28,7 +28,8 @@ export function Objective({ scenario, snapshot, compact = false }: { scenario: S
       <p>
         <b>{broken}</b> {goal}
       </p>
-      {left !== null && timeLeft !== null && (
+      {/* Compact sits over Monitoring, whose top bar already shows the clock and the budget. */}
+      {!compact && left !== null && timeLeft !== null && (
         <p className="objective-clock muted">
           <span className="mono">{left}</span> of the error budget left · <span className="mono">{formatClock(timeLeft)}</span> on the clock
         </p>

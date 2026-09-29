@@ -4,9 +4,9 @@ export const HEALTH_LABEL: Record<Health, string> = { ok: "Healthy", warn: "Degr
 
 /** What each health level means for customers (M4.5 N2). Nodes say Healthy or Degraded; the legend pairs them with OK and Warn. */
 const LEGEND: readonly { level: Health; name: string; meaning: string }[] = [
-  { level: "ok", name: "OK", meaning: "healthy, working normally" },
+  { level: "ok", name: "OK", meaning: "healthy" },
   { level: "warn", name: "Warn", meaning: "degraded, watch it" },
-  { level: "crit", name: "Critical", meaning: "failing now, customers feel it" },
+  { level: "crit", name: "Critical", meaning: "customers feel it" },
 ];
 
 interface Props {
@@ -25,22 +25,22 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
   const byId = new Map(scenario.services.map((s) => [s.id, s]));
   return (
     <section className="panel map-panel" aria-labelledby="map-h">
-      <div className="ph">
+      {/* One header row holds the legend and the count, so the map keeps its height on short screens (layout.spec). */}
+      <div className="ph map-ph">
         <h2 id="map-h">Service map</h2>
-        <span className="hint">Press 1–{scenario.services.length} to jump</span>
+        <ul className="map-legend" aria-label="Legend">
+          {LEGEND.map((l) => (
+            <li key={l.level}>
+              <span className={`legend-dot ${l.level}`} aria-hidden="true" />
+              <b className={`node-health ${l.level}`}>{l.name}</b>
+              <span className="muted">{l.meaning}</span>
+            </li>
+          ))}
+        </ul>
+        <span className="hint">
+          {scenario.services.length} services · click one or press 1–{scenario.services.length}
+        </span>
       </div>
-      <p className="map-lead">
-        {scenario.services.length} services · click one to see its metrics and checks
-      </p>
-      <ul className="map-legend" aria-label="Legend">
-        {LEGEND.map((l) => (
-          <li key={l.level}>
-            <span className={`legend-dot ${l.level}`} aria-hidden="true" />
-            <b className={`node-health ${l.level}`}>{l.name}</b>
-            <span className="muted">{l.meaning}</span>
-          </li>
-        ))}
-      </ul>
       <div className="map">
         <svg className="map-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {scenario.edges.map((e) => {
