@@ -293,6 +293,9 @@ describe("mitigated needs the symptoms down (M2.5 review)", () => {
     steps(run, 20);
     expect(run.snapshot().errorRateBp).toBe(1000);
     expect(run.snapshot().status).toBe("investigating");
+  });
+});
+
 describe("asynchronous actions (M2.5 plan B1)", () => {
   it("do not block the next action, and complete on their own clock", () => {
     const run = newRun();
