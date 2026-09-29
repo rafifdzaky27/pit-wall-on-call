@@ -16,6 +16,8 @@ export const regexCpuIncident = defineIncident({
     key: v.key,
     scenario: regexCpu(v),
     desktop: regexCpuDesktop(v),
+    // Words that name the cause. The rollback is named by version, so it stays neutral among the other rollbacks.
+    spoilers: ["regex", "waf rule", "custom rule", "validation rule", "safe-query", "rule 100154", "backtrack", "junk"],
     golden: {
       perfect: [at(0, inspectAction("laptop.slack.deploys")), at(20, ACK), at(20, "rule.cpu"), at(60, "rule.logs"), at(90, "rule.config_history"), at(120, "rule.config_rollback")],
       masking: [at(20, ACK), at(20, "rule.scale_out"), at(3400, "rule.config_rollback")],

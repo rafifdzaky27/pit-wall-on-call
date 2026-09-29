@@ -19,6 +19,8 @@ export const cacheStampedeIncident = defineIncident({
       key: v.key,
       scenario: cacheStampede(v),
       desktop: cacheStampedeDesktop(v),
+      // Coalescing waits until the player has seen the misses; the rollback is named by version, among other rollbacks.
+      spoilers: ["coalesc", "key prefix", "prefix", "cold cache", "keyspace"],
       golden: {
         perfect: [
           at(0, inspectAction(prefix ? "laptop.slack.deploys" : "laptop.slack.infra")),
@@ -27,7 +29,7 @@ export const cacheStampedeIncident = defineIncident({
           at(50, prefix ? "api.deploys" : "redis.maintenance"),
           at(80, fix),
         ],
-        masking: [at(20, ACK), at(20, "db.raise_conns"), at(2700, fix)],
+        masking: [at(20, ACK), at(20, "db.raise_conns"), at(2600, "redis.stats"), at(2700, fix)],
         herring: [at(20, ACK), at(20, "db.connections"), at(60, "db.slow_log"), at(100, "db.raise_conns"), at(320, "db.failover"), at(600, "redis.restart"), at(780, "redis.stats"), at(820, fix)],
       },
     };

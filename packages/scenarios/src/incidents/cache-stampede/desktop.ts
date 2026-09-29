@@ -11,14 +11,14 @@ export function cacheStampedeDesktop(v: CacheVariant): DesktopContent {
   const db = prefix ? "postgres" : "pricing-db";
 
   const chat: ChatMessage[] = [
-    { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 3100, author: "bot", text: "SEV3 resolved: transactional emails delayed. Duration 34 min. Postmortem PM-224." },
+    { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 3100, author: "bot", text: "SEV3 resolved: transactional emails delayed. Duration 34 min. Postmortem PM-252." },
     {
-      id: "incidents.pm224",
+      id: "incidents.pm252",
       channel: "incidents",
       trigger: { kind: "prepage" },
       minutesAgo: 2900,
       author: "secondary",
-      text: "PM-224 is up for review. The queue consumer had no backoff, so a retry storm doubled the delay.",
+      text: "PM-252 is up for review. The queue consumer had no backoff, so a retry storm doubled the delay.",
       reactions: [{ emoji: "👀", by: ["infra", "deployer"] }],
       thread: [{ author: "deployer", text: "added a comment on the backoff follow-up", minutesAgo: 2800 }],
     },
@@ -39,7 +39,7 @@ export function cacheStampedeDesktop(v: CacheVariant): DesktopContent {
           minutesAgo: 24,
           author: "deploybot",
           text: "catalog-api v311 deployed to production",
-          card: { service: "catalog-api", version: "v311", sha: "c04f19e", by: "deployer", env: "production", changes: "Cache key prefix v2 to v3 for the schema change (#3481)", status: "succeeded" },
+          card: { service: "catalog-api", version: "v311", sha: "c04f19e", by: "deployer", env: "production", changes: "Schema change for the new product columns (#3481)", status: "succeeded" },
         }
       : {
           id: "deploys.api.new",

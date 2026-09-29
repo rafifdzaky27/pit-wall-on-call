@@ -29,22 +29,30 @@ describe.each(cacheStampedeIncident.variants.map((v) => [v.scenario.id, v] as co
   });
 
   it("restarting redis burns side effects and teaches the harmful lesson", () => {
-    const r = replay(s, 1, [at(20, ACK), at(20, "redis.restart"), at(400, fix)]);
+    const r = replay(s, 1, [at(20, ACK), at(20, "redis.restart"), at(400, "redis.stats"), at(440, fix)]);
     expect(r.burnByTag["side_effect:redis.restart"]).toBeGreaterThan(0);
     expect(pickLesson(s, r).id).toBe("harmful");
-    const f = replay(s, 1, [at(20, ACK), at(20, "db.failover"), at(400, fix)]);
+    const f = replay(s, 1, [at(20, ACK), at(20, "db.failover"), at(400, "redis.stats"), at(440, fix)]);
     expect(f.burnByTag["side_effect:db.failover"]).toBeGreaterThan(0);
   });
 
   it("coalescing alone fixes it, whatever emptied the cache", () => {
-    const r = replay(s, 1, [at(20, ACK), at(20, "cache.coalesce")]);
+    const r = replay(s, 1, [at(20, ACK), at(20, "redis.stats"), at(60, "cache.coalesce")]);
     expect(r.outcome).toBe("resolved");
     expect(r.rootCauseFound).toBe(true);
   });
 
+  it("keeps request coalescing off the tools list until the misses have been seen", () => {
+    const run = new Run(s, 1);
+    run.dispatch(ACK);
+    expect(run.check("cache.coalesce")).toBe("unavailable");
+    run.dispatch("redis.stats");
+    expect(run.check("cache.coalesce")).not.toBe("unavailable");
+  });
+
   it("doing nothing gets the dnf lesson and a slow ack gets the ack lesson", () => {
     expect(pickLesson(s, replay(s, 1, [])).id).toBe("dnf");
-    expect(pickLesson(s, replay(s, 1, [at(400, ACK), at(400, fix)])).id).toBe("slow-ack");
+    expect(pickLesson(s, replay(s, 1, [at(400, ACK), at(400, "redis.stats"), at(440, fix)])).id).toBe("slow-ack");
   });
 });
 

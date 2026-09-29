@@ -12,14 +12,14 @@ export function regexCpuDesktop(v: RegexVariant): DesktopContent {
   const cfgOld = edge ? "config v36" : "config v51";
 
   const chat: ChatMessage[] = [
-    { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 2900, author: "bot", text: "SEV3 resolved: image CDN cache purge slow. Duration 22 min. Postmortem PM-219." },
+    { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 2900, author: "bot", text: "SEV3 resolved: image CDN cache purge slow. Duration 22 min. Postmortem PM-251." },
     {
-      id: "incidents.pm219",
+      id: "incidents.pm251",
       channel: "incidents",
       trigger: { kind: "prepage" },
       minutesAgo: 2700,
       author: "secondary",
-      text: "PM-219 is up for review. Short one: a purge job that ran without a rate limit.",
+      text: "PM-251 is up for review. Short one: a purge job that ran without a rate limit.",
       reactions: [{ emoji: "👀", by: ["infra", "support"] }],
       thread: [{ author: "infra", text: "left a comment on the follow-ups", minutesAgo: 2600 }],
     },
@@ -58,7 +58,7 @@ export function regexCpuDesktop(v: RegexVariant): DesktopContent {
       minutesAgo: edge ? 21 : 18,
       author: "deploybot",
       text: `${layerLabel} ${cfgNow} applied to production`,
-      card: { service: layerLabel, version: cfgNow, sha: edge ? "d4a91c8" : "3b7e0f6", by: "deployer", env: "production", changes: edge ? "WAF: block junk input in query strings" : "Search: reject junk queries", status: "succeeded" },
+      card: { service: layerLabel, version: cfgNow, sha: edge ? "d4a91c8" : "3b7e0f6", by: "deployer", env: "production", changes: edge ? "Gateway hardening for query strings" : "Search: tighten query handling", status: "succeeded" },
     },
     { id: "infra.peak", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 60, hotspotId: "laptop.slack.infra" },
     { id: "infra.cert", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 240, author: "infra", text: "renewed the TLS certificate for *.{domain}. Next expiry in 60 days." },
@@ -76,7 +76,7 @@ export function regexCpuDesktop(v: RegexVariant): DesktopContent {
     { id: "dm.deployer.changes", channel: "dm:deployer", trigger: { kind: "action", actionId: "ask.deployer.changes" }, author: "deployer", text: edge ? "just a WAF rule to block junk in query strings. I tried it on a few strings and it matched fine. No code deploys from me today, why?" : "just a validation rule for search queries, tried it on a few strings and it was fine. Config only, no code. Why, is search slow?" },
     { id: "dm.infra.load", channel: "dm:infra", trigger: { kind: "action", actionId: "ask.infra.load" }, author: "infra", text: `it's the lunch peak plus the promo email, that's all. Add ${edge ? "gateway nodes" : "search-api pods"} and it goes away, I've seen it a hundred times.` },
     { id: "dm.support.impact", channel: "dm:support", trigger: { kind: "action", actionId: "ask.support.impact" }, author: "support", text: edge ? "pages hang for about 30 seconds and then say Gateway Time-out. Started maybe 20 minutes ago. Some pages load, most don't." : "search hangs and then says Gateway Time-out. Browsing product pages still works fine. Started maybe 20 minutes ago." },
-    { id: "dm.secondary.config", channel: "dm:secondary", trigger: { kind: "action", actionId: "global.ask_secondary" }, author: "secondary", text: `the code deploys look boring. Was there a config change on ${layerLabel}? That has its own history.` },
+    { id: "dm.secondary.config", channel: "dm:secondary", trigger: { kind: "action", actionId: "global.ask_secondary" }, author: "secondary", text: `the code deploys look boring. What else changes production around the time the errors began, besides code deploys?` },
   ];
 
   const requests: RequestPattern[] = edge

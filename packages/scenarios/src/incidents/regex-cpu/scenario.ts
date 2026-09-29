@@ -166,6 +166,10 @@ export function regexCpu(v: RegexVariant): ScenarioDef<RegexCpu> {
         available: (s) => s.rule === 1,
         effect: (s) => ({ ...s, rule: 0, disabled: 0, extra: 0, growth: 0 }),
         reveals: () => [`${cfgOld} applied to every ${edge ? "node" : "pod"}; CPU falling`] },
+      { id: "rule.rollback_shop", tool: "deploys", label: "Roll back shop-api to v203", serviceId: "shop", category: "mitigate", durationS: 20, verdict: "wasted",
+        reveals: () => [`shop-api v203 live; ${edge ? "gateway" : "search-api"} CPU did not move, the timeouts are still there`] },
+      { id: "rule.rollback_other", tool: "deploys", label: edge ? "Roll back search-api to v88" : "Roll back gateway config to v61", serviceId: edge ? "search" : "edge", category: "mitigate", durationS: 20, verdict: "wasted",
+        reveals: () => [edge ? "search-api v88 live; the gateway CPU did not move, the timeouts are still there" : "gateway config v61 applied; search-api CPU did not move, the timeouts are still there"] },
       { id: "rule.scale_out", tool: "deploys", label: edge ? "Add gateway nodes" : "Add search-api pods", serviceId: L, category: "mitigate", durationS: 20, verdict: "wasted",
         available: (s) => s.scale === 0,
         effect: (s) => ({ ...s, scale: s.scale + 1 }),
@@ -202,7 +206,7 @@ export function regexCpu(v: RegexVariant): ScenarioDef<RegexCpu> {
           ? `{support}: "pages hang for about 30 seconds and then say Gateway Time-out. It started roughly 20 minutes ago."`
           : `{support}: "search hangs and then says Gateway Time-out. Browsing pages still works. It started roughly 20 minutes ago."`] },
       { id: "global.ask_secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
-        reveals: () => [`{secondary} (secondary): "The code deploys look boring. Was there a config change on ${layerLabel}? That has its own history."`] },
+        reveals: () => [`{secondary} (secondary): "The code deploys look boring. What else changes production around the time the errors began, besides code deploys?"`] },
     ],
     rootCauseActionIds: ["rule.config_rollback"],
     hints: HINTS,
@@ -221,7 +225,7 @@ export function regexCpu(v: RegexVariant): ScenarioDef<RegexCpu> {
         body: edge ? "Pages on {brand} hang and then fail with a gateway timeout. You are the primary on-call." : "Search on {brand} hangs and then fails with a gateway timeout. You are the primary on-call.",
       },
       hotspots: {
-        "laptop.slack.deploys": { kind: "clue", label: "Laptop: Slack #deploys", author: "deployer", text: edge ? "pushed gateway config v37 (a WAF rule for junk queries), off to a late lunch" : "pushed search config v52 (query validation), off to a late lunch" },
+        "laptop.slack.deploys": { kind: "clue", label: "Laptop: Slack #deploys", author: "deployer", text: edge ? "pushed a config change to prod, off to a late lunch" : "shipped a config tweak, off to a late lunch" },
         "laptop.slack.infra": { kind: "herring", label: "Laptop: Slack #infra", author: "infra", text: "heads up: the promo email went out at noon, expect a bigger lunch peak today" },
         "phone.mention": { kind: "clue", label: "Phone: new mention", text: edge ? "@{brand} your site just spins and then says 504 Gateway Time-out" : "@{brand} the search box just spins and then says 504 Gateway Time-out", appearsAt: "incident_start" },
         "table.neighbours": { kind: "clue", label: "The next table", text: edge ? "Their whole site is hanging, then it just gives up." : "The search never comes back, everything else loads fine." },

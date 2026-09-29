@@ -22,6 +22,8 @@ type Stampede = {
   conns: number;
   failover: number;
   restarts: number;
+  /** 1 once the player has seen the cache misses, which is what request coalescing acts on. */
+  seen: number;
   statusPosted: number;
   ducks: number;
 };
@@ -97,6 +99,7 @@ export function cacheStampede(v: CacheVariant): ScenarioDef<Stampede> {
       conns: 0,
       failover: 0,
       restarts: 0,
+      seen: 0,
       statusPosted: 0,
       ducks: 0,
     }),
@@ -166,10 +169,12 @@ export function cacheStampede(v: CacheVariant): ScenarioDef<Stampede> {
     actions: [
       { id: "redis.stats", tool: "db", label: "Check redis keyspace stats", serviceId: "cache", category: "investigate", durationS: 3, verdict: "useful",
         command: "redis-cli info stats keyspace",
+        effect: (s) => ({ ...s, seen: 1 }),
         reveals: (s) => [prefix
           ? `redis-cache: hit ratio ${Math.floor(s.hit / 100)}% (was 96% yesterday), 41k keys and growing slowly, all under prefix cat:v3; 1.9M keys under cat:v2 are still there and untouched; uptime 41 days, evicted 0`
           : `redis-cache: hit ratio ${Math.floor(s.hit / 100)}% (was 96% yesterday), 38k keys (2.1M yesterday), evicted 0; uptime 21 minutes`] },
       { id: "api.logs", tool: "logs", label: `Search ${api} for cache misses`, serviceId: "api", category: "investigate", durationS: 3, verdict: "useful",
+        effect: (s) => ({ ...s, seen: 1 }),
         reveals: () => [prefix
           ? `${api}: nearly every request logs a cache miss and goes to ${db}; the keys are all cat:v3:..., a prefix that does not appear in older logs`
           : `${api}: nearly every request logs a cache miss and goes to ${db}, for keys that were hot an hour ago`] },
@@ -194,9 +199,15 @@ export function cacheStampede(v: CacheVariant): ScenarioDef<Stampede> {
             reveals: () => ["v310 live on every pod; requests read the old cat:v2 keys again and the hit ratio is back above 90%"] }]
         : []),
       { id: "cache.coalesce", tool: "deploys", label: `Enable request coalescing on ${api}`, serviceId: "api", category: "fix", durationS: 15, verdict: "useful",
-        available: (s) => s.coal === 0,
+        available: (s) => s.coal === 0 && s.seen === 1,
         effect: (s) => ({ ...s, coal: 1, fixed: 1 }),
         reveals: () => [`${api}: one database read per missing key, the other waiting requests share it; ${db} load falling while the cache refills`] },
+      ...(prefix
+        ? [{ id: "cache.rollback_front", tool: "deploys" as const, label: "Roll back storefront config to v88", serviceId: "front", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
+            reveals: () => ["storefront config v88 applied; product pages still fail, the database is still saturated"] },
+          { id: "cache.rollback_redis", tool: "deploys" as const, label: "Roll back redis-cache config to v12", serviceId: "cache", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
+            reveals: () => ["redis-cache config v12 applied; nothing changed, the hit ratio is still low"] }]
+        : []),
       { id: "db.raise_conns", tool: "db", label: `Raise ${db} max connections to 400`, serviceId: "db", category: "mitigate", durationS: 20, verdict: "wasted",
         command: "ALTER SYSTEM SET max_connections = 400;",
         available: (s) => s.conns === 0,
@@ -248,14 +259,14 @@ export function cacheStampede(v: CacheVariant): ScenarioDef<Stampede> {
       },
       hotspots: prefix
         ? {
-            "laptop.slack.deploys": { kind: "clue", label: "Laptop: Slack #deploys", author: "deployer", text: "shipped catalog-api v311 (new cache key prefix for the schema change), off to a late lunch" },
+            "laptop.slack.deploys": { kind: "clue", label: "Laptop: Slack #deploys", author: "deployer", text: "shipped catalog-api v311, off to a late lunch" },
             "laptop.slack.infra": { kind: "herring", label: "Laptop: Slack #infra", author: "infra", text: "heads up: the promo email went out at noon, expect a bigger lunch peak today" },
             "phone.mention": { kind: "clue", label: "Phone: new mention", text: "@{brand} product pages keep saying Service Unavailable, then they load super slowly", appearsAt: "incident_start" },
             "table.neighbours": { kind: "clue", label: "The next table", text: "Every product page hangs. The home page is fine, though." },
             "wall.poster": { kind: "herring", label: "Poster on the wall", text: "{brand} FLASH SALE 50% today" },
           }
         : {
-            "laptop.slack.infra": { kind: "clue", label: "Laptop: Slack #infra", author: "infra", text: "restarted redis-cache for the memory upgrade, took 4 minutes, all green afterwards" },
+            "laptop.slack.infra": { kind: "clue", label: "Laptop: Slack #infra", author: "infra", text: "did the planned memory upgrade on the cache tier, took 4 minutes, all green afterwards" },
             "laptop.slack.deploys": { kind: "herring", label: "Laptop: Slack #deploys", author: "secondary", text: "pricing-api v155 is out, a rounding fix for tax-inclusive prices" },
             "phone.mention": { kind: "clue", label: "Phone: new mention", text: "@{brand} tried to pay and the total never loads. Service Unavailable, twice", appearsAt: "incident_start" },
             "table.neighbours": { kind: "clue", label: "The next table", text: "The cart fills fine but the price never shows up." },
