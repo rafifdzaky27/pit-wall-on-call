@@ -59,4 +59,44 @@ describe("New shift from the café (M2.5 follow-up: the flicker)", () => {
     act(() => vi.advanceTimersByTime(2_000));
     expect(art()).toMatch(/^A café in Tokyo/);
   });
+
+  it("never holds the old city once you look at the café again, even straight after New shift (review 1)", () => {
+    let api: IncidentApi | null = null;
+    function Capture() {
+      api = useIncident();
+      return null;
+    }
+    const seeds = [1, 2, 3];
+    render(
+      <PrefsProvider>
+        <IncidentProvider newSeed={() => seeds.shift() ?? 9} now={() => Date.now()}>
+          <SubmissionProvider>
+            <Capture />
+            <Stage>
+              <ShiftScope>
+                <OsProvider>
+                  <p>laptop screen</p>
+                </OsProvider>
+              </ShiftScope>
+            </Stage>
+          </SubmissionProvider>
+        </IncidentProvider>
+      </PrefsProvider>,
+    );
+    const incident = () => api!;
+    act(() => incident().start());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    act(() => vi.advanceTimersByTime(481_000));
+    act(() => vi.advanceTimersByTime(3_000));
+    // The cold close has pulled back: you are looking at the café.
+    expect(document.querySelector(".stage")!.classList.contains("in-cafe")).toBe(true);
+    expect(art()).toMatch(/^A café in Jakarta/);
+    act(() => incident().newShift());
+    act(() => vi.advanceTimersByTime(300));
+    expect(art()).toMatch(/^A café in Jakarta/);
+    // Start shift before the camera has settled at the laptop: the café you look up at is the new city.
+    act(() => incident().start());
+    expect(art()).toMatch(/^A café in Tokyo/);
+  });
 });

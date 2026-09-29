@@ -36,8 +36,9 @@ export default function CafeView() {
   // were in. The next city is drawn once the café is out of sight, so nothing swaps mid-move (M2.5
   // follow-up: the flicker on New shift).
   const held = useRef<{ seed: number; scene: ReactElement } | null>(null);
+  // Only while the new shift is still idle: once it starts, the café you look up at is the new city (review 1).
   const settledAtLaptop = camera.view === "desktop" && !moving;
-  if (held.current && held.current.seed !== incident.seed && !settledAtLaptop) return held.current.scene;
+  if (held.current && held.current.seed !== incident.seed && incident.phase === "idle" && !settledAtLaptop) return held.current.scene;
   const scene = (
     <CafeScene
       seed={incident.seed}
