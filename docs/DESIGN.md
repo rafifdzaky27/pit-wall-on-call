@@ -296,3 +296,16 @@ Spec: `docs/specs/2026-09-28-m2.5-clear-connected-alive-design.md`.
 - **What you say is kept.** Status updates, pages and questions post into Chat from either Chat or Incident, and outlive the Chat window (`chatPosts` in the OS context).
 - **The coach follows the tools.** Show me opens the tool that holds the control, filtered to the service, then outlines it once it renders. The coach sits above the OS on the Stage, so it reaches the OS through `OsBridge`.
 - **Layout.** The four tools share one stylesheet (`os/apps/tools/tools.css`): a toolbar, a side column of actions, and a main pane. Each is its own lazy chunk of about 1–1.6 KB gzip.
+
+## 13. The daily (M3)
+
+Spec: `docs/specs/2026-09-29-m3-daily-incident-design.md`.
+
+- **The landing leads with the daily.** The shift notice reads "Daily #N · <city>", with its city taken from the daily's seed. Its actions are Start daily, Practice shift and Training, and Training comes first until the player has done it. Monitoring's calm view offers Start daily as the primary button and Practice shift beside it.
+- **After today's ranked attempt,** the notice reads "Daily #N done · #R of T" and offers Practice shift and "Daily again (practice)". The rank is remembered on this device.
+- **The report:**
+  - the eyebrow names the daily ("Daily #7 · Shift report");
+  - the mini board is today's board;
+  - the posting line says "Ranked #R of T on today's daily board.", or that a later attempt counted as practice.
+- **The Browser's leaderboard site** has Daily and Practice tabs, with Daily as the default. The lock screen shows today's board.
+- **Share:** "Pit Wall On-Call · Daily #N", ending with the `/daily` link.
