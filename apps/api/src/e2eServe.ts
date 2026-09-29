@@ -21,12 +21,19 @@ const db = createDb(url.toString());
 await migrateDb(db.db);
 
 const plenty = { max: 10_000, windowMs: 60_000 };
+/**
+ * The server's calendar stands on a fixed day whose daily is the Slow Leak, so e2e/daily.spec.ts can play
+ * a known incident whichever incident the real date's daily is (M4). The clock still runs.
+ */
+const E2E_DAY = "2026-09-30";
+const offset = Date.parse(`${E2E_DAY}T10:00:00Z`) - Date.now();
 const app = createApp({
   version: "e2e",
   pingDb: db.ping,
   pendingMigrations: db.pendingMigrations,
   db: db.db,
   logger: pino({ level: "warn" }),
+  now: () => Date.now() + offset,
   limits: { runsPerToken: plenty, runsPerIp: plenty, playersPerIp: plenty, renamePerToken: plenty, boardPerIp: plenty },
 });
 serve({ fetch: app.fetch, port: 8787 }, () => console.log("e2e api listening on 8787"));

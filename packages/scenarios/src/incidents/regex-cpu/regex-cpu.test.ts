@@ -19,9 +19,9 @@ describe.each(regexCpuIncident.variants.map((v) => [v.scenario.id, v] as const))
     run.dispatch(ACK);
     run.dispatch("rule.scale_out");
     for (let i = 0; i < 400; i++) run.step();
-    expect(run.status()).toBe("mitigated");
+    expect(run.snapshot().status).toBe("mitigated");
     for (let i = 0; i < 3200; i++) run.step();
-    expect(run.status()).toBe("investigating");
+    expect(run.snapshot().status).toBe("investigating");
     const r = replay(s, 1, v.golden.masking);
     expect(r.burnByTag.mitigated_unfixed).toBeGreaterThan(0);
     expect(pickLesson(s, r).id).toBe("scale-trap");

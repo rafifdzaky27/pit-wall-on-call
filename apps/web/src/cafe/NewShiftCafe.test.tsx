@@ -1,3 +1,4 @@
+import { slowLeak } from "@pitwall/scenarios";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { DailyProvider } from "../net/daily";
@@ -31,7 +32,7 @@ describe("New shift from the café (M2.5 follow-up: the flicker)", () => {
     render(
       <PrefsProvider>
         <DailyProvider fetchDaily={() => new Promise(() => {})}>
-        <IncidentProvider newSeed={() => seeds.shift() ?? 9} now={() => Date.now()}>
+        <IncidentProvider scenario={slowLeak} newSeed={() => seeds.shift() ?? 9} now={() => Date.now()}>
           <SubmissionProvider>
             <Capture />
             <Stage>
@@ -73,7 +74,7 @@ describe("New shift from the café (M2.5 follow-up: the flicker)", () => {
     render(
       <PrefsProvider>
         <DailyProvider fetchDaily={() => new Promise(() => {})}>
-        <IncidentProvider newSeed={() => seeds.shift() ?? 9} now={() => Date.now()}>
+        <IncidentProvider scenario={slowLeak} newSeed={() => seeds.shift() ?? 9} now={() => Date.now()}>
           <SubmissionProvider>
             <Capture />
             <Stage>

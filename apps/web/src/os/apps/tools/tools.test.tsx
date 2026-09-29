@@ -1,5 +1,5 @@
 import type { ActionTool } from "@pitwall/engine";
-import { slowLeak, training } from "@pitwall/scenarios";
+import { SCENARIOS, slowLeak, training } from "@pitwall/scenarios";
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,8 +19,8 @@ afterEach(() => {
 
 const seconds = (n: number) => act(() => vi.advanceTimersByTime(n * 1000));
 
-function paged(ui: React.ReactNode, { training: drill = false } = {}) {
-  const r = renderOs(ui);
+function paged(ui: React.ReactNode, { training: drill = false, scenario = slowLeak }: { training?: boolean; scenario?: typeof slowLeak } = {}) {
+  const r = renderOs(ui, { scenario });
   act(() => (drill ? r.incident().startTraining() : r.incident().start()));
   act(() => r.incident().skipPrepage());
   act(() => r.incident().acknowledge());
@@ -36,18 +36,16 @@ const APPS: [Exclude<ActionTool, "chat">, ComponentType][] = [
 ];
 
 describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
-  it.each([
-    ["Slow Leak", slowLeak, false],
-    ["training", training, true],
-  ] as const)("%s: each action is in exactly one tool, and that tool shows it", (_name, scenario, drill) => {
+  // Every incident's every variant, and training (M4 spec N4).
+  it.each(SCENARIOS.map((s) => [s.id, s, s.id === training.id] as const))("%s: each action is in exactly one tool, and that tool shows it", (_name, scenario, drill) => {
     const shown = new Map<string, string[]>();
     for (const [tool, App] of APPS) {
-      const { unmount, container } = paged(<App practice={slowLeak} />, { training: drill });
+      const { unmount, container } = paged(<App />, { training: drill, scenario });
       const ids =
         tool === "dashboards"
           ? // Monitoring shows one service at a time.
             scenario.services.flatMap((s) => {
-              fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${s.label}`) }));
+              fireEvent.click(screen.getByRole("button", { name: (n) => n.startsWith(s.label) }));
               return [...container.querySelectorAll("[data-coach^='action:']")].map((b) => b.getAttribute("data-coach")!.slice(7));
             })
           : [...container.querySelectorAll("[data-coach^='action:']")].map((b) => b.getAttribute("data-coach")!.slice(7));
@@ -66,10 +64,7 @@ describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
 });
 
 describe("Monitoring alone is not enough (M2.5 follow-up)", () => {
-  it.each([
-    ["Slow Leak", slowLeak],
-    ["training", training],
-  ] as const)("%s: every fix for the root cause lives in another tool, so the player has to leave Monitoring", (_name, scenario) => {
+  it.each(SCENARIOS.map((s) => [s.id, s] as const))("%s: every fix for the root cause lives in another tool, so the player has to leave Monitoring", (_name, scenario) => {
     expect(scenario.rootCauseActionIds.length).toBeGreaterThan(0);
     for (const id of scenario.rootCauseActionIds) {
       const action = scenario.actions.find((a) => a.id === id)!;

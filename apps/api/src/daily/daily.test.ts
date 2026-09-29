@@ -1,7 +1,7 @@
 import { ENGINE_VERSION } from "@pitwall/engine";
-import { dailyFor } from "@pitwall/scenarios";
+import { dailyFor, getScenario } from "@pitwall/scenarios";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { perfectRun } from "../fixtures";
+import { perfectActionsFor, perfectRun } from "../fixtures";
 import { freshIp, testApp, type TestApp } from "../testing";
 
 // Frozen at 2026-10-05 10:00 UTC: today is Daily #7, yesterday 2026-10-04.
@@ -21,7 +21,7 @@ beforeEach(async () => {
 
 const dailyRun = (date = TODAY, overrides: Record<string, unknown> = {}) => {
   const d = dailyFor(date);
-  return perfectRun({ scenarioId: d.scenarioId, seed: d.seed, mode: "daily", dailyDate: date, ...overrides });
+  return perfectRun({ scenarioId: d.scenarioId, seed: d.seed, mode: "daily", dailyDate: date, actions: perfectActionsFor(d.scenarioId), ...overrides });
 };
 const post = (token: string, body: unknown) => h.call("POST", "/api/runs", { token, body, ip: freshIp() });
 
@@ -95,7 +95,8 @@ describe("GET /api/leaderboard?date= (M3 spec Y7)", () => {
     // Bravo does nothing useful: a DNF.
     await post(b.token, dailyRun(TODAY, { actions: [{ tick: 20, actionId: "ack" }] }));
     // Charlie's is flagged (a fix faster than a person could make it).
-    await post(c.token, dailyRun(TODAY, { actions: [{ tick: 0, actionId: "ack" }, { tick: 0, actionId: "checkout.rollback" }] }));
+    const fix = getScenario(dailyFor(TODAY).scenarioId)!.rootCauseActionIds[0]!;
+    await post(c.token, dailyRun(TODAY, { actions: [{ tick: 0, actionId: "ack" }, { tick: 0, actionId: fix }] }));
     // Alpha's second attempt is practice and not on the daily board.
     await post(a.token, dailyRun());
 

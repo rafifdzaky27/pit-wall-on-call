@@ -25,6 +25,8 @@ export default defineConfig({
       // vite preview proxies /api to the API above (preview.proxy defaults to server.proxy).
       command: "pnpm --filter @pitwall/web build && pnpm --filter @pitwall/web exec vite preview --port 4173 --strictPort",
       url: "http://localhost:4173",
+      // Practice shifts in this build are always the Slow Leak, which the specs play (M4: practice picks by seed).
+      env: { VITE_PIN_INCIDENT: "db-pool-exhaustion" },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

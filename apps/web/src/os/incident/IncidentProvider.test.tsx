@@ -1,3 +1,4 @@
+import { slowLeak } from "@pitwall/scenarios";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,7 +10,7 @@ function setup(seeds = [1, 2, 3]) {
   const queue = [...seeds];
   const newSeed = () => queue.shift() ?? 99;
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <IncidentProvider newSeed={newSeed} prepageMs={18_000} now={now}>
+    <IncidentProvider scenario={slowLeak} newSeed={newSeed} prepageMs={18_000} now={now}>
       {children}
     </IncidentProvider>
   );
