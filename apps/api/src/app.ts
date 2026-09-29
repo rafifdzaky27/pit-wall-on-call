@@ -5,6 +5,7 @@ import type { AppEnv, RouteContext } from "./http/context";
 import { ApiError, errorBody } from "./http/errors";
 import { createMetrics, type Metrics } from "./http/metrics";
 import { createRateLimiter, DEFAULT_LIMITS, type Limits, type RateLimiter } from "./http/rateLimit";
+import { dailyRoutes } from "./daily/routes";
 import { leaderboardRoutes } from "./leaderboard/routes";
 import { playersRoutes } from "./players/routes";
 import { runsRoutes } from "./runs/routes";
@@ -21,6 +22,7 @@ export interface AppDeps {
   metrics?: Metrics;
   limiter?: RateLimiter;
   limits?: Partial<Limits>;
+  now?: () => number;
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -100,10 +102,12 @@ export function createApp(deps: AppDeps) {
       metrics,
       limiter: deps.limiter ?? createRateLimiter(),
       limits: { ...DEFAULT_LIMITS, ...deps.limits },
+      now: deps.now ?? Date.now,
     };
     app.route("/api", playersRoutes(ctx));
     app.route("/api", runsRoutes(ctx));
     app.route("/api", leaderboardRoutes(ctx));
+    app.route("/api", dailyRoutes(ctx));
   }
 
   return app;

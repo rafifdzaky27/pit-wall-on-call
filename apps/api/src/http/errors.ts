@@ -6,6 +6,7 @@ export type ErrorCode =
   | "unauthorized"
   | "stale_version"
   | "impossible_actions"
+  | "not_the_daily"
   | "payload_too_large"
   | "rate_limited"
   | "not_found"

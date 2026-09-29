@@ -94,14 +94,14 @@ describe("GET /api/leaderboard", () => {
     expect(b.entries[0]!.runId).toBe(best);
   });
 
-  it("leaves out flagged runs, daily runs and other scenarios", async () => {
+  it("leaves out flagged runs and other scenarios; a ranked daily counts as a practice best too (M3)", async () => {
     await insertRun((await player("flagged")).id, { bp: 1, flagged: true });
     await insertRun((await player("daily")).id, { bp: 1, mode: "daily_ranked" });
     await insertRun((await player("elsewhere")).id, { bp: 1, scenario: "disk-full" });
     await insertRun((await player("counted")).id, { bp: 500 });
     const b = await board();
-    expect(handles(b)).toEqual(["counted"]);
-    expect(b.total).toBe(1);
+    expect(handles(b)).toEqual(["daily", "counted"]);
+    expect(b.total).toBe(2);
   });
 
   it("returns the top 50, plus the caller's own row when they are further down", async () => {

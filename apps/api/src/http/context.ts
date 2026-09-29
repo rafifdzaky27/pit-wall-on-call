@@ -14,6 +14,8 @@ export interface RouteContext {
   metrics: Metrics;
   limiter: RateLimiter;
   limits: Limits;
+  /** The server's clock, for the daily's UTC date (M3 spec Y4); tests freeze it. */
+  now: () => number;
 }
 
 /** Throws 429 with Retry-After when `key` is over `limit` in `bucket`. */
