@@ -15,17 +15,17 @@ const CHANNEL_INFO: DesktopContent["channelInfo"] = {
 function chat(v: Variant): ChatMessage[] {
   const api = v.labels.api;
   return [
-    { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 1600, author: "bot", text: "SEV3 resolved: search-api p99 above 800 ms. Duration 14 min. Postmortem PM-219." },
+    { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 1600, author: "bot", text: v.filler.sev3 },
     {
-      id: "incidents.pm219",
+      id: "incidents.pm",
       channel: "incidents",
       trigger: { kind: "prepage" },
       minutesAgo: 1500,
       author: "secondary",
-      text: "PM-219 is up for review. A cache TTL change, reverted within the hour.",
+      text: v.filler.pm,
       reactions: [{ emoji: "👀", by: ["infra", "support"] }],
       thread: [
-        { author: "infra", text: "left two comments on the timeline", minutesAgo: 1440 },
+        { author: "infra", text: v.filler.pmNote, minutesAgo: 1440 },
         { author: "secondary", text: "thanks, fixed both", minutesAgo: 1420 },
       ],
     },
@@ -36,7 +36,7 @@ function chat(v: Variant): ChatMessage[] {
       minutesAgo: 11_500,
       author: "deploybot",
       text: `${api} ${v.key ? "v87" : "v206"} deployed to production`,
-      card: { service: api, version: v.key ? "v87" : "v206", sha: "3ad91f0", by: "deployer", env: "production", changes: "Trim response payloads", status: "succeeded" },
+      card: { service: api, version: v.key ? "v87" : "v206", sha: v.filler.prevSha, by: "deployer", env: "production", changes: v.filler.prevChange, status: "succeeded" },
     },
     { id: "deploys.mine", channel: "deploys", trigger: { kind: "prepage" }, minutesAgo: v.key ? 300 : 240, hotspotId: "laptop.slack.deploys", reactions: [{ emoji: "🚀", by: ["secondary"] }] },
     {
@@ -46,11 +46,11 @@ function chat(v: Variant): ChatMessage[] {
       minutesAgo: v.key ? 299 : 239,
       author: "deploybot",
       text: `${api} ${v.apiVersion} deployed to production`,
-      card: { service: api, version: v.apiVersion, sha: "e5b2a19", by: "deployer", env: "production", changes: v.key ? "Paginate order history (#1187)" : "Show tax in the cart total (#3391)", status: "succeeded" },
+      card: { service: api, version: v.apiVersion, sha: v.filler.apiSha, by: "deployer", env: "production", changes: v.filler.apiChange, status: "succeeded" },
     },
-    { id: "infra.cert", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 400, author: "infra", text: "renewed the TLS certificate for *.{domain}. Next expiry in 60 days." },
+    { id: "infra.cert", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 400, author: "infra", text: v.filler.cert },
     { id: "infra.lag", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 62, hotspotId: "laptop.slack.infra" },
-    { id: "infra.disk", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 120, author: "infra", text: "cleaned up old logs on the logging nodes", code: "/var/log   38% used   (was 84%)" },
+    { id: "infra.disk", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 120, author: "infra", text: v.filler.disk.text, code: v.filler.disk.code },
     { id: "dm.support.refund", channel: "dm:support", trigger: { kind: "prepage" }, minutesAgo: 30, author: "support", text: "hey, are you on call today? someone asked about a refund, not urgent" },
     { id: "incidents.opened", channel: "incidents", trigger: { kind: "page" }, author: "bot", text: `SEV2 opened: ${v.page.title}. Primary: you. Secondary: {secondary}.` },
     { id: "incidents.support", channel: "incidents", trigger: { kind: "alert", alertId: "customer_5xx" }, author: "support", text: v.key ? "Customers are writing in: order history is empty or errors right after they order." : "Customers are writing in: their cart keeps changing and checkout gives an error page." },

@@ -6,14 +6,17 @@ const at = (tick: number, actionId: string): ActionRecord => ({ tick, actionId }
 
 describe.each(replicaLagIncident.variants.map((v) => [v.scenario.id, v] as const))("%s: golden players", (_id, v) => {
   const s = v.scenario;
-  const finish = [at(3000, "db.long_running"), at(3050, "db.stop_job")];
+  const blocker = s.id.endsWith(":migration");
+  const find = blocker ? "replica.sessions" : "db.long_running";
+  const fix = blocker ? "replica.kill_session" : "db.stop_job";
+  const finish = [at(3000, find), at(3050, fix)];
 
-  it("the perfect player wins under par; stopping the job is the only fix", () => {
+  it("the perfect player wins under par; the one fix is the only fix", () => {
     const r = replay(s, 1, v.golden.perfect);
     expect(r.outcome).toBe("resolved");
     expect(r.rootCauseFound).toBe(true);
     expect(r.budgetBurnedBp).toBeLessThanOrEqual(s.parBp);
-    expect(s.rootCauseActionIds).toEqual(["db.stop_job"]);
+    expect(s.rootCauseActionIds).toEqual([fix]);
   });
 
   it("flushing the cache masks the errors, which then return", () => {
@@ -36,10 +39,11 @@ describe.each(replicaLagIncident.variants.map((v) => [v.scenario.id, v] as const
     expect(pickLesson(s, r).id).toBe("failover-trap");
   });
 
-  it("the job cannot be stopped before it is found", () => {
+  it("the fix cannot be run before its target is found", () => {
     const run = new Run(s, 1);
     run.dispatch(ACK);
-    expect(() => run.dispatch("db.stop_job")).toThrow();
+    expect(run.check(fix)).toBe("unavailable");
+    expect(() => run.dispatch(fix)).toThrow();
   });
 
   it("the replica lag grows if nothing is done, and the alert fires", () => {
@@ -51,5 +55,29 @@ describe.each(replicaLagIncident.variants.map((v) => [v.scenario.id, v] as const
 
   it("do nothing: dnf lesson", () => {
     expect(pickLesson(s, replay(s, 1, [])).id).toBe("dnf");
+  });
+});
+
+describe("the two variants are different puzzles", () => {
+  const [report, migration] = replicaLagIncident.variants.map((v) => v.scenario);
+  const has = (s: NonNullable<typeof report>, id: string) => s.actions.some((a) => a.id === id);
+
+  it("the cause is on the primary in one and on the replica in the other", () => {
+    expect(has(report!, "db.long_running") && has(report!, "db.stop_job")).toBe(true);
+    expect(has(report!, "replica.sessions")).toBe(false);
+    expect(has(migration!, "replica.sessions") && has(migration!, "replica.kill_session")).toBe(true);
+    expect(has(migration!, "db.stop_job")).toBe(false);
+  });
+
+  it("in the migration variant the busy backfill is a herring: listing it or pausing it does not find or fix anything", () => {
+    const run = new Run(migration!, 1);
+    run.dispatch(ACK);
+    run.dispatch("db.long_running");
+    for (let i = 0; i < 60; i++) run.step();
+    expect(run.check("replica.kill_session")).toBe("unavailable");
+    run.dispatch("batch.pause");
+    for (let i = 0; i < 200; i++) run.step();
+    expect(run.snapshot().alerts.some((a) => a.alertId === "replica_lag")).toBe(true);
+    expect(run.check("replica.kill_session")).toBe("unavailable");
   });
 });

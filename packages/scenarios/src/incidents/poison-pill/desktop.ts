@@ -15,17 +15,17 @@ const CHANNEL_INFO: DesktopContent["channelInfo"] = {
 function chat(v: Variant, extra: readonly ChatMessage[]): ChatMessage[] {
   const worker = v.labels.consumer;
   return [
-    { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 1600, author: "bot", text: "SEV3 resolved: search-api p99 above 800 ms. Duration 14 min. Postmortem PM-219." },
+    { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 1600, author: "bot", text: v.filler.sev3 },
     {
-      id: "incidents.pm219",
+      id: "incidents.pm",
       channel: "incidents",
       trigger: { kind: "prepage" },
       minutesAgo: 1500,
       author: "secondary",
-      text: "PM-219 is up for review. A cache TTL change, reverted within the hour.",
+      text: v.filler.pm,
       reactions: [{ emoji: "👀", by: ["infra", "support"] }],
       thread: [
-        { author: "infra", text: "left two comments on the timeline", minutesAgo: 1440 },
+        { author: "infra", text: v.filler.pmNote, minutesAgo: 1440 },
         { author: "secondary", text: "thanks, fixed both", minutesAgo: 1420 },
       ],
     },
@@ -36,7 +36,7 @@ function chat(v: Variant, extra: readonly ChatMessage[]): ChatMessage[] {
       minutesAgo: 14_000,
       author: "deploybot",
       text: `${worker} ${v.consumerPrevVersion} deployed to production`,
-      card: { service: worker, version: v.consumerPrevVersion, sha: "3ad91f0", by: "deployer", env: "production", changes: "Retry backoff tuning", status: "succeeded" },
+      card: { service: worker, version: v.consumerPrevVersion, sha: v.filler.prevSha, by: "deployer", env: "production", changes: v.filler.prevChange, status: "succeeded" },
     },
     {
       id: "deploys.api",
@@ -45,7 +45,7 @@ function chat(v: Variant, extra: readonly ChatMessage[]): ChatMessage[] {
       minutesAgo: 2700,
       author: "deploybot",
       text: `${v.labels.api} v311 deployed to production`,
-      card: { service: v.labels.api, version: "v311", sha: "b70c2de", by: "secondary", env: "production", changes: "Add order note to the API response", status: "succeeded" },
+      card: { service: v.labels.api, version: "v311", sha: v.filler.apiSha, by: "secondary", env: "production", changes: v.filler.apiChange, status: "succeeded" },
     },
     { id: "deploys.mine", channel: "deploys", trigger: { kind: "prepage" }, minutesAgo: 185, hotspotId: "laptop.slack.deploys", reactions: [{ emoji: "🚀", by: ["secondary"] }] },
     {
@@ -55,15 +55,15 @@ function chat(v: Variant, extra: readonly ChatMessage[]): ChatMessage[] {
       minutesAgo: 184,
       author: "deploybot",
       text: `${worker} ${v.consumerVersion} deployed to production`,
-      card: { service: worker, version: v.consumerVersion, sha: "e5b2a19", by: "deployer", env: "production", changes: v.key ? "Batch reservation writes (#2210)" : "Bump SMTP client to 3.1 (#2204)", status: "succeeded" },
+      card: { service: worker, version: v.consumerVersion, sha: v.filler.workerSha, by: "deployer", env: "production", changes: v.filler.workerChange, status: "succeeded" },
     },
-    { id: "infra.cert", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 260, author: "infra", text: "renewed the TLS certificate for *.{domain}. Next expiry in 60 days." },
+    { id: "infra.cert", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 260, author: "infra", text: v.filler.cert },
     { id: "infra.pods", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 62, hotspotId: "laptop.slack.infra" },
-    { id: "infra.disk", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 90, author: "infra", text: "cleaned up old logs on the logging nodes", code: "/var/log   38% used   (was 84%)" },
+    { id: "infra.disk", channel: "infra", trigger: { kind: "prepage" }, minutesAgo: 90, author: "infra", text: v.filler.disk.text, code: v.filler.disk.code },
     { id: "dm.support.refund", channel: "dm:support", trigger: { kind: "prepage" }, minutesAgo: 30, author: "support", text: "hey, are you on call today? someone asked about a refund, not urgent" },
     { id: "incidents.opened", channel: "incidents", trigger: { kind: "page" }, author: "bot", text: `SEV2 opened: ${v.page.title}. Primary: you. Secondary: {secondary}.` },
     { id: "incidents.support", channel: "incidents", trigger: { kind: "alert", alertId: "customer_5xx" }, author: "support", text: v.key ? "Customers are writing in: checkout gives an error page at the pay step." : "Customers are writing in: they cannot open their order and no confirmation email came." },
-    { id: "incidents.depth", channel: "incidents", trigger: { kind: "alert", alertId: "queue_depth" }, author: "bot", text: `QueueDepthHigh firing: ${v.labels.queue} above 4000 messages ready.` },
+    { id: "incidents.depth", channel: "incidents", trigger: { kind: "alert", alertId: "queue_depth" }, author: "bot", text: `QueueDepthHigh firing: ${v.labels.queue} above 4000 ${v.depth.word}.` },
     {
       id: "dm.secondary.mitigated",
       channel: "dm:secondary",
