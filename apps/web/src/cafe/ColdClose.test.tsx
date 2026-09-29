@@ -69,12 +69,13 @@ describe("cold close", () => {
     // One act for the whole shift: React batches the per-tick renders of the loaded café.
     act(() => vi.advanceTimersByTime(481_000));
     act(() => vi.advanceTimersByTime(COLD_CLOSE_DELAY_MS));
-    // The lazy café chunk's first import can take over 1 s under a full parallel `pnpm test`.
-    await vi.waitFor(() => expect(screen.getByRole("img", { name: /^A café in .* at night$/ })).toBeTruthy());
+    // The lazy café chunk's first import can take over 1 s under a full parallel `pnpm test`, and the
+    // M2.5 art is a bigger chunk to transform and a bigger scene to render in jsdom: give it room.
+    await vi.waitFor(() => expect(screen.getByRole("img", { name: /^A café in .* at night$/ })).toBeTruthy(), { timeout: 12_000 });
     await act(async () => vi.advanceTimersByTimeAsync(RESULTS_DELAY_MS));
     fireEvent.click(await vi.waitFor(() => screen.getByRole("button", { name: "Read the postmortem" })));
     fireEvent.keyDown(window, { key: "l" });
     expect(screen.getByRole("img", { name: /^A café in / }).getAttribute("aria-label")).toMatch(/at night$/);
     expect(document.querySelector(".patron.at-table")).toBeNull();
-  });
+  }, 15_000);
 });

@@ -65,6 +65,27 @@ describe("the café", () => {
     }
   });
 
+  it("recreates a different real café in every city, with signs in the city's language (M2.5 spec §12)", () => {
+    const styles = new Set(CITIES.map((c) => CAFE_SIGNS[c.id].decor.style));
+    expect(styles.size).toBe(CITIES.length);
+    for (const city of CITIES) {
+      const { decor } = CAFE_SIGNS[city.id];
+      expect(decor.shops).toHaveLength(3);
+      for (const c of [...decor.wall, ...decor.floor, decor.trim, decor.accent, decor.glow]) expect(c).toMatch(/^#[0-9a-f]{6}$/);
+    }
+    expect(CAFE_SIGNS.tokyo.decor.shops.join("")).toMatch(/[぀-ヿ一-龯]/);
+  });
+
+  it("darkens the room and mists the glass as the light and weather turn", () => {
+    expect(paletteFor("night", "clear").shadeOpacity).toBeGreaterThan(paletteFor("morning", "clear").shadeOpacity);
+    expect(paletteFor("morning", "rain").fog).toBeGreaterThan(paletteFor("morning", "clear").fog);
+    expect(paletteFor("night", "clear").daylight).toBe(0);
+  });
+
+  it("the days-since sign starts from a seeded, non-zero count", () => {
+    for (let seed = 1; seed <= 50; seed++) expect(resolveScene(seed).daysSince).toBeGreaterThan(0);
+  });
+
   it("names its hotspots", () => {
     expect(CAFE.hotspots).toContain("table.neighbours");
     expect(CAFE.hotspots).toContain("wall.poster");

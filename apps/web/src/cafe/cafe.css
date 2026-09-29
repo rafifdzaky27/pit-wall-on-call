@@ -1,60 +1,110 @@
-/* The café scene (cold-open spec §6). Only transform and opacity animate. */
+/* The café scene (cold-open spec §6, M2.5 spec §12). Only transform and opacity animate. */
 .cafe { position: absolute; inset: 0; overflow: hidden; background: #1d1512; }
-.cafe-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* The art is its own layer (will-change): a camera zoom then scales it rather than rastering it again at every scale.
+   It holds no café UI, so its stacking context traps nothing (the hotspots are its siblings, at z 2). */
+.cafe-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; will-change: transform; }
+/* The grain sits out camera moves: a full-frame bitmap is the costliest thing to raster at a zoom's scale. */
+.cafe.moving .cafe-grain { display: none; }
+
 /* Only the loops that turn or grow about their own centre use their own box; everything else keeps the scene's coordinates. */
-.lamp-glow, .patron-head, .radio-grille { transform-box: fill-box; }
+.patron-head, .radio-grille, .cat-body, .cat-tail, .pendulum, .flame, .phone-buzz, .phone-glow { transform-box: fill-box; }
 
-/* Parallax: the street drifts most, the room a little, the table not at all. */
+/* Parallax: the street drifts most, the wall and counter less, the room a little, the table not at all. */
 .cafe .layer-far { transform: translate(calc(var(--px, 0) * -8px), calc(var(--py, 0) * -4px)); transition: transform 0.4s ease-out; }
-.cafe .layer-mid { transform: translate(calc(var(--px, 0) * -4px), calc(var(--py, 0) * -2px)); transition: transform 0.4s ease-out; }
+.cafe .layer-wall { transform: translate(calc(var(--px, 0) * -5px), calc(var(--py, 0) * -2.5px)); transition: transform 0.4s ease-out; }
+.cafe .layer-mid { transform: translate(calc(var(--px, 0) * -3px), calc(var(--py, 0) * -1.5px)); transition: transform 0.4s ease-out; }
 
-.walker-a { animation: cafe-walk-right 22s linear infinite; }
-.walker-b { animation: cafe-walk-left 31s linear infinite -9s; }
+/* The street: people, traffic and rain. Each mover has a resting pose for reduced motion (review 4); the tram and cars rest off-screen. */
+.walker-a { transform: translateX(180px); animation: cafe-walk-right 22s linear infinite; }
+.walker-b { transform: translateX(520px) scaleX(-1); animation: cafe-walk-left 31s linear infinite -9s; }
+.walker-c { transform: translateX(660px); animation: cafe-walk-right 27s linear infinite -17s; }
 @keyframes cafe-walk-right { from { transform: translateX(-60px); } to { transform: translateX(840px); } }
 @keyframes cafe-walk-left { from { transform: translateX(840px) scaleX(-1); } to { transform: translateX(-60px) scaleX(-1); } }
 
-.prop-scooter { animation: cafe-drive 18s linear infinite -4s; }
-.prop-becak { animation: cafe-drive 26s linear infinite -12s; }
+.prop-scooter { transform: translateX(260px); animation: cafe-drive 18s linear infinite -4s; }
+.scooter-b { transform: translate(560px, -14px) scaleX(-1); animation: cafe-drive-back 23s linear infinite -15s; }
+.prop-becak { transform: translateX(420px); animation: cafe-drive 26s linear infinite -12s; }
+.car-drive { transform: translateX(-200px); animation: cafe-drive 14s linear infinite -2s; }
 @keyframes cafe-drive { from { transform: translateX(-200px); } to { transform: translateX(900px); } }
-.tram { animation: cafe-tram 40s linear infinite -6s; }
+@keyframes cafe-drive-back { from { transform: translate(900px, -14px) scaleX(-1); } to { transform: translate(-100px, -14px) scaleX(-1); } }
+.tram { transform: translateX(-460px); animation: cafe-tram 40s linear infinite -6s; }
 @keyframes cafe-tram { 0% { transform: translateX(800px); } 30%, 100% { transform: translateX(-460px); } }
 .headlights { animation: cafe-sweep 9s linear infinite; }
 @keyframes cafe-sweep { from { transform: translateX(-100px); } to { transform: translateX(900px); } }
 
 .rain-drop { animation: cafe-rain 1s linear infinite; }
 @keyframes cafe-rain { from { transform: translateY(0); } to { transform: translateY(470px); } }
+/* Drops that gather on the glass and run down it. */
+.rain-streak { animation: cafe-run 6s ease-in infinite; }
+@keyframes cafe-run { 0%, 40% { transform: translateY(0); opacity: 0.9; } 90% { opacity: 0.6; } 100% { transform: translateY(260px); opacity: 0; } }
 
+.bokeh { animation: cafe-bokeh 5s ease-in-out infinite alternate; }
+@keyframes cafe-bokeh { from { opacity: 0.45; } to { opacity: 0.9; } }
+
+/* Warmth: steam, lamps that breathe and flicker, lights that twinkle, the neon's hum. */
 .steam { animation: cafe-steam 3s ease-in-out infinite; opacity: 0; }
 @keyframes cafe-steam { 0% { opacity: 0; transform: translateY(6px); } 40% { opacity: 0.35; } 100% { opacity: 0; transform: translateY(-26px); } }
 
-.lamp-glow { transform-origin: center; animation: cafe-breathe 6s ease-in-out infinite alternate; }
-@keyframes cafe-breathe { from { transform: scale(1); } to { transform: scale(1.05); } }
+/* The big lamp glows hold still (a breathing 300 px glow would repaint the room every frame); one flickers now and then. */
+.lamp-glow.flicker { animation: cafe-lamp-flicker 9s steps(1) infinite; }
+@keyframes cafe-lamp-flicker { 0%, 86% { opacity: 1; } 88% { opacity: 0.55; } 89% { opacity: 0.95; } 91% { opacity: 0.6; } 93%, 100% { opacity: 1; } }
 .lit-window { animation: cafe-flicker 7s steps(1) infinite; }
 @keyframes cafe-flicker { 0%, 90% { opacity: 1; } 93% { opacity: 0.35; } 96%, 100% { opacity: 1; } }
+.twinkle { animation: cafe-twinkle 3.2s ease-in-out infinite alternate; }
+@keyframes cafe-twinkle { from { opacity: 0.35; } to { opacity: 0.95; } }
+.neon { animation: cafe-neon 11s steps(1) infinite; }
+@keyframes cafe-neon { 0%, 70% { opacity: 1; } 71% { opacity: 0.4; } 72% { opacity: 1; } 73% { opacity: 0.5; } 75%, 100% { opacity: 1; } }
 .vending-glow { animation: cafe-hum 4s ease-in-out infinite alternate; }
 @keyframes cafe-hum { from { opacity: 0.8; } to { opacity: 1; } }
+.flame { transform-origin: 50% 100%; animation: cafe-flame 0.9s ease-in-out infinite alternate; }
+@keyframes cafe-flame { from { transform: scaleY(0.85); } to { transform: scaleY(1.1); } }
 
+/* People idle: heads nod, arms lift cups, the barista works the jug. */
 .patron-head { transform-origin: 50% 100%; animation: cafe-nod 7s ease-in-out infinite alternate; }
 @keyframes cafe-nod { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
 .patron-arm { animation: cafe-sip 9s ease-in-out infinite; }
 @keyframes cafe-sip { 0%, 70%, 100% { transform: translateY(0); } 80%, 88% { transform: translateY(-12px); } }
+.barista-arm { animation: cafe-pour 5s ease-in-out infinite; }
+@keyframes cafe-pour { 0%, 60%, 100% { transform: translate(0, 0); } 70%, 85% { transform: translate(6px, -8px); } }
+.cursor-blink { animation: cafe-blink 1.1s steps(1) infinite; }
+@keyframes cafe-blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+.pendulum { transform-origin: 50% 0; animation: cafe-swing 2s ease-in-out infinite alternate; }
+@keyframes cafe-swing { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
 
-.phone.ringing > g { animation: cafe-buzz 2.5s linear infinite; }
+/* The café cat sleeps; clicked, it purrs (the egg button carries data-open while its caption shows). */
+.cat-body { transform-origin: 50% 100%; animation: cafe-cat-breathe 3.6s ease-in-out infinite; }
+@keyframes cafe-cat-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.07); } }
+.cat-tail { transform-origin: 90% 50%; animation: cafe-cat-tail 7s ease-in-out infinite; }
+@keyframes cafe-cat-tail { 0%, 80%, 100% { transform: rotate(0); } 86% { transform: rotate(-6deg); } 92% { transform: rotate(3deg); } }
+.zzz { animation: cafe-zzz 3s ease-out infinite; opacity: 0; }
+@keyframes cafe-zzz { 0% { opacity: 0; transform: translate(0, 0); } 30% { opacity: 0.8; } 100% { opacity: 0; transform: translate(8px, -18px); } }
+.cafe:has([data-hotspot="egg.cat"][data-open]) .cat-body { animation: cafe-purr 0.18s linear infinite; }
+@keyframes cafe-purr { 0%, 100% { transform: translateY(0) scaleY(1.03); } 50% { transform: translateY(-0.6px) scaleY(1.05); } }
+
+/* The phone: it buzzes on the table while the page rings; the island's dot pulses. */
+.phone.ringing .phone-buzz { transform-origin: center; animation: cafe-buzz 2.5s linear infinite; }
 @keyframes cafe-buzz {
-  0%, 30%, 100% { transform: translate(1125px, 790px) rotate(-10deg) scale(1, 0.62); }
-  3%, 9%, 15%, 21% { transform: translate(1123px, 790px) rotate(-11deg) scale(1, 0.62); }
-  6%, 12%, 18%, 24% { transform: translate(1127px, 790px) rotate(-9deg) scale(1, 0.62); }
+  0%, 30%, 100% { transform: translate(0, 0) rotate(0); }
+  3%, 9%, 15%, 21% { transform: translate(-2px, 0) rotate(-1deg); }
+  6%, 12%, 18%, 24% { transform: translate(2px, 0) rotate(1deg); }
 }
-.phone-glow { transform-box: fill-box; transform-origin: center; animation: cafe-ring 2.5s ease-out infinite; }
+.phone-glow { transform-origin: center; animation: cafe-ring 2.5s ease-out infinite; }
 @keyframes cafe-ring { 0% { opacity: 0.45; transform: scale(0.8); } 40%, 100% { opacity: 0; transform: scale(1.25); } }
+.island-dot { animation: cafe-dot 1s ease-in-out infinite alternate; }
+@keyframes cafe-dot { from { opacity: 1; } to { opacity: 0.3; } }
 .radio.playing .radio-grille { transform-origin: center; animation: cafe-beat 0.75s ease-in-out infinite; }
 @keyframes cafe-beat { 0%, 100% { transform: scale(1); } 20% { transform: scale(1.04); } }
 
 /* Paused: everything holds still (Review Focus 3). Reduced motion: nothing loops at all. */
 .cafe.paused *, .cafe.paused .layer-far, .cafe.paused .layer-mid { animation-play-state: paused !important; }
-[data-motion="reduce"] .cafe *, [data-motion="reduce"] .cafe .layer-far, [data-motion="reduce"] .cafe .layer-mid { animation: none !important; transform: none; transition: none; }
+/* While the camera moves, the art's loops hold too, so the art is not rastered again on every frame of the zoom. */
+.cafe.moving .cafe-art * { animation-play-state: paused !important; }
+[data-motion="reduce"] .cafe *, [data-motion="reduce"] .cafe .layer-far, [data-motion="reduce"] .cafe .layer-mid { animation: none !important; transition: none; }
+/* Parallax layers only: every other element keeps its drawn transform. */
+[data-motion="reduce"] .cafe .layer-far, [data-motion="reduce"] .cafe .layer-wall, [data-motion="reduce"] .cafe .layer-mid { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .cafe *, .cafe .layer-far, .cafe .layer-mid { animation: none !important; transition: none; }
+  .cafe .layer-far, .cafe .layer-wall, .cafe .layer-mid { transform: none; }
 }
 
 /* Hotspots (cold-open spec §6, §9): invisible until hovered or focused, then outlined and named. */
@@ -66,19 +116,52 @@
 
 .cafe-caption { position: absolute; transform: translate(-50%, calc(-100% - 12px)); display: grid; gap: 4px; max-width: 320px; padding: 12px 14px; border-radius: var(--radius); background: #f6f1e6; color: #1f1a17; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); font: 400 var(--fs-md) var(--font); pointer-events: auto; }
 .cafe-caption::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 14px; height: 14px; background: #f6f1e6; transform: translateX(-50%) rotate(45deg); }
+.cafe-caption.below { transform: translate(-50%, 12px); }
+.cafe-caption.below::after { top: -7px; bottom: auto; }
 .cafe-caption-src { color: #6b5a4a; font-size: var(--fs-sm); font-weight: 600; }
 .cafe-caption q { quotes: "“" "”"; }
+.cafe-caption p { margin: 0; }
 
-/* The phone, picked up off the table. */
-.phone-closeup-scrim { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 8, 7, 0.55); pointer-events: auto; }
-.phone-closeup { display: grid; align-content: start; gap: 10px; width: 300px; min-height: 520px; padding: 28px 16px 20px; border: 10px solid #1c1f24; border-radius: 36px; background: linear-gradient(#2c3358, #594878); color: #ffffff; font-family: var(--font); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
-.phone-time { margin: 0 0 12px; text-align: center; font-size: 44px; font-weight: 300; }
-.phone-card { display: grid; gap: 4px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.88); color: #1f1a17; font-size: var(--fs-sm); }
+/* The phone, picked up off the table: a slab with thin bezels, a pill island and a lock screen (M2.5 spec D1). */
+.phone-closeup-scrim { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 8, 7, 0.6); pointer-events: auto; }
+.phone-closeup { position: relative; width: 300px; height: min(620px, calc(100vh - 32px)); padding: 5px; border-radius: 48px; background: linear-gradient(145deg, #5b626c, #1d2026 40%, #3a3f47 70%, #15171b); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset, 0 30px 80px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.4); font-family: var(--font); color: #ffffff; }
+/* Side buttons: volume on the left, power on the right. */
+.phone-closeup::before { content: ""; position: absolute; left: -3px; top: 120px; width: 3px; height: 70px; border-radius: 2px 0 0 2px; background: linear-gradient(#2a2e35, #4a5058, #2a2e35); box-shadow: 0 90px 0 #3a3f47; }
+.phone-closeup::after { content: ""; position: absolute; right: -3px; top: 150px; width: 3px; height: 90px; border-radius: 0 2px 2px 0; background: linear-gradient(#2a2e35, #4a5058, #2a2e35); }
+.phone-screen { position: relative; display: flex; flex-direction: column; height: 100%; overflow: hidden; border-radius: 43px; background: #0b0c10; }
+.phone-wallpaper { position: absolute; inset: 0; width: 100%; height: 100%; }
+.phone-status, .phone-lock, .phone-stack, .phone-foot { position: relative; }
+.phone-status { display: flex; justify-content: space-between; align-items: center; height: 44px; padding: 0 26px 0 32px; font-size: 13px; font-weight: 600; }
+.phone-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 10px; }
+.phone-bars i { width: 3px; border-radius: 1px; background: #ffffff; }
+.phone-bars i:nth-child(1) { height: 4px; } .phone-bars i:nth-child(2) { height: 6px; } .phone-bars i:nth-child(3) { height: 8px; } .phone-bars i:nth-child(4) { height: 10px; opacity: 0.4; }
+.phone-battery { position: relative; display: inline-block; width: 22px; height: 11px; margin-left: 6px; border: 1.5px solid rgba(255, 255, 255, 0.8); border-radius: 3px; }
+.phone-battery::before { content: ""; position: absolute; inset: 1.5px; right: 6px; border-radius: 1px; background: #ffffff; }
+.phone-battery::after { content: ""; position: absolute; right: -4px; top: 3px; width: 2px; height: 4px; border-radius: 0 1px 1px 0; background: rgba(255, 255, 255, 0.8); }
+.phone-signal { display: inline-flex; align-items: center; gap: 4px; }
+/* The island: a black pill that grows into a live pager activity while the page rings. */
+.phone-island { position: absolute; top: 11px; left: 50%; z-index: 1; display: flex; align-items: center; gap: 8px; width: 104px; height: 30px; padding: 0 14px; border-radius: 15px; background: #000000; transform: translateX(-50%); font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+.phone-island.live { width: 264px; height: 36px; top: 8px; border-radius: 18px; animation: cafe-island-grow 0.4s cubic-bezier(0.2, 0, 0, 1); }
+@keyframes cafe-island-grow { from { transform: translateX(-50%) scale(0.4, 0.8); opacity: 0.4; } }
+.phone-island-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #ff5a4a; box-shadow: 0 0 10px #ff5a4a; animation: cafe-dot 1s ease-in-out infinite alternate; }
+.phone-island-sev { color: #ff8a7a; }
+.phone-island-clock { margin-left: auto; font-variant-numeric: tabular-nums; color: #ffb4a8; }
+.phone-lock { display: grid; justify-items: center; margin: 18px 0 14px; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); }
+.phone-date { margin: 0; font-size: 15px; font-weight: 500; opacity: 0.9; }
+.phone-lock-time { margin: 0; font-size: 76px; font-weight: 300; line-height: 1; letter-spacing: -2px; }
+.phone-stack { display: grid; gap: 8px; padding: 0 12px; overflow: auto; }
+.phone-card { display: grid; gap: 4px; padding: 11px 13px; border-radius: 20px; background: rgba(250, 247, 242, 0.82); color: #1f1a17; font-size: var(--fs-sm); backdrop-filter: blur(14px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); }
 .phone-card p { margin: 0; }
+.phone-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.phone-card-app { display: inline-flex; align-items: center; gap: 6px; color: #6b5a4a; font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.phone-card-app i { display: inline-block; width: 16px; height: 16px; border-radius: 5px; background: linear-gradient(#e0584a, #b3262e); }
+.phone-card-app.mention i { background: linear-gradient(#6a8ae0, #3b5ab0); }
+.phone-card-when { color: #8a7a6a; font-size: var(--fs-xs); }
 .phone-card.phone-page { gap: 6px; }
-.phone-app { color: #6b5a4a; font-size: var(--fs-xs); font-weight: 600; }
-.phone-empty { margin: 24px 0; text-align: center; opacity: 0.8; }
-.phone-close { justify-self: center; margin-top: auto; }
+.phone-empty { margin: 24px 0; text-align: center; opacity: 0.85; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4); }
+.phone-foot { display: grid; justify-items: center; gap: 12px; margin-top: auto; padding: 12px 0 10px; }
+.phone-close { justify-self: center; }
+.phone-home { width: 120px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.85); }
 .phone-closeup.ringing { animation: cafe-shake 2.5s linear infinite; }
 @keyframes cafe-shake { 0%, 30%, 100% { transform: translateX(0); } 5%, 15%, 25% { transform: translateX(-3px); } 10%, 20% { transform: translateX(3px); } }
 [data-motion="reduce"] .phone-closeup { animation: none; }

@@ -214,12 +214,20 @@ Spec: `docs/specs/2026-09-28-cold-open-design.md`, §6, §7 and §12.
 - **Never animate a wrapper around café UI with a filled opacity or transform.** It makes a stacking context and traps the UI under the screen (M2.5, twice).
 - **Paused overlay:** it belongs to the Stage, so it covers both views.
 
-### Art
-- **Drawing:** flat vector SVG on a 1600×900 canvas, covering the viewport (`xMidYMid slice`). Layers are the street through the window, the interior, the patrons and the foreground table.
-- **Colours:** they come from the scene palette in `packages/world/src/scene.ts` (time of day × weather), not from the UI tokens. The café is in-world art.
+### Art (lo-fi, M2.5)
+- **Style:** a lo-fi illustration (M2.5 spec §12), hand-authored SVG on a 1600×900 canvas covering the viewport (`xMidYMid slice`). Warm lamp light with glow and falloff, a gradient or texture on every surface, soft shadows, a subtle grain, mist and droplets on the glass, and bokeh from the signs outside.
+- **No flat fields:** no single flat colour field larger than about 5% of the frame. Walls, floor, counter, table and sky all carry a gradient, a texture pattern, light or props.
+- **Layers:** four depth layers, each a `data-layer` group: `street` (through the window), `walls` (window, walls, everything hung on them), `counter` (barista, machines, counter) and `room` (floor, tables, patrons, then the player's table). A `light` group lays the lamps, pools and screen glow over them, then a vignette and the grain.
+- **Density:** 40 or more distinct props per city, each a group with `data-prop="<name>"` (a test counts them; about 94 today). The player's table always has the laptop (keyboard deck, trackpad, stickers), the phone, a latte with art, a notebook, earbuds and the rubber duck (`DUCK`).
+- **References:** each city recreates a real kind of café in spirit, never a brand: a Melbourne laneway (brick, fairy lights, a tram), a Tokyo kissaten (dark wood, siphons, a vending machine), a Jakarta kopi susu bar (concrete, terrazzo, neon, ojek riders), a Yogyakarta joglo (teak, batik, a becak, Merapi). Each city's decor lives in `CAFE_SIGNS[city].decor`.
+- **Colours:** they come from the scene palette and decor in `packages/world/src/scene.ts` (time of day × weather × city), not from the UI tokens. The room sinks toward `palette.shade` as the light goes; the street is shaded, then its signs and windows are drawn again on top.
+- **Clocks:** the wall clock and the phone show the city's minutes in the hour the scene is painted in (`sceneTime`), so an afternoon never reads 01:00.
+- **Phone:** a modern slab with thin bezels and a pill island, never Apple's name, logo or exact trade dress. While the page rings the island becomes a live activity, "SEV2 · Checkout 5xx · mm:ss" on the incident clock; the lock screen keeps the page and the mention.
+- **Easter eggs:** a "works on my machine" sticker, "it's always DNS", a "days since last incident" sign that reads 0 once the page fires, a sleeping café cat that purrs, a coder at the window typing `git push --force`, a HUG OPS poster, a clock stopped at 3:00 ("Disk full at 3AM"), a Wi-Fi card. The clickable ones are named buttons after the clues in Tab order, with a caption; they never count as clues and never reach the engine.
 - **Visibility:** everything a player must reach stays inside the scene's x 199–1399 band, the part visible at 4:3.
 - **Particles:** 300 or fewer (rain lines 90 or fewer).
-- **Motion:** only transform and opacity animate. Parallax moves the street 8 px and the room 4 px. The table never moves. Everything holds still while paused and under reduced motion.
+- **Motion:** only transform and opacity animate: parallax (street 8 px, walls and counter 5 px, room 3 px, table 0), steam, rain and running drops, flicker, twinkle, neon, idle loops (heads, the barista, the cat, a pendulum). `transform-box: fill-box` only on the loops that turn about their own box. Everything holds still while paused and under reduced motion.
+- **Cost:** shared `<defs>` (gradients, patterns), no filters and no blend modes. Many small same-coloured shapes (keys, bulbs, droplets, lit windows) are one path each. The grain is a bitmap pattern inside the art, not an overlay layer, and the edge falloff is three bands, not a full-frame radial vignette. The SVG is its own layer (`will-change: transform`); big glows hold still; while the camera moves (`.cafe.moving`) the art's loops pause and the grain is hidden, so a zoom scales the art instead of rastering it again frame by frame.
 
 ### Hotspots and controls
 - **Hotspots:** real buttons, transparent until hover or focus, then outlined and named. In Tab order: Laptop, Phone, The next table, Poster on the wall, Radio. Clues open a caption (Esc closes it). The phone opens a close-up with its own clock in the city's time zone.
@@ -229,7 +237,7 @@ Spec: `docs/specs/2026-09-28-cold-open-design.md`, §6, §7 and §12.
 
 ### Budgets
 - **Main chunk:** grows 3 KB or less per milestone. The calendar, quick settings and the radio load lazily; the menus are fetched 2 s after boot.
-- **Café:** the art, hotspots and ambience player are one lazy chunk (about 7.6 KB gzip).
+- **Café:** the art, hotspots and ambience player are one lazy chunk (about 31 KB gzip since the M2.5 art pass; budget 150 KB).
 - **Recordings:** 1.5 MB or less (currently 0.6 MB).
 
 ## 11. Leaderboard (M2)
