@@ -227,7 +227,7 @@ Spec: `docs/specs/2026-09-28-cold-open-design.md`, §6, §7 and §12.
 - **Visibility:** everything a player must reach stays inside the scene's x 199–1399 band, the part visible at 4:3.
 - **Particles:** 300 or fewer (rain lines 90 or fewer).
 - **Motion:** only transform and opacity animate: parallax (street 8 px, walls and counter 5 px, room 3 px, table 0), steam, rain and running drops, flicker, twinkle, neon, idle loops (heads, the barista, the cat, a pendulum). `transform-box: fill-box` only on the loops that turn about their own box. Everything holds still while paused and under reduced motion.
-- **Cost:** shared `<defs>` (gradients, patterns), no filters and no blend modes; the grain is a bitmap pattern inside the art, not an overlay layer. Big glows hold still, and the art's loops pause while the camera moves (`.cafe.moving`), so a zoom never rasters the art frame by frame.
+- **Cost:** shared `<defs>` (gradients, patterns), no filters and no blend modes. Many small same-coloured shapes (keys, bulbs, droplets, lit windows) are one path each. The grain is a bitmap pattern inside the art, not an overlay layer, and the edge falloff is three bands, not a full-frame radial vignette. The SVG is its own layer (`will-change: transform`); big glows hold still; while the camera moves (`.cafe.moving`) the art's loops pause and the grain is hidden, so a zoom scales the art instead of rastering it again frame by frame.
 
 ### Hotspots and controls
 - **Hotspots:** real buttons, transparent until hover or focus, then outlined and named. In Tab order: Laptop, Phone, The next table, Poster on the wall, Radio. Clues open a caption (Esc closes it). The phone opens a close-up with its own clock in the city's time zone.
@@ -237,7 +237,7 @@ Spec: `docs/specs/2026-09-28-cold-open-design.md`, §6, §7 and §12.
 
 ### Budgets
 - **Main chunk:** grows 3 KB or less per milestone. The calendar, quick settings and the radio load lazily; the menus are fetched 2 s after boot.
-- **Café:** the art, hotspots and ambience player are one lazy chunk (about 7.6 KB gzip).
+- **Café:** the art, hotspots and ambience player are one lazy chunk (about 31 KB gzip since the M2.5 art pass; budget 150 KB).
 - **Recordings:** 1.5 MB or less (currently 0.6 MB).
 
 ## 11. Leaderboard (M2)
