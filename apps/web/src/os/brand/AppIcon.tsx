@@ -50,6 +50,31 @@ const GLYPHS: Record<IconName, ReactNode> = {
       <path d="M10 10.2a2 2 0 1 1 2.8 1.8c-.5.2-.8.7-.8 1.2v.6M12 15.9v.1" />
     </>
   ),
+  logs: (
+    <>
+      <path d="M6 7h12M6 10.5h8M6 14h10M6 17.5h6" />
+    </>
+  ),
+  deploys: (
+    <>
+      <circle cx="7.5" cy="7" r="1.6" />
+      <circle cx="7.5" cy="17" r="1.6" />
+      <circle cx="16.5" cy="12" r="1.6" />
+      <path d="M7.5 8.6v6.8M7.5 10.5c0 1.5 1.2 1.5 3 1.5h4.4" />
+    </>
+  ),
+  db: (
+    <>
+      <ellipse cx="12" cy="7.5" rx="5.5" ry="2" />
+      <path d="M6.5 7.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9M6.5 12c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2" />
+    </>
+  ),
+  incident: (
+    <>
+      <path d="M12 5.5l7 12.5H5z" />
+      <path d="M12 10.3v3.4M12 15.9v.1" />
+    </>
+  ),
   phone: (
     <>
       <rect x="8.2" y="4.5" width="7.6" height="15" rx="1.8" />

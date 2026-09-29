@@ -43,7 +43,7 @@ function CalmView() {
 export function MonitoringApp() {
   const incident = useIncident();
   const { prefs } = usePrefs();
-  const { wm, openApp } = useOs();
+  const { wm, openApp, openTool } = useOs();
   const mine = wm.windows.find((w) => w.appId === "monitoring" && !w.closing);
   const active = !!mine && wm.focusedId === mine.id && !mine.minimized;
 
@@ -84,6 +84,7 @@ export function MonitoringApp() {
         onPause={incident.pause}
         shortcuts={prefs.singleKeyShortcuts}
         active={active}
+        onOpen={(app, serviceId) => (app === "incident" ? openApp("incident") : openTool(app, serviceId))}
       />
     </div>
   );

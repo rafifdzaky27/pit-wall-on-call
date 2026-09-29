@@ -38,7 +38,7 @@ export function StatusChip() {
   const { openApp } = useOs();
   const { text, tone } = statusLabel(phase, snapshot);
   return (
-    <button type="button" className={tone ? `oncall status-${tone}` : "oncall"} aria-label={`Incident status: ${text}`} onClick={() => openApp("monitoring")}>
+    <button type="button" className={tone ? `oncall status-${tone}` : "oncall"} aria-label={`Incident status: ${text}`} onClick={() => openApp("incident")}>
       {text}
     </button>
   );

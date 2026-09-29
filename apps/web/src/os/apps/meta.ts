@@ -17,7 +17,11 @@ export const APP_META: Record<AppId, AppMeta> = {
   settings: { title: "Settings", size: { w: 860, h: 600 }, min: { w: 560, h: 400 }, maximized: false },
   trash: { title: "Trash", size: { w: 780, h: 500 }, min: { w: 480, h: 320 }, maximized: false },
   postmortem: { title: "postmortem.md", size: { w: 920, h: 760 }, min: { w: 480, h: 360 }, maximized: false },
+  logs: { title: "Logs", size: { w: 1100, h: 680 }, min: { w: 640, h: 400 }, maximized: false },
+  deploys: { title: "Deploys", size: { w: 960, h: 640 }, min: { w: 560, h: 400 }, maximized: false },
+  db: { title: "DB console", size: { w: 980, h: 600 }, min: { w: 600, h: 380 }, maximized: false },
+  incident: { title: "Incident", size: { w: 1100, h: 680 }, min: { w: 640, h: 420 }, maximized: false },
   help: { title: "Help", size: { w: 820, h: 600 }, min: { w: 520, h: 380 }, maximized: false },
 };
 
-export const DOCK_APPS: AppId[] = ["monitoring", "browser", "chat", "files", "settings", "trash"];
+export const DOCK_APPS: AppId[] = ["monitoring", "logs", "deploys", "db", "incident", "browser", "chat", "files", "settings", "trash"];
