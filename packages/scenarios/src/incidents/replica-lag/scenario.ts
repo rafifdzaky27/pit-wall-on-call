@@ -1,4 +1,4 @@
-import { defineScenario, type HotspotDef, type Rng, type ScenarioDef } from "@pitwall/engine";
+import { defineScenario, type ActionDef, type HotspotDef, type Rng, type ScenarioDef } from "@pitwall/engine";
 import { duckAction } from "../../duck";
 
 /** What loads the primary, and which page reads from the replica: what changes between the variants (M4 research D1). */
@@ -19,17 +19,38 @@ export interface Variant {
   /** What the batch service logs while it runs, and how the map describes it. */
   batchLine: (r: Rng) => string;
   batchDetail: string;
-  /** The console commands (static). */
+  /** What the replication-lag check and the replica log say, and the replica's own log line. */
+  lagReveal: (lagS: number) => string;
+  replicaLogReveal: (lagS: number) => string;
+  replicaLine: (lagS: number, r: Rng) => string;
+  /** The console commands (static). The find step lists the long statement on the primary, or the sessions on the replica. */
+  findLabel: string;
   findCommand: string;
   findReveal: (pid: number) => string;
   stopLabel: string;
   stopCommand: string;
   stopReveal: (pid: number) => string;
+  /** What a failover leaves behind: where the cause goes next. */
+  failoverTail: string;
+  /**
+   * Set when the lag has a different cause: replay is stalled by a session on the replica, and the batch job
+   * on the primary is busy but innocent. Then the find step runs on the replica and the batch job is a herring.
+   */
+  backfill?: {
+    listReveal: (pid: number) => string;
+    pauseLabel: string;
+    pauseCommand: string;
+    pauseReveal: string;
+    /** The alert it raises on the primary. */
+    alert: { title: string; description: string };
+  };
+  /** Background chat, so that no two incidents share a postmortem, a commit hash or a filler line. */
+  filler: { sev3: string; pm: string; pmNote: string; disk: { text: string; code: string }; cert: string; prevSha: string; prevChange: string; apiSha: string; apiChange: string };
   /** The innocent recent deploy. */
   deployReveal: string;
   asks: { deployer: string; infra: string; support: string; secondary: string };
   hotspots: Record<string, HotspotDef>;
-  lessons: { dnf: string; flush: string; failover: string; route: string; default: string };
+  lessons: { dnf: string; flush: string; failover: string; route: string; pause?: string; default: string };
   hints: string[];
 }
 
@@ -38,7 +59,7 @@ type ReplicaLag = {
   lag: number;
   /** Tenths of a second the lag gains per tick while the job runs. */
   growth: number;
-  /** 1 while the long-running job holds the primary. */
+  /** 1 while the cause holds: the long job on the primary, or the blocking session on the replica. */
   job: number;
   /** Ticks left in which the flushed cache hides the stale reads. */
   relief: number;
@@ -54,6 +75,8 @@ type ReplicaLag = {
   sat: number;
   flushes: number;
   failovers: number;
+  /** 1 while the backfill runs on the primary; 0 after it is paused, or where the variant has none. */
+  backfill: number;
   statusPosted: number;
   ducks: number;
 };
@@ -69,6 +92,9 @@ const jitter = (rng: Rng, spread: number) => (rng.next() - 0.5) * spread;
 
 export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
   const id = v.key ? `replica-lag:${v.key}` : "replica-lag";
+  const bf = v.backfill;
+  const findId = bf ? "replica.sessions" : "db.long_running";
+  const fixId = bf ? "replica.kill_session" : "db.stop_job";
   return defineScenario<ReplicaLag>({
     id,
     title: v.title,
@@ -85,7 +111,7 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
       { id: "cache", label: v.labels.cache, x: 34, y: 14, detail: () => "redis · 2 nodes" },
       { id: "primary", label: v.labels.primary, x: 66, y: 22, detail: (s) => (s.failovers ? "primary · promoted" : "primary · 16 vCPU") },
       { id: "replica", label: v.labels.replica, x: 66, y: 78, detail: (s) => `read replica · ${lagS(s)} s behind` },
-      { id: "batch", label: v.labels.batch, x: 92, y: 22, detail: (s) => (s.job ? v.batchDetail : "idle") },
+      { id: "batch", label: v.labels.batch, x: 92, y: 22, detail: (s) => ((v.backfill ? s.backfill : s.job) ? v.batchDetail : "idle") },
     ],
     edges: [
       { from: "edge", to: "api" },
@@ -108,6 +134,7 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
       sat: 0,
       flushes: 0,
       failovers: 0,
+      backfill: v.backfill ? 1 : 0,
       statusPosted: 0,
       ducks: 0,
     }),
@@ -126,7 +153,7 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
         edge: err >= 1000 ? "crit" : err >= 100 ? "warn" : "ok",
         api: err >= 1000 ? "crit" : err >= 100 ? "warn" : "ok",
         cache: "ok",
-        primary: s.routed && s.sat >= 200 ? "crit" : s.job ? "warn" : "ok",
+        primary: s.routed && s.sat >= 200 ? "crit" : (v.backfill ? s.backfill : s.job) ? "warn" : "ok",
         replica: l >= 60 ? "crit" : l >= 15 ? "warn" : "ok",
         batch: "ok",
       };
@@ -139,9 +166,9 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
       { id: "edge.err", serviceId: "edge", label: "5xx rate", unit: "%", max: 50, warn: 1, crit: 2, value: (s, n) => Math.max(0, errorRateBp(s) / 100 + (errorRateBp(s) ? jitter(n, 0.5) : 0)) },
       { id: "api.p99", serviceId: "api", label: "p99 latency", unit: "ms", max: 3000, warn: 800, crit: 1500, value: (s, n) => Math.max(0, 140 + Math.min(1200, errorRateBp(s) / 3) + (s.routed ? Math.min(1500, s.sat) : 0) + jitter(n, 30)) },
       { id: "cache.hit", serviceId: "cache", label: "Cache hit rate", unit: "%", max: 100, value: (s, n) => (s.relief > 0 ? 40 : 95) + jitter(n, 2) },
-      { id: "primary.cpu", serviceId: "primary", label: "CPU", unit: "%", max: 100, warn: 70, crit: 90, value: (s, n) => (s.job ? 74 : 26) + (s.routed ? Math.min(20, Math.floor(s.sat / 30)) : 0) + jitter(n, 5) },
-      { id: "primary.wal", serviceId: "primary", label: "WAL written", unit: "MB/s", max: 200, warn: 80, crit: 140, value: (s, n) => (s.job && s.quiet === 0 ? 110 : 12) + jitter(n, 6) },
-      { id: "primary.oldest", serviceId: "primary", label: "Oldest open transaction", unit: "min", max: 240, warn: 30, crit: 120, value: (s) => (s.job ? 55 + Math.floor(s.lag / 100) : 0) },
+      { id: "primary.cpu", serviceId: "primary", label: "CPU", unit: "%", max: 100, warn: 70, crit: 90, value: (s, n) => ((v.backfill ? s.backfill : s.job) ? (v.backfill ? 58 : 74) : 26) + (s.routed ? Math.min(20, Math.floor(s.sat / 30)) : 0) + jitter(n, 5) },
+      { id: "primary.wal", serviceId: "primary", label: "WAL written", unit: "MB/s", max: 200, warn: 80, crit: 140, value: (s, n) => (v.backfill ? (s.backfill ? 46 : 12) : s.job && s.quiet === 0 ? 110 : 12) + jitter(n, 6) },
+      { id: "primary.oldest", serviceId: "primary", label: "Oldest open transaction", unit: "min", max: 240, warn: 30, crit: 120, value: (s) => ((v.backfill ? s.backfill : s.job) ? 55 + Math.floor(s.lag / 100) : 0) },
       { id: "replica.lag", serviceId: "replica", label: "Replication lag", unit: "s", max: 700, warn: 10, crit: 30, value: (s, n) => Math.max(0, lagS(s) + jitter(n, 2)) },
       { id: "replica.cpu", serviceId: "replica", label: "CPU", unit: "%", max: 100, warn: 70, crit: 90, value: (_s, n) => 34 + jitter(n, 6) },
     ],
@@ -152,19 +179,21 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
       { id: "api.conflict", serviceId: "api", level: "WARN", everyTicks: 9, when: (s) => errorRateBp(s) >= 100, text: (_s, r) => v.apiLine(r) },
       { id: "api.ok", serviceId: "api", level: "INFO", everyTicks: 16, text: (_s, r) => v.apiOk(r) },
       { id: "cache.ok", serviceId: "cache", level: "INFO", everyTicks: 45, text: (_s, r) => `keyspace hits ${94 + r.int(3)}%, evictions 0, used memory ${1200 + r.int(300)} MB` },
-      { id: "primary.checkpoint", serviceId: "primary", level: "WARN", everyTicks: 30, when: (s) => s.job === 1 && s.quiet === 0,
+      { id: "primary.checkpoint", serviceId: "primary", level: "WARN", everyTicks: 30, when: (s) => (v.backfill ? s.backfill === 1 : s.job === 1 && s.quiet === 0),
         text: (_s, r) => `checkpoints are occurring too frequently (${7 + r.int(4)} seconds apart); consider increasing max_wal_size` },
-      { id: "primary.ok", serviceId: "primary", level: "INFO", everyTicks: 60, when: (s) => s.job === 0 || s.quiet > 0, text: (_s, r) => `checkpoint complete: wrote ${1000 + r.int(900)} buffers` },
+      { id: "primary.ok", serviceId: "primary", level: "INFO", everyTicks: 60, when: (s) => (v.backfill ? s.backfill === 0 : s.job === 0 || s.quiet > 0), text: (_s, r) => `checkpoint complete: wrote ${1000 + r.int(900)} buffers` },
       { id: "replica.lag", serviceId: "replica", level: "WARN", everyTicks: 10, when: (s) => lagS(s) >= 10,
-        text: (s, r) => `replay is ${lagS(s) + r.int(3)} s behind the primary; still applying WAL received ${lagS(s) + r.int(3)} s ago` },
+        text: (s, r) => v.replicaLine(lagS(s), r) },
       { id: "replica.ok", serviceId: "replica", level: "INFO", everyTicks: 40, when: (s) => lagS(s) < 10, text: () => "streaming replication: caught up with the primary" },
-      { id: "batch.run", serviceId: "batch", level: "INFO", everyTicks: 25, when: (s) => s.job === 1, text: (_s, r) => v.batchLine(r) },
+      { id: "batch.run", serviceId: "batch", level: "INFO", everyTicks: 25, when: (s) => (v.backfill ? s.backfill === 1 : s.job === 1), text: (_s, r) => v.batchLine(r) },
     ],
 
     alerts: [
       { id: "customer_5xx", serviceId: "edge", severity: "crit", title: "CustomerErrorRate", description: "5xx above 1% at the gateway", when: (s) => errorRateBp(s) >= 100 },
       { id: "replica_lag", serviceId: "replica", severity: "warn", title: "ReplicaLagHigh", description: `${v.labels.replica} is more than 30 s behind`, when: (s) => lagS(s) >= 30 },
-      { id: "primary_cpu", serviceId: "primary", severity: "warn", title: "PrimaryCpuHigh", description: `${v.labels.primary} CPU above 70%`, when: (s) => s.job === 1 && s.quiet === 0 },
+      bf
+        ? { id: "primary_txn", serviceId: "primary", severity: "warn", title: bf.alert.title, description: bf.alert.description, when: (s) => s.backfill === 1 }
+        : { id: "primary_cpu", serviceId: "primary", severity: "warn", title: "PrimaryCpuHigh", description: `${v.labels.primary} CPU above 70%`, when: (s) => s.job === 1 && s.quiet === 0 },
     ],
 
     actions: [
@@ -173,9 +202,9 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
       { id: "api.conflicts", tool: "logs", label: "Find the failing requests", serviceId: "api", category: "investigate", durationS: 4, verdict: "useful",
         reveals: () => [`${v.labels.api}: failing requests read a record at an older version than the one just written; the read went to ${v.labels.replica}, the write to ${v.labels.primary}`] },
       { id: "replica.log", tool: "logs", label: "Read the replica log", serviceId: "replica", category: "investigate", durationS: 3, verdict: "useful",
-        reveals: (s) => [`${v.labels.replica}: replay ${lagS(s)} s behind and growing; the replica is healthy and applying WAL as fast as it can, the primary is sending far more than usual`] },
+        reveals: (s) => [v.replicaLogReveal(lagS(s))] },
       { id: "replica.lag", tool: "dashboards", label: "Check replication lag", serviceId: "replica", category: "investigate", durationS: 4, verdict: "useful",
-        reveals: (s) => [`${v.labels.replica} is ${lagS(s)} s behind and the gap is widening; WAL volume on ${v.labels.primary} is about ten times normal`] },
+        reveals: (s) => [v.lagReveal(lagS(s))] },
       { id: "cache.stats", tool: "dashboards", label: "Check cache hit rate", serviceId: "cache", category: "investigate", durationS: 3, verdict: "wasted",
         reveals: () => [`${v.labels.cache}: hit rate 95%, no evictions, keys expire on schedule; nothing odd about the cache`] },
       { id: "api.deploys", tool: "deploys", label: "View recent deploys", serviceId: "api", category: "investigate", durationS: 3, verdict: "wasted",
@@ -184,11 +213,24 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
         available: (s) => s.routed === 0,
         effect: (s) => ({ ...s, routed: 1 }),
         reveals: () => [`config pushed: ${v.labels.api} reads now go to ${v.labels.primary}; stale reads gone, primary latency climbing`] },
-      { id: "db.long_running", tool: "db", label: "List long-running statements", serviceId: "primary", category: "investigate", durationS: 4, verdict: "useful",
+      // The find step. Where the variant has a backfill, the primary's activity list is a dead end and the answer is on the replica.
+      ...(bf
+        ? [
+            { id: "db.long_running", tool: "db", label: "List long-running statements", serviceId: "primary", category: "investigate", durationS: 4, verdict: "wasted",
+              command: "SELECT pid, usename, application_name, now() - xact_start AS running FROM pg_stat_activity WHERE state <> 'idle' ORDER BY xact_start;  -- on the primary",
+              reveals: (s: ReplicaLag) => [bf.listReveal(s.pid)] } satisfies ActionDef<ReplicaLag>,
+            { id: "batch.pause", tool: "deploys", label: bf.pauseLabel, serviceId: "batch", category: "mitigate", durationS: 15, verdict: "wasted",
+              command: bf.pauseCommand,
+              available: (s: ReplicaLag) => s.backfill === 1,
+              effect: (s: ReplicaLag) => ({ ...s, backfill: 0 }),
+              reveals: () => [bf.pauseReveal] } satisfies ActionDef<ReplicaLag>,
+          ]
+        : []),
+      { id: findId, tool: "db", label: v.findLabel, serviceId: bf ? "replica" : "primary", category: "investigate", durationS: 4, verdict: "useful",
         command: v.findCommand,
         effect: (s) => ({ ...s, found: 1 }),
         reveals: (s) => [v.findReveal(s.pid)] },
-      { id: "db.stop_job", tool: "db", label: v.stopLabel, serviceId: "primary", category: "fix", durationS: 15, verdict: "useful",
+      { id: fixId, tool: "db", label: v.stopLabel, serviceId: bf ? "replica" : "primary", category: "fix", durationS: 15, verdict: "useful",
         command: v.stopCommand,
         available: (s) => s.found === 1 && s.job === 1,
         effect: (s) => ({ ...s, job: 0, quiet: 0 }),
@@ -200,7 +242,7 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
       { id: "db.failover", tool: "db", label: "Fail over to the replica", serviceId: "replica", category: "mitigate", durationS: 25, verdict: "harmful", sideEffectBp: 4500,
         command: `patronictl failover --candidate ${v.labels.replica} --force`,
         effect: (s) => ({ ...s, lag: 0, quiet: 1500, failovers: s.failovers + 1 }),
-        reveals: (s) => [`${v.labels.replica} promoted. It had not received the writes of the last ${Math.max(1, lagS(s) + 1)} s, so those are gone and the old primary is fenced; the long job restarts on the new primary`] },
+        reveals: (s) => [`${v.labels.replica} promoted. It had not received the writes of the last ${Math.max(1, lagS(s) + 1)} s, so those are gone and the old primary is fenced; ${v.failoverTail}`] },
       { id: "global.status_update", tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
         available: (s) => s.statusPosted === 0,
         effect: (s) => ({ ...s, statusPosted: 1 }),
@@ -218,7 +260,7 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
       { id: "global.ask_secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
         reveals: () => [`{secondary} (secondary): "${v.asks.secondary}"`] },
     ],
-    rootCauseActionIds: ["db.stop_job"],
+    rootCauseActionIds: [fixId],
     hints: v.hints,
     maskNotes: {
       "db.cache_flush": "Flushing the cache hid the stale entries for a while. The replica was still far behind, so the next reads came back stale and the errors returned.",
@@ -234,6 +276,7 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
         text: "Acknowledging took more than 30 seconds. A fast ack tells the team someone is on it and stops the page from escalating." },
       { id: "failover-trap", when: (r) => r.actions.some((a) => a.actionId === "db.failover"), text: v.lessons.failover },
       { id: "flush-trap", when: (r) => r.actions.some((a) => a.actionId === "db.cache_flush"), text: v.lessons.flush },
+      { id: "pause-trap", when: (r) => r.actions.some((a) => a.actionId === "batch.pause"), text: v.lessons.pause ?? v.lessons.default },
       { id: "route-trap", when: (r) => r.actions.some((a) => a.actionId === "api.route_primary"), text: v.lessons.route },
       { id: "default", when: () => true, text: v.lessons.default },
     ],
