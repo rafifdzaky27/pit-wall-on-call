@@ -5,6 +5,7 @@ import type {
   ActionRecord,
   AlertState,
   BusyState,
+  IncidentStatus,
   LogEntry,
   LogLevel,
   Outcome,
@@ -46,6 +47,9 @@ function assertIntegers(s: State, where: string): void {
     }
   }
 }
+
+/** Below this error rate a mitigation counts as having brought the symptoms down. */
+const MITIGATED_BELOW_BP = 100;
 
 const clampBp = (bp: number): number => Math.min(10_000, Math.max(0, Math.floor(bp)));
 
@@ -197,7 +201,17 @@ export class Run<S extends State> {
       inspected: [...this.inspected],
       cluesFound: [...this.cluesFound],
       stableSinceTick: this.stableSince,
+      status: this.status(),
     };
+  }
+
+  private status(): IncidentStatus {
+    if (this.outcome !== "running") return this.outcome;
+    if (!this.acked) return "paging";
+    if (this.stableSince !== null) return "holding";
+    // Mitigated means the symptoms are down (errors under 1%, where alerts fire): once errors come back,
+    // it is an investigation again (M2.5 review).
+    return this.scenario.mitigated(this.s) && this.scenario.errorRateBp(this.s) < MITIGATED_BELOW_BP ? "mitigated" : "investigating";
   }
 
   result(): RunResult {

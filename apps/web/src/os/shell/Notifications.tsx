@@ -26,7 +26,7 @@ function PageAlert() {
         </p>
       )}
       <div className="notice-actions">
-        <button type="button" className="btn primary" autoFocus onClick={incident.acknowledge}>
+        <button type="button" className="btn primary" autoFocus data-coach="ack" onClick={incident.acknowledge}>
           Acknowledge <kbd>A</kbd>
         </button>
       </div>

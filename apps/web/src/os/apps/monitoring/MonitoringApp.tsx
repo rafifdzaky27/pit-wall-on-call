@@ -68,7 +68,7 @@ export function MonitoringApp() {
           <span>
             <b>{page.title}.</b> Acknowledge the page to start working.
           </span>
-          <button type="button" className="btn primary" onClick={incident.acknowledge}>
+          <button type="button" className="btn primary" data-coach="ack" onClick={incident.acknowledge}>
             Acknowledge <kbd>A</kbd>
           </button>
         </div>

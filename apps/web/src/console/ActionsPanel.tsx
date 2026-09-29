@@ -38,7 +38,13 @@ export function ActionsPanel({ scenario, service, snapshot, check, onAction }: P
     const progress = running && busy ? (snapshot.tick - busy.startTick) / (busy.endTick - busy.startTick) : 0;
     return (
       <li key={a.id}>
-        <button type="button" className={`btn action${running ? " running" : ""}`} disabled={check(a.id) !== null} onClick={() => onAction(a.id)}>
+        <button
+          type="button"
+          className={`btn action${running ? " running" : ""}`}
+          data-coach={`action:${a.id}`}
+          disabled={check(a.id) !== null}
+          onClick={() => onAction(a.id)}
+        >
           <span>{a.label}</span>
           <span className="action-d mono">{a.durationS} s</span>
           {running && <span className="action-progress" style={{ width: `${Math.round(progress * 100)}%` }} />}

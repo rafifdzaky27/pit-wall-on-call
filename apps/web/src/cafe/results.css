@@ -1,0 +1,41 @@
+/* The shift report (M2.5 spec §6): over the café, the buttons always in view. */
+/* A modal above the café UI (2) and the laptop screen (1): layer 3 (DESIGN.md §10 Layers). */
+.results-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5) var(--space-4);
+  background: color-mix(in srgb, #000000 38%, transparent);
+  animation: results-scrim-in 260ms var(--ease-out);
+}
+@keyframes results-scrim-in { from { opacity: 0; } }
+.results-card {
+  width: min(560px, 100%);
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  border-radius: var(--radius-window);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-window);
+  color: var(--text);
+  animation: results-card-in 320ms var(--ease-out);
+}
+.results-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@keyframes results-card-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
+.results-body { overflow-y: auto; padding: var(--space-5); display: grid; gap: var(--space-4); align-content: start; }
+.results-title { font-size: var(--fs-2xl); font-weight: 600; line-height: 1.1; }
+.results-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }
+.results-tiles div { padding: var(--space-3); border-radius: var(--radius-md); background: var(--sunken); display: grid; gap: 2px; }
+.results-tiles dt { font-size: var(--fs-xs); color: var(--muted); }
+.results-tiles dd { font-size: var(--fs-lg); font-weight: 600; }
+.results-board { display: grid; gap: var(--space-3); }
+.results-board .lb-page { border-radius: var(--radius-md); overflow: hidden; }
+.results-body .lb-page:not(.lb-bare) { border-radius: var(--radius-md); }
+.results-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border); }
+[data-motion="reduce"] .results-scrim, [data-motion="reduce"] .results-card { animation: none; }
+@media (max-width: 640px) {
+  .results-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

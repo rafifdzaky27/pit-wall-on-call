@@ -41,10 +41,19 @@ const retryable = (e: unknown) => e instanceof NetworkError || (e instanceof Api
  * new shift starts it over. M3 persists a pending post across reloads.
  */
 export function SubmissionProvider({ children }: { children: ReactNode }) {
-  const { result } = useIncident();
+  const { result, seed, scenario } = useIncident();
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
+  // This provider outlives each shift (M2.5 plan A4): a new seed starts it over, and a post still in
+  // flight from the previous shift is ignored when it lands.
+  const [shift, setShift] = useState(seed);
+  const current = useRef(seed);
+  current.current = seed;
+  if (shift !== seed) {
+    setShift(seed);
+    setState({ kind: "idle" });
+  }
   const [leaderboardVersion, setLeaderboardVersion] = useState(0);
-  const runKey = useRef<string | null>(null);
+  const runKey = useRef<{ seed: number; key: string } | null>(null);
   const pendingHandle = useRef<string | undefined>(undefined);
   const alive = useRef(true);
 
@@ -58,7 +67,10 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
   const post = useCallback(
     async (handle?: string) => {
       if (!result) return;
-      runKey.current ??= crypto.randomUUID();
+      const mine = seed;
+      if (runKey.current?.seed !== mine) runKey.current = { seed: mine, key: crypto.randomUUID() };
+      const key = runKey.current.key;
+      const live = () => alive.current && current.current === mine;
       pendingHandle.current = handle;
       setState({ kind: "posting" });
       for (let attempt = 0; ; attempt++) {
@@ -78,15 +90,15 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
             seed: result.seed,
             mode: "practice",
             engineVersion: ENGINE_VERSION,
-            runKey: runKey.current,
+            runKey: key,
             actions: result.actions,
           });
-          if (!alive.current) return;
+          if (!live()) return;
           setState({ kind: "posted", run });
           setLeaderboardVersion((v) => v + 1);
           return;
         } catch (e) {
-          if (!alive.current) return;
+          if (!live()) return;
           if (e instanceof ApiError && e.status === 401) {
             // The token is unknown (for example after a database reset): pick a handle again.
             forgetPlayer();
@@ -100,7 +112,7 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
           const delay = RETRY_DELAYS_MS[attempt];
           if (retryable(e) && delay !== undefined) {
             await new Promise((resolve) => window.setTimeout(resolve, delay));
-            if (!alive.current) return;
+            if (!live()) return;
             continue;
           }
           setState({ kind: "error", error: e instanceof ApiError || e instanceof NetworkError ? e : new NetworkError(String(e)) });
@@ -108,15 +120,16 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [result],
+    [result, seed],
   );
 
   // A finished shift posts at once when this device has a player, and asks for a handle otherwise.
   useEffect(() => {
-    if (!result) return;
+    // Training is never posted (M2.5 spec D4): the report says so instead.
+    if (!result || scenario.training) return;
     if (loadPlayer()) void post();
     else setState({ kind: "ask" });
-  }, [result, post]);
+  }, [result, post, scenario]);
 
   const value = useMemo<Submission>(
     () => ({

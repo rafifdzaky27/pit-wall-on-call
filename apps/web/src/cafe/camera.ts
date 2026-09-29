@@ -18,8 +18,9 @@ export const INITIAL_CAMERA: Camera = { view: "desktop", started: false, closing
 export function cameraReducer(c: Camera, e: CameraEvent): Camera {
   switch (e.type) {
     case "phase":
-      if (e.to === "idle") return INITIAL_CAMERA;
-      if (e.to === "prepage") return c.started ? c : { view: "cafe", started: true, closing: false };
+      // New shift keeps the café and returns to the laptop's fresh desktop (M2.5 spec §11).
+      if (e.to === "idle") return c.started ? { view: "desktop", started: true, closing: false } : INITIAL_CAMERA;
+      if (e.to === "prepage") return { view: "cafe", started: true, closing: false };
       // The ack takes you into the laptop, with Monitoring open.
       if (e.to === "active") return { view: "desktop", started: true, closing: false };
       if (e.to === "ended") return { view: "cafe", started: true, closing: true };

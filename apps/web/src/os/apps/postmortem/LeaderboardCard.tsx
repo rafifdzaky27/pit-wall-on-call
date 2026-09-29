@@ -2,7 +2,6 @@ import { useId, useState, type FormEvent } from "react";
 import { ApiError } from "../../../net/client";
 import { HANDLE_RE } from "../../../net/player";
 import { useSubmission, type SubmitState } from "../../../net/SubmissionProvider";
-import { useOs } from "../../shell/OsContext";
 
 const HINT = "3 to 20 letters, numbers, - or _.";
 
@@ -73,16 +72,18 @@ function errorCopy(error: Extract<SubmitState, { kind: "error" }>["error"]): { t
   return { text: requestId ? `Couldn't reach the leaderboard (request ${requestId}).` : "Couldn't reach the leaderboard.", action: "retry" };
 }
 
-/** Posting this shift to the practice leaderboard, in every state of M2 spec §6. */
-export function LeaderboardCard() {
+/**
+ * Posting this shift to the practice leaderboard, in every state of M2 spec §6. `onView` opens the
+ * full board: the Browser tab in the postmortem, the board view in the shift report.
+ */
+export function LeaderboardCard({ onView, bare = false }: { onView?: () => void; bare?: boolean }) {
   const { state, post, notNow, retry } = useSubmission();
-  const { openBrowserTab } = useOs();
   const [formAgain, setFormAgain] = useState(false);
-  const view = (
-    <button type="button" className="btn" onClick={() => openBrowserTab("leaderboard")}>
+  const view = onView ? (
+    <button type="button" className="btn" onClick={onView}>
       View leaderboard
     </button>
-  );
+  ) : null;
 
   let body;
   if (state.kind === "idle") return null;
@@ -120,7 +121,7 @@ export function LeaderboardCard() {
     body = (
       <>
         <p role="status">{line}</p>
-        <div className="board-actions">{view}</div>
+        {view && <div className="board-actions">{view}</div>}
       </>
     );
   } else {
@@ -145,6 +146,7 @@ export function LeaderboardCard() {
     );
   }
 
+  if (bare) return <div className="board-card-bare">{body}</div>;
   return (
     <section className="panel board-card" aria-labelledby="board-h">
       <div className="ph">

@@ -7,6 +7,8 @@ export type ActionCategory = "investigate" | "mitigate" | "fix" | "communicate";
 export type Verdict = "useful" | "wasted" | "harmful";
 export type LogLevel = "INFO" | "WARN" | "ERROR";
 export type Outcome = "running" | "resolved" | "dnf";
+/** Where the incident stands, derived each tick for the UI (M2.5 spec §3). Scoring never reads it. */
+export type IncidentStatus = "paging" | "investigating" | "mitigated" | "holding" | "resolved" | "dnf";
 
 // Function members use method syntax on purpose: it lets a ScenarioDef<SlowLeak> be stored
 // as a ScenarioDef<State> in the registry.
@@ -120,6 +122,12 @@ export interface ScenarioDef<S extends State> {
   alerts: AlertRule<S>[];
   actions: ActionDef<S>[];
   rootCauseActionIds: string[];
+  /** The rubber duck's questions, in order (M2.5 spec §9). */
+  hints?: string[];
+  /** For actions that only hide the symptom: what they did, for the postmortem (M2.5 spec §3). */
+  maskNotes?: Record<string, string>;
+  /** The guided training shift: never posted to the leaderboard (M2.5 spec §5, D4). */
+  training?: boolean;
   coldOpen: ColdOpenDef;
   /** First match wins; the last lesson must match everything. */
   lessons: LessonDef[];
@@ -177,6 +185,7 @@ export interface Snapshot {
   cluesFound: string[];
   /** The tick the resolve condition started holding, or null; read only, for the countdown (cold-open spec §4). */
   stableSinceTick: number | null;
+  status: IncidentStatus;
 }
 
 export interface RunResult {

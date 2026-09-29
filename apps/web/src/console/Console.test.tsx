@@ -41,6 +41,24 @@ describe("Console", () => {
     expect(screen.getByRole("meter", { name: "Error budget burned" })).toBeTruthy();
   });
 
+  it("explains the error budget, 5xx, p99 and the pool with glossary terms", async () => {
+    setup();
+    const described = async (word: string) => {
+      const term = screen.getByText(word, { selector: ".term" });
+      fireEvent.focus(term);
+      const tip = (await screen.findByRole("tooltip")).textContent;
+      fireEvent.blur(term);
+      return tip;
+    };
+    expect(await described("Error budget")).toContain("fail");
+    expect(screen.getByRole("heading", { name: "5xx rate" })).toBeTruthy();
+    expect(await described("5xx")).toContain("server failed");
+    fireEvent.click(screen.getByRole("button", { name: /^checkout-api/ }));
+    expect(screen.getByRole("heading", { name: "p99 latency" })).toBeTruthy();
+    expect(await described("p99")).toContain("1 in 100");
+    expect(await described("Pool")).toContain("database connections");
+  });
+
   it("lists firing alerts with a text severity", () => {
     setup();
     const alerts = screen.getByRole("region", { name: "Alerts" });

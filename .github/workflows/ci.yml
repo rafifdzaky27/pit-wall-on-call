@@ -41,6 +41,8 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: end-to-end tests
         run: pnpm e2e
+      - name: camera smoothness (alone)
+        run: PERF=1 pnpm exec playwright test --workers=1
       - name: shellcheck
         run: shellcheck infra/deploy.sh infra/test/deploy_test.sh
       - name: deploy.sh behaviour tests

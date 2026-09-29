@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useCamera } from "../../cafe/CameraContext";
+import { AppBoundary } from "../../chunks";
 import { unreadCount } from "../apps/chat/unread";
 import type { AppId } from "../apps/ids";
 import { APP_COMPONENTS } from "../apps/registry";
@@ -14,6 +15,7 @@ import { DesktopIcons } from "./DesktopIcons";
 import { Dock } from "./Dock";
 import { Lockscreen } from "./Lockscreen";
 import { useNoticeFeed } from "./noticeFeed";
+import { useUpdateNotice } from "./useUpdateNotice";
 import { Notifications } from "./Notifications";
 import { useOs } from "./OsContext";
 import { Overview } from "./Overview";
@@ -23,7 +25,7 @@ import { Window } from "./Window";
 
 export function Desktop() {
   const incident = useIncident();
-  const { wm, dispatchWm, openApp, read, setDragging } = useOs();
+  const { wm, dispatchWm, openApp, read, setDragging, markSeen } = useOs();
   const { prefs } = usePrefs();
   const [overview, setOverview] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -33,6 +35,7 @@ export function Desktop() {
   const running = incident.phase === "paging" || incident.phase === "active";
 
   useNoticeFeed(startShift);
+  useUpdateNotice();
   useSoundCues(locked);
   useRadio(incident.phase === "paging");
 
@@ -46,6 +49,17 @@ export function Desktop() {
     if (incident.phase === "active") openApp("monitoring");
     if (incident.phase === "ended") openApp("postmortem");
   }, [incident.phase, openApp]);
+
+  // The checklist counts the Browser when the player brings it forward during the incident (not when it
+  // opened by itself before the page), and the postmortem once there is one to read (M2.5 spec §4).
+  const focusedApp = wm.windows.find((w) => w.id === focused)?.appId as AppId | undefined;
+  const lastFocused = useRef(focusedApp);
+  useEffect(() => {
+    const moved = lastFocused.current !== focusedApp;
+    lastFocused.current = focusedApp;
+    if (focusedApp === "browser" && moved && running) markSeen("browser");
+    if (focusedApp === "postmortem" && incident.phase === "ended") markSeen("postmortem");
+  }, [focusedApp, running, incident.phase, markSeen]);
 
   // In the café the desktop is out of reach: only the ack and pause work from there (M1.6 plan R6).
   const acknowledge = () => incident.acknowledge();
@@ -71,6 +85,7 @@ export function Desktop() {
     },
     a: acknowledge,
     p: togglePause,
+    "?": () => openApp("help"),
   };
   useShortcuts(camera.view === "cafe" ? { a: acknowledge, p: togglePause } : desktopKeys, prefs.singleKeyShortcuts && !locked);
 
@@ -97,15 +112,17 @@ export function Desktop() {
           const App = APP_COMPONENTS[w.appId as AppId];
           return (
             <Window key={w.id} win={w} area={wm.area} focused={w.id === focused} layer={layers.get(w.id) ?? 10} dispatch={dispatchWm} onDragChange={setDragging}>
-              <Suspense
-                fallback={
-                  <p className="app-pad empty" aria-busy="true">
-                    Opening {w.title}…
-                  </p>
-                }
-              >
-                <App />
-              </Suspense>
+              <AppBoundary autoReload={!running}>
+                <Suspense
+                  fallback={
+                    <p className="app-pad empty" aria-busy="true">
+                      Opening {w.title}…
+                    </p>
+                  }
+                >
+                  <App />
+                </Suspense>
+              </AppBoundary>
             </Window>
           );
         })}

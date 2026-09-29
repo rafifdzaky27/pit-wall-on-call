@@ -67,6 +67,10 @@ export function DebriefBody({ scenario, result, clueTotal, board, actions }: Bod
     .filter(([, bp]) => bp > 0)
     .sort((a, b) => b[1] - a[1]);
   const burnTotal = burns.reduce((sum, [, bp]) => sum + bp, 0);
+  // Each action that only hid the symptom, once, in the order it finished (M2.5 spec §3).
+  const masked = [
+    ...new Set(result.timeline.flatMap((e) => (e.kind === "action_done" && scenario.maskNotes?.[e.actionId] ? [scenario.maskNotes[e.actionId]!] : []))),
+  ];
 
   return (
     <>
@@ -130,6 +134,19 @@ export function DebriefBody({ scenario, result, clueTotal, board, actions }: Bod
           )}
         </div>
       </section>
+
+      {masked.length > 0 && (
+        <section className="panel" aria-labelledby="mask-h">
+          <div className="ph">
+            <h2 id="mask-h">Symptom or cause</h2>
+          </div>
+          <ul className="mask-notes pb">
+            {masked.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="panel" aria-labelledby="timeline-h">
         <div className="ph">

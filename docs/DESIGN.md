@@ -130,6 +130,7 @@ Windows use the whole screen below the top bar; the dock (a 56px bar with an 8px
 | Windows | 10–999, by rank in the stack |
 | Dock | 1000 (1450 while the overview is open) |
 | Banners | 1200 |
+| Glossary tooltips (`--z-tip`) | 1250 |
 | Top bar and its menus | 1300 |
 | Overview | 1400 |
 | Paused overlay | 1500 |
@@ -208,7 +209,9 @@ Spec: `docs/specs/2026-09-28-cold-open-design.md`, §6, §7 and §12.
 - **Roots:** the PitOS roots (`.stage`, `.desktop`) use `overflow: clip`, so neither focus nor `scrollIntoView` can ever scroll them. `scrollIntoView` is also a lint error in `apps/web/src`.
 
 ### Layers
-- **Inside the Stage:** café art (auto), then the laptop screen (1), then the café UI (2): hotspots, captions, the phone close-up, the controls and the cold close.
+- **Inside the Stage:** café art (auto), then the new-shift curtain and the laptop screen (1), then the café UI (2): hotspots, captions, the phone close-up, the controls and the cold close.
+- **Above the world:** the shift report (3), the training coach (4), "Fix confirmed" (5). They sit outside the world transform, so the viewport sizes them, not the scene.
+- **Never animate a wrapper around café UI with a filled opacity or transform.** It makes a stacking context and traps the UI under the screen (M2.5, twice).
 - **Paused overlay:** it belongs to the Stage, so it covers both views.
 
 ### Art
@@ -248,3 +251,23 @@ Spec: `docs/specs/2026-09-28-runs-api-leaderboard-design.md`, §6.
 
 ### Shared fields
 - `.field`, `.field-label`, `.text-input` and `.field-hint` in `base.css` are the one text-field style for PitOS chrome.
+
+## 12. Flow and clarity (M2.5)
+
+Spec: `docs/specs/2026-09-28-m2.5-clear-connected-alive-design.md`.
+
+- **Status is always in words.** The top bar chip reads On call · Primary, then Paged · acknowledge, Investigating, Mitigated · cause still active, Fix holding · N s, and Resolved or Out of time. Colour only repeats the word. The Monitoring header adds "Cause still active" while only mitigated.
+- **Help** (the "?" button or the `?` key) has four pages:
+  - How to play;
+  - Checklist, which ticks itself from the run;
+  - Glossary, in plain language;
+  - Tools.
+  Glossary terms in the console carry a dotted underline and a tooltip, on hover and on focus.
+- **The shift report** opens by itself 1.5 s after the cold close caption. It shows:
+  - the score tiles;
+  - the handle field or the posting status;
+  - the top 5 plus you.
+  Its buttons are New shift, Share, Full leaderboard and Read the postmortem, in a footer that never scrolls away.
+- **Training:** the first visit leads with the training shift. A coach card (bottom left, above the dock) names one step at a time. Each step completes on what the player actually did; Show me outlines the control to use.
+- **New shift** keeps the Stage, the camera and the café. Only the OS and its apps start over (`ShiftScope`). The camera goes back to an empty desktop, and the café's new city fades in behind a curtain.
+- **After a deploy,** a stale tab gets a System notice between shifts ("A new version is out"). A missing chunk reloads once instead of showing the crash screen.

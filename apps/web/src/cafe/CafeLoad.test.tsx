@@ -43,3 +43,23 @@ describe("loading the café", () => {
     expect(incident().phase).toBe("active");
   });
 });
+
+describe("the report chunk is fetched early (M2.5 review I4)", () => {
+  it("starts loading when the shift starts, so a stale tab finds out before anything is at stake", async () => {
+    let loaded = false;
+    vi.doMock("./ResultsCard", () => {
+      loaded = true;
+      return { ResultsCard: () => null, RESULTS_DELAY_MS: 1500 };
+    });
+    const { Stage } = await import("./Stage");
+    const { renderOs: render } = await import("../os/testing");
+    const { incident } = render(
+      <Stage>
+        <p>laptop screen</p>
+      </Stage>,
+    );
+    expect(loaded).toBe(false);
+    act(() => incident().start());
+    await waitFor(() => expect(loaded).toBe(true));
+  });
+});

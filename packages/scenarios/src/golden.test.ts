@@ -1,4 +1,4 @@
-import { ACK, inspectAction, pickLesson, replay, type ActionRecord } from "@pitwall/engine";
+import { ACK, inspectAction, pickLesson, replay, Run, type ActionRecord } from "@pitwall/engine";
 import { describe, expect, it } from "vitest";
 import { slowLeak } from "./slow-leak";
 
@@ -70,5 +70,20 @@ describe("The Slow Leak: golden players", () => {
 
   it("the default lesson covers a clean run", () => {
     expect(pickLesson(slowLeak, replay(slowLeak, 1, perfect)).id).toBe("default");
+  });
+});
+
+describe("The Slow Leak: status after a restart (M2.5 review, regraded 6)", () => {
+  it("reads mitigated while the errors are gone, and investigating again once the leak brings them back", () => {
+    const run = new Run(slowLeak, 1);
+    run.dispatch(ACK);
+    run.dispatch("checkout.restart");
+    for (let i = 0; i < 160; i++) run.step();
+    expect(run.snapshot().errorRateBp).toBe(0);
+    expect(run.snapshot().status).toBe("mitigated");
+    // The pool refills at the leak rate; once 5xx pass 1% again, it is no longer mitigated.
+    for (let i = 0; i < 2600 && run.snapshot().errorRateBp < 100; i++) run.step();
+    expect(run.snapshot().errorRateBp).toBeGreaterThanOrEqual(100);
+    expect(run.snapshot().status).toBe("investigating");
   });
 });

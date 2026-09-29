@@ -24,7 +24,7 @@
 .app-browser { --app-color: var(--app-browser); }
 .app-chat { --app-color: var(--app-chat); }
 .app-files, .app-home { --app-color: var(--app-files); }
-.app-settings { --app-color: var(--app-settings); }
+.app-settings, .app-help { --app-color: var(--app-settings); }
 .app-trash { --app-color: var(--app-trash); }
 .app-phone { --app-color: var(--app-phone); }
 .app-postmortem { --app-color: var(--app-postmortem); }
@@ -66,8 +66,14 @@
 .clockmenu { position: relative; justify-self: center; }
 .clock-dot { width: 6px; height: 6px; border-radius: 3px; background: var(--topbar-text); }
 .os-tray { justify-self: end; display: flex; align-items: center; gap: 6px; }
-.oncall { padding: 2px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.1); font-size: var(--fs-xs); }
-.oncall.paged { background: var(--crit); color: #ffffff; font-weight: 600; }
+.oncall { padding: 2px 8px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, 0.1); color: var(--topbar-text); font: var(--fs-xs) var(--font); white-space: nowrap; cursor: pointer; }
+.oncall:hover { background: rgba(255, 255, 255, 0.18); }
+.oncall:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Status is always a word; the colour only repeats it (M2.5 spec §3). */
+.oncall.status-crit { background: var(--crit); color: #ffffff; font-weight: 600; }
+.oncall.status-warn { background: var(--warn); color: #16181d; font-weight: 600; }
+.oncall.status-info { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.oncall.status-ok { background: var(--ok); color: #16181d; font-weight: 600; }
 .sysmenu, .phone { position: relative; }
 .tray-badge { min-width: 16px; padding: 0 4px; border-radius: 8px; background: var(--crit); color: #ffffff; font-size: 10px; line-height: 16px; text-align: center; }
 .tray-btn.ringing { animation: ring 0.9s ease-in-out infinite; }
@@ -204,3 +210,9 @@
 /* Quick settings: lo-fi radio (cold-open spec C8) */
 .qs-radio { display: flex; align-items: center; gap: var(--space-2); }
 .qs-radio span { flex: 1; }
+
+/* Glossary terms in context: a dotted underline, and the definition on hover or focus (M2.5 spec §4) */
+.term { border-bottom: 1px dotted currentColor; cursor: help; }
+.term:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.term-tip { position: fixed; z-index: var(--z-tip); width: max-content; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--topbar-bg); color: var(--topbar-text); box-shadow: var(--shadow-window-rest); font: 400 var(--fs-sm) / 1.45 var(--font); letter-spacing: normal; text-transform: none; }
+.term-tip[hidden] { display: none; }

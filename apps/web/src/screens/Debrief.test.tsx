@@ -34,6 +34,22 @@ const show = (result = perfect) => {
 };
 
 describe("Debrief", () => {
+  it("names what only hid the symptom (M2.5 spec §3)", () => {
+    const masked = replay(slowLeak, 1, [
+      { tick: 20, actionId: ACK },
+      { tick: 30, actionId: "postgres.failover" },
+      { tick: 400, actionId: "checkout.rollback" },
+    ]);
+    show(masked);
+    const section = screen.getByRole("region", { name: "Symptom or cause" });
+    expect(section.textContent).toContain("Fail over to replica reset the pool, so the errors stopped. The leak in v142 kept running.");
+  });
+
+  it("leaves that section out when nothing masked the symptom", () => {
+    show();
+    expect(screen.queryByRole("region", { name: "Symptom or cause" })).toBeNull();
+  });
+
   it("headlines a resolved run with its score tiles", () => {
     show();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/^Resolved in \d\d:\d\d$/);

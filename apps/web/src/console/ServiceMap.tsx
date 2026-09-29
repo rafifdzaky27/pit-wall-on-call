@@ -42,6 +42,7 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
                 className={`node ${h}${isSelected ? " selected" : ""}`}
                 style={{ left: `${svc.x}%`, top: `${svc.y}%` }}
                 aria-pressed={isSelected}
+                data-coach={`node:${svc.id}`}
                 onClick={() => onSelect(svc.id)}
               >
                 <span className="node-name">{svc.label}</span>

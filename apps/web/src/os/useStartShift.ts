@@ -24,3 +24,20 @@ export function useStartShift(): () => void {
     latest.current.start();
   }, []);
 }
+
+/** The training shift, as one click, with the same full-screen and audio unlock as Start shift. */
+export function useStartTraining(): () => void {
+  const incident = useIncident();
+  const { prefs } = usePrefs();
+  const latest = useRef({ fullscreenOnStart: prefs.fullscreenOnStart, training: incident.startTraining });
+
+  useEffect(() => {
+    latest.current = { fullscreenOnStart: prefs.fullscreenOnStart, training: incident.startTraining };
+  });
+
+  return useCallback(() => {
+    if (latest.current.fullscreenOnStart) void enterFullscreen();
+    audio.unlock();
+    latest.current.training();
+  }, []);
+}

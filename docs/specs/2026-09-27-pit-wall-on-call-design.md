@@ -338,3 +338,5 @@ From the opportunity report:
 | 2026-09-28 | `POST /api/runs` takes a client `runKey` (a UUID, unique per player); a repeated key returns the stored run. It also accepts `dryRun: true` without a token (validate and replay only), which the deploy smoke test uses. | M2 spec L6, L7 |
 | 2026-09-28 | An oversized body is `413`, not `400`. `POST /api/runs` returns `{ runId, mode, flagged, score, board: { rank, total, best } }`. | M2 plan P1, P2 |
 | 2026-09-28 | `/metrics` stays inside the compose network (Caddy proxies `/api/*` only); scraping it is M5. | M2 spec L9 |
+| 2026-09-29 | The snapshot carries a derived `status` (paging, investigating, mitigated, holding, resolved, dnf) for the UI; scoring never reads it. | M2.5 spec §3 |
+| 2026-09-29 | A training scenario (`training-config-push`) exists, and the API refuses its runs: training is never ranked. | M2.5 spec §5, D4 |

@@ -26,13 +26,16 @@ test.describe("the runs API contract (M2)", () => {
     await page.clock.runFor(31_000);
     await page.clock.runFor(11_000);
     await page.clock.runFor(1_600);
-    await page.getByRole("button", { name: "Read the postmortem" }).click();
+    // The shift report opens 1.5 s after the caption (M2.5 spec §6).
+    await page.clock.runFor(1_600);
+    await page.getByRole("dialog", { name: "Shift report" }).getByRole("button", { name: "Read the postmortem" }).click();
 
     const board = page.getByRole("region", { name: "Leaderboard" });
     await expect(board.getByText("Pick a handle to post this shift to the practice leaderboard.")).toBeVisible();
     await board.getByRole("textbox", { name: "Handle" }).fill(handle);
     await board.getByRole("button", { name: "Post score" }).click();
-    await expect(board.getByText(/^New best: #\d+ of \d+ on the practice leaderboard\.$/)).toBeVisible();
+    // A real round trip to the shared e2e API; under a parallel suite it can take longer than 5 s.
+    await expect(board.getByText(/^New best: #\d+ of \d+ on the practice leaderboard\.$/)).toBeVisible({ timeout: 15_000 });
 
     const shown = await page.getByRole("list", { name: "Score" }).locator(".tile", { hasText: "Error budget burned" }).locator(".tile-v").textContent();
     const res = await request.get("/api/leaderboard?scenario=db-pool-exhaustion");

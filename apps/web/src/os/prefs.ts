@@ -24,6 +24,8 @@ export interface Prefs {
   reduceAudio: boolean;
   /** The lo-fi radio was playing (cold-open spec C8). */
   radio: boolean;
+  /** The guided training shift was finished once (M2.5 spec §5). */
+  trainingDone: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -42,12 +44,13 @@ export const DEFAULT_PREFS: Prefs = {
   alerts: 100,
   reduceAudio: false,
   radio: false,
+  trainingDone: false,
 };
 
 const KEY = "pitwall.prefs";
 const LEGACY_THEME_KEY = "pitwall.theme";
 const WALLPAPERS: readonly string[] = ["auto", "jakarta", "yogyakarta", "tokyo", "melbourne"];
-const FLAGS = ["reduceMotion", "largeText", "systemCursor", "singleKeyShortcuts", "muted", "fullscreenOnStart", "reduceAudio", "radio"] as const;
+const FLAGS = ["reduceMotion", "largeText", "systemCursor", "singleKeyShortcuts", "muted", "fullscreenOnStart", "reduceAudio", "radio", "trainingDone"] as const;
 const LEVELS = ["volume", "ambience", "music", "alerts"] as const;
 
 function sanitize(raw: unknown): Prefs {

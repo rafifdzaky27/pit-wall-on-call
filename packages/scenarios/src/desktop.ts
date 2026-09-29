@@ -1,5 +1,6 @@
-import type { ScenarioDef, State, TimelineEntry } from "@pitwall/engine";
+import type { IncidentStatus, ScenarioDef, State, TimelineEntry } from "@pitwall/engine";
 import { slowLeakDesktop } from "./slow-leak.desktop";
+import { trainingDesktop } from "./training.desktop";
 
 export type Person = "deployer" | "secondary" | "infra" | "support";
 export type Author = Person | "bot" | "deploybot";
@@ -8,7 +9,9 @@ export type MessageTrigger =
   | { kind: "prepage" }
   | { kind: "page" }
   | { kind: "alert"; alertId: string }
-  | { kind: "action"; actionId: string };
+  | { kind: "action"; actionId: string }
+  /** Once the incident has been in `status` for `afterTicks` (presentation only, M2.5 plan A2). */
+  | { kind: "status"; status: IncidentStatus; afterTicks: number };
 
 /** An emoji reaction. Emoji are in-world content here, never PitOS chrome (polish spec S19). */
 export interface Reaction {
@@ -79,7 +82,7 @@ export interface DesktopContent {
   requests: readonly RequestPattern[];
 }
 
-const DESKTOP: Record<string, DesktopContent> = { "db-pool-exhaustion": slowLeakDesktop };
+const DESKTOP: Record<string, DesktopContent> = { "db-pool-exhaustion": slowLeakDesktop, "training-config-push": trainingDesktop };
 
 export function desktopFor(scenarioId: string): DesktopContent {
   const content = DESKTOP[scenarioId];
@@ -94,7 +97,15 @@ export function symptomCode(scenario: ScenarioDef<State>): number {
   return code;
 }
 
-export function visibleMessages(content: DesktopContent, view: { paged: boolean; timeline: readonly TimelineEntry[] }): ChatMessage[] {
+export interface ChatView {
+  paged: boolean;
+  timeline: readonly TimelineEntry[];
+  /** The tick each status began, while it lasts. */
+  statusSince?: Partial<Record<IncidentStatus, number | null>>;
+  tick?: number;
+}
+
+export function visibleMessages(content: DesktopContent, view: ChatView): ChatMessage[] {
   const fired = new Set<string>();
   const done = new Set<string>();
   for (const e of view.timeline) {
@@ -111,6 +122,10 @@ export function visibleMessages(content: DesktopContent, view: { paged: boolean;
         return view.paged && fired.has(m.trigger.alertId);
       case "action":
         return done.has(m.trigger.actionId);
+      case "status": {
+        const since = view.statusSince?.[m.trigger.status];
+        return since != null && (view.tick ?? 0) - since >= m.trigger.afterTicks;
+      }
     }
   });
 }
