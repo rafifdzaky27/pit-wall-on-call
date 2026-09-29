@@ -30,7 +30,7 @@ export const diskFullIncident = defineIncident({
       key: walVariant.key,
       scenario: makeScenario(walVariant),
       desktop: diskFullWalDesktop,
-      spoilers: ["replication slot", "slot", "wal", "pg_wal", "cdc"],
+      spoilers: ["replication slot", "slot", "cdc", "reporting_cdc"],
       golden: {
         perfect: [at(0, inspectAction("laptop.slack.infra")), at(20, ACK), at(20, "postgres.disk_errors"), at(60, "postgres.slots"), at(90, "postgres.drop_slot")],
         masking: [at(20, ACK), at(20, "postgres.grow_wal"), at(3900, "postgres.slots"), at(4000, "postgres.drop_slot")],

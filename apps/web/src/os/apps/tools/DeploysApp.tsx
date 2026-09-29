@@ -44,8 +44,9 @@ export function DeploysApp() {
       </div>
       <div className="tool-scroll">
         {shown.map((s) => {
-          const actions = offered(actionsIn(scenario, "deploys", s.id), incident.check);
-          const outputs = outputsOf(scenario, incident.timeline, incident.logs, new Set(actions.map((a) => a.id)));
+          const every = actionsIn(scenario, "deploys", s.id);
+          const actions = offered(every, incident.offers);
+          const outputs = outputsOf(scenario, incident.timeline, incident.logs, new Set(every.map((a) => a.id)));
           const past = history(s.label);
           return (
             <section key={s.id} className="tool-card" aria-label={s.label}>

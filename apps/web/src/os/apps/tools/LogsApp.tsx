@@ -33,7 +33,7 @@ export function LogsApp() {
   if (incident.phase === "idle" || incident.phase === "prepage") return <ToolIdle name="Logs" />;
 
   const labels = new Map(scenario.services.map((s) => [s.id, s.label]));
-  const saved = offered(actionsIn(scenario, "logs", current), incident.check);
+  const saved = offered(actionsIn(scenario, "logs", current), incident.offers);
   const q = query.trim().toLowerCase();
   const shown = logs
     .filter((l) => !current || l.serviceId === current || l.serviceId === "global")

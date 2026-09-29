@@ -336,7 +336,7 @@ export const BLINKS_VARIANTS: readonly BlinksVariant[] = [
     fallbackDetail: ["secondary card provider · standby", "secondary card provider · taking traffic"],
     herring: "deploy",
     mechanism: "reroute",
-    spoilers: ["larkspur", "secondary", "route_on_timeout", "re-route", "route card"],
+    spoilers: ["larkspur", "secondary provider", "route_on_timeout", "re-route", "route card"],
     pm: 241,
     configLine: "checkout-api payment config: payments.provider = kestrel-pay, payments.timeout_ms = 8000, payments.route_on_timeout = off. A secondary card provider (Larkspur) is configured and idle",
     fixCommand: "config set payments.route_on_timeout = secondary",

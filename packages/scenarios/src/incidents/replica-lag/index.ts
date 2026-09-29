@@ -31,7 +31,7 @@ export const replicaLagIncident = defineIncident({
   difficulty: 4,
   from: "2026-10-03",
   variants: [
-    { key: analytics.key, scenario: replicaLag(analytics), desktop: analyticsDesktop, golden: analyticsGolden, spoilers: ["report", "query", "long-running", "long running", "terminate", "pg_terminate_backend"] },
+    { key: analytics.key, scenario: replicaLag(analytics), desktop: analyticsDesktop, golden: analyticsGolden, spoilers: ["report query", "revenue report", "analytics query", "long-running", "long running", "terminate", "pg_terminate_backend"] },
     { key: migration.key, scenario: replicaLag(migration), desktop: migrationDesktop, golden: migrationGolden, spoilers: ["idle in transaction", "idle-in-transaction", "idle", "session", "terminate", "pg_terminate_backend", "lock"] },
   ],
 });

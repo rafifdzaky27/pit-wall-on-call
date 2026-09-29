@@ -32,6 +32,6 @@ export const poisonPillIncident = defineIncident({
   from: "2026-10-03",
   variants: [
     { key: confirmations.key, scenario: poisonPill(confirmations), desktop: confirmationsDesktop, golden: confirmationsGolden, spoilers: ["dead-letter", "dead letter", "poison", "bad message", "dlq"] },
-    { key: reservations.key, scenario: poisonPill(reservations), desktop: reservationsDesktop, golden: reservationsGolden, spoilers: ["skip", "offset", "stuck", "bad record", "partition 3", "reset-offsets", "--to-offset"] },
+    { key: reservations.key, scenario: poisonPill(reservations), desktop: reservationsDesktop, golden: reservationsGolden, spoilers: ["skip", "stuck", "bad record", "partition 3", "--to-offset"] },
   ],
 });

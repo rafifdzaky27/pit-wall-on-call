@@ -43,7 +43,7 @@ describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
     const hidden = new Set<string>();
     for (const [tool, App] of APPS) {
       const { unmount, container, incident } = paged(<App />, { training: drill, scenario });
-      for (const a of scenario.actions) if (incident().check(a.id) === "unavailable") hidden.add(a.id);
+      for (const a of scenario.actions) if (!incident().offers(a.id)) hidden.add(a.id);
       const ids =
         tool === "dashboards"
           ? // Monitoring shows one service at a time.
@@ -78,6 +78,19 @@ describe("a fix shows once its target is found (PR 30 review I3)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Peek at the head of the queue/ }));
     seconds(6);
     expect(commands()).toContain("dead-letter");
+    // Once it has run, its line and output stay in the psql session, though the button is gone (PR 30 re-review I3).
+    fireEvent.click(screen.getByRole("button", { name: /dead-letter/ }));
+    seconds(25);
+    expect(screen.getByRole("log", { name: "psql session" }).textContent).toContain(pill.actions.find((a) => a.id === "queue.dlq_move")!.command!);
+  });
+
+  it("nor before the page is acknowledged, while the tools are already open (PR 30 re-review I1)", () => {
+    const pill = getScenario("poison-pill")!;
+    const r = renderOs(<DbApp />, { scenario: pill });
+    act(() => r.incident().start());
+    act(() => r.incident().skipPrepage());
+    expect(r.incident().phase).toBe("paging");
+    expect(screen.getByRole("list").textContent).not.toContain("dead-letter");
   });
 });
 

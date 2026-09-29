@@ -60,7 +60,7 @@ export function IncidentApp() {
   const page = scenario.coldOpen.page;
   const { text: status, tone } = statusLabel(incident.phase, snapshot);
   const items = checklist(scenario, incident.timeline, snapshot, { browserOpened: seenApps.has("browser"), postmortemOpened: seenApps.has("postmortem") });
-  const others = offered(actionsIn(scenario, "incident"), incident.check).filter((a) => a.id !== STATUS_ACTION && a.id !== PAGE_ACTION);
+  const others = offered(actionsIn(scenario, "incident"), incident.offers).filter((a) => a.id !== STATUS_ACTION && a.id !== PAGE_ACTION);
   const entries = incident.timeline.flatMap((e) => {
     const line = describe(e, scenario);
     return line ? [{ tick: e.tick, line }] : [];

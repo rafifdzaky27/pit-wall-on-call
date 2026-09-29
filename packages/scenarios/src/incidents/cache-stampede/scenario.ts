@@ -185,7 +185,9 @@ export function cacheStampede(v: CacheVariant): ScenarioDef<Stampede> {
       { id: "redis.maintenance", tool: "deploys", label: "View redis maintenance log", serviceId: "cache", category: "investigate", durationS: 3, verdict: prefix ? "wasted" : "useful",
         reveals: () => [prefix
           ? "redis-cache: last restart 41 days ago, no maintenance window today"
-          : "redis-cache: restarted by {infra} 21 min ago for the memory upgrade; persistence is off, so it came back with an empty dataset"] },
+          : "redis-cache: restarted by {infra} 21 min ago for the memory upgrade; persistence is off, so it came back with an empty dataset"],
+        // Finding the restart is finding the cold cache, so request coalescing is on offer after it too.
+        effect: (s) => (prefix ? s : { ...s, seen: 1 }) },
       { id: "db.connections", tool: "dashboards", label: `Check ${db} connections`, serviceId: "db", category: "investigate", durationS: 4, verdict: "wasted",
         reveals: () => [`${db}: 196 of 200 connections active, CPU 100%; every active query is the same primary-key lookup, about a millisecond each when it runs`] },
       { id: "db.slow_log", tool: "logs", label: `Read the ${db} slow query log`, serviceId: "db", category: "investigate", durationS: 3, verdict: "wasted",

@@ -49,15 +49,15 @@ describe.each(cases)("%s", (_id, v) => {
     for (const id of s.rootCauseActionIds) expect(toolOf(s, id), id).not.toBe("dashboards");
   });
 
-  it("never offers a fix that names the cause before the player has found it (PR 30 review I3)", () => {
+  it("never lists an action that names the cause before the player has found it (PR 30 reviews)", () => {
     expect(v.spoilers.length, "declare the words that name the cause").toBeGreaterThan(0);
+    // What the tools list from the first second, before the ack too. A check has to say what it looks at;
+    // a fix, a decoy or a question must not say what is wrong.
     const run = new Run(s, 1);
-    run.dispatch(ACK);
-    for (const id of s.rootCauseActionIds) {
-      const a = s.actions.find((x) => x.id === id)!;
-      const shown = `${a.label} ${a.command ?? ""}`.toLowerCase();
+    for (const a of s.actions.filter((x) => run.offers(x.id) && (x.category !== "investigate" || x.ask))) {
+      const shown = `${a.label} ${a.command ?? ""} ${a.ask ?? ""}`.toLowerCase();
       const names = v.spoilers.filter((w) => shown.includes(w.toLowerCase()));
-      if (names.length > 0) expect(run.check(id), `${id} says ${names.join(", ")}, so it waits for its target`).toBe("unavailable");
+      expect(names, `${a.id} is listed from the start and says ${names.join(", ")}`).toEqual([]);
     }
   });
 

@@ -12,8 +12,9 @@ export function DbApp() {
   const { scenario, snapshot, world } = incident;
   const logRef = useRef<HTMLDivElement>(null);
   const all = actionsIn(scenario, "db");
-  const actions = offered(all, incident.check);
-  const outputs = outputsOf(scenario, incident.timeline, incident.logs, new Set(actions.map((a) => a.id)));
+  const actions = offered(all, incident.offers);
+  // Every command that ran stays in the session, even once its button is gone.
+  const outputs = outputsOf(scenario, incident.timeline, incident.logs, new Set(all.map((a) => a.id)));
   const running = actions.find((a) => snapshot.busy?.actionId === a.id || snapshot.pending.some((p) => p.actionId === a.id));
   useLayoutEffect(() => {
     const el = logRef.current;

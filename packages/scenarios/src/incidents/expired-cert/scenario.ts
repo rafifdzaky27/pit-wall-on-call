@@ -88,7 +88,7 @@ const CFGS: Record<"" | "mesh", Cfg> = {
     restartLabel: "Restart checkout pods",
     restartId: "checkout.restart",
     restartReveal: "rolling restart done: 3 of 3 pods ready; charges went through for a moment on TLS sessions the provider still honoured",
-    bypassLabel: "Turn off certificate verification for payments",
+    bypassLabel: "Relax the security checks on payment calls",
     bypassReveal: "TLS_VERIFY=off rolled out: charges go through, and every connection to the provider is now unauthenticated",
     asks: {
       infra: "infra: \"we renew certs with the DNS job. It has been red for a while, I keep meaning to look. Why?\"",
@@ -211,8 +211,8 @@ export function makeScenario(v: Variant): ScenarioDef<CertState> {
     ...(mesh
       ? ([
           // The mesh cert lives in the CA's inventory, so the player reads it in the DB console and fixes it there.
-          { id: "stock.certs", tool: "db", label: "Query the mesh certificate inventory", serviceId: "stock", category: "investigate", durationS: 3, verdict: "useful",
-            command: "SELECT name, not_after, request_id, request_status FROM mesh.cert_inventory WHERE not_after < now() + interval '14 days';",
+          { id: "stock.certs", tool: "db", label: "Query the mesh inventory", serviceId: "stock", category: "investigate", durationS: 3, verdict: "useful",
+            command: "SELECT name, not_after, request_id, request_status FROM mesh.cert_inventory ORDER BY name;",
             effect: (s) => ({ ...s, found: 1 }),
             reveals: () => c.certReveal },
           { id: "stock.deploys", tool: "deploys", label: "View stock-api deploys", serviceId: "stock", category: "investigate", durationS: 3, verdict: "wasted",
@@ -255,7 +255,7 @@ export function makeScenario(v: Variant): ScenarioDef<CertState> {
     { id: "ask.deployer.changes", tool: "chat", label: "Ask the deployer what went out today", serviceId: null, category: "investigate", durationS: 30, verdict: mesh ? "wasted" : "useful", async: true,
       ask: { to: "deployer", topic: "changes", prompt: "hey, what went out today?" },
       reveals: () => [who(c.asks.deployer)] },
-    { id: `ask.infra.${c.asks.infraTopic}`, tool: "chat", label: mesh ? "Ask infra how the mesh certs renew" : "Ask infra about certificates", serviceId: null, category: "investigate", durationS: 25, verdict: "useful", async: true,
+    { id: `ask.infra.${c.asks.infraTopic}`, tool: "chat", label: mesh ? "Ask infra what changed on the mesh" : "Ask infra about the payment client", serviceId: null, category: "investigate", durationS: 25, verdict: "useful", async: true,
       ask: { to: "infra", topic: c.asks.infraTopic, prompt: c.asks.infraPrompt },
       reveals: () => [who(c.asks.infra)] },
     { id: "ask.support.impact", tool: "chat", label: "Ask support about customer impact", serviceId: null, category: "investigate", durationS: 20, verdict: "useful", async: true,

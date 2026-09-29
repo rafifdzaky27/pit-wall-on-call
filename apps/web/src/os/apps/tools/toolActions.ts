@@ -15,8 +15,8 @@ export function actionsIn(scenario: ScenarioDef<State>, tool: ActionTool, servic
  * you cannot drop a replication slot before you have seen its name. So a list never gives the fix away,
  * and nothing sits disabled without a reason (PR 30 review I3).
  */
-export function offered(actions: ActionDef<State>[], check: (actionId: string) => string | null): ActionDef<State>[] {
-  return actions.filter((a) => check(a.id) !== "unavailable");
+export function offered(actions: ActionDef<State>[], offers: (actionId: string) => boolean): ActionDef<State>[] {
+  return actions.filter((a) => offers(a.id));
 }
 
 /** The app each tool opens in. */
