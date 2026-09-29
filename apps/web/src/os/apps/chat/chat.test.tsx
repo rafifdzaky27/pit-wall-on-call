@@ -190,6 +190,21 @@ describe("a chat you can use (M2.5 spec §7)", () => {
     expect(box().value).toBe("/status ");
   });
 
+  it("Tab leaves the composer once there is nothing left to complete, and Shift+Tab always does (review I1)", () => {
+    paged();
+    fireEvent.change(box(), { target: { value: "/ask @" } });
+    fireEvent.keyDown(box(), { key: "Tab" });
+    fireEvent.keyDown(box(), { key: "Tab" });
+    const whole = box().value;
+    expect(whole).toMatch(/^\/ask @\w+ \w+$/);
+    // A whole command has nothing more to complete: Tab moves focus on, as it does everywhere else.
+    expect(fireEvent.keyDown(box(), { key: "Tab" })).toBe(true);
+    expect(box().value).toBe(whole);
+    fireEvent.change(box(), { target: { value: "/st" } });
+    expect(fireEvent.keyDown(box(), { key: "Tab", shiftKey: true })).toBe(true);
+    expect(box().value).toBe("/st");
+  });
+
   it("before the page is acknowledged, a question explains why it can't go yet", () => {
     const view = renderOs(<ChatApp />);
     act(() => view.incident().start());

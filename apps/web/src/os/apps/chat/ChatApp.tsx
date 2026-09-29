@@ -376,9 +376,10 @@ export function ChatApp() {
                 e.preventDefault();
                 send();
               }
-              if (e.key === "Tab" && draft.startsWith("/")) {
+              // Tab completes while there is something to add; otherwise it moves focus on (review I1).
+              if (e.key === "Tab" && !e.shiftKey && draft.startsWith("/")) {
                 const next = complete(draft, { scenario, world });
-                if (next) {
+                if (next && next !== draft) {
                   e.preventDefault();
                   setDraft(next);
                 }

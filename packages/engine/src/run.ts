@@ -295,7 +295,11 @@ export class Run<S extends State> {
 
   private pushLog(tick: number, serviceId: string, level: LogLevel, text: string, finding: boolean): void {
     this.logs.push({ seq: this.logSeq++, tick, serviceId, level, text, finding });
-    if (this.logs.length > LOG_CAP) this.logs.splice(0, this.logs.length - LOG_CAP);
+    // Findings are what the player learned: the oldest plain lines go first (M2.5 PR B review I3).
+    while (this.logs.length > LOG_CAP) {
+      const plain = this.logs.findIndex((l) => !l.finding);
+      this.logs.splice(plain === -1 ? 0 : plain, 1);
+    }
   }
 
   private accountBurn(running: BusyState | null): void {

@@ -5,6 +5,7 @@ import { ActionButton } from "../../../console/ActionButton";
 import { formatClock } from "../../../game/format";
 import { useIncident } from "../../incident/IncidentProvider";
 import { useOs } from "../../shell/OsContext";
+import { visibleFor } from "../chat/unread";
 import { actionsIn } from "./toolActions";
 import { ToolIdle } from "./ToolIdle";
 import { useToolFocus } from "./useToolFocus";
@@ -49,13 +50,23 @@ export function LogsApp() {
       return next;
     });
 
-  /** A version in a log line links to that service's deploys. */
+  // The versions each service really has: its deploy history and what it runs now (review I2).
+  const versions = new Map<string, Set<string>>();
+  const cards = visibleFor(incident).flatMap((m) => (m.card ? [m.card] : []));
+  for (const s of scenario.services) {
+    const known = [snapshot.details[s.id] ?? "", ...cards.filter((c) => c.service === s.label).map((c) => c.version)];
+    const found = new Set(known.flatMap((t) => t.match(VERSION) ?? []));
+    if (found.size > 0) versions.set(s.id, found);
+  }
+
+  /** A version in a log line links to that service's deploys, when the service has that version. */
   const message = (l: LogEntry): ReactNode => {
     const text = fillWorld(l.text, world);
-    if (l.serviceId === "global" || !labels.has(l.serviceId)) return text;
+    const known = versions.get(l.serviceId);
+    if (!known) return text;
     const parts = text.split(VERSION);
     return parts.map((part, i) =>
-      i % 2 === 1 ? (
+      i % 2 === 1 && known.has(part) ? (
         <button key={i} type="button" className="tool-link mono" aria-label={`${part}, open in Deploys`} onClick={() => openTool("deploys", l.serviceId)}>
           {part}
         </button>

@@ -104,6 +104,9 @@ describe("Logs", () => {
     const { os, incident } = paged(<LogsApp />);
     act(() => incident().dispatch("checkout.deploys"));
     seconds(4);
+    // Only a version the service really has is a link: "POST /v1/charges" on payments is not (review I2).
+    expect(screen.getByRole("list", { name: "Log lines" }).textContent).toContain("/v1/charges");
+    expect(screen.queryAllByRole("button", { name: /^v1, open in Deploys$/ })).toHaveLength(0);
     const link = screen.getAllByRole("button", { name: /^v14\d, open in Deploys$/ })[0]!;
     fireEvent.click(link);
     expect(os().wm.windows.map((w) => w.appId)).toContain("deploys");
@@ -117,6 +120,8 @@ describe("Deploys", () => {
     const checkout = screen.getByRole("region", { name: "checkout-api" });
     expect(within(checkout).getByText("v142 · 3 pods")).toBeTruthy();
     const history = within(checkout).getByRole("list", { name: "Deploy history" });
+    // Relative, like Chat: days, not thousands of minutes (walkthrough W2).
+    expect(within(history).getAllByRole("listitem")[1]!.textContent).toMatch(/6 d ago/);
     expect(within(history).getAllByRole("listitem").map((li) => li.querySelector(".tool-version")!.textContent)).toEqual(["v142", "v141"]);
     fireEvent.click(within(checkout).getByRole("button", { name: /View recent deploys/ }));
     seconds(4);
