@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DAILY_EPOCH, dailyFor, dailyNumber, isDailyDate, utcDate } from "./daily";
+import { DAILY_EPOCH, DAY_MS, dailyFor, dailyNumber, dayStartMs, isDailyDate, utcDate } from "./daily";
 import { SCENARIOS } from "./index";
 
 describe("the daily incident (M3 spec Y1, Y2)", () => {
@@ -13,7 +13,7 @@ describe("the daily incident (M3 spec Y1, Y2)", () => {
 
   it("is the same for everyone on a date, and differs from day to day", () => {
     expect(dailyFor("2026-10-05")).toEqual(dailyFor("2026-10-05"));
-    const seeds = new Set(Array.from({ length: 60 }, (_, i) => dailyFor(utcDate(Date.UTC(2026, 8, 29) + i * 86_400_000)).seed));
+    const seeds = new Set(Array.from({ length: 60 }, (_, i) => dailyFor(utcDate(dayStartMs(DAILY_EPOCH) + i * DAY_MS)).seed));
     expect(seeds.size).toBe(60);
     const d = dailyFor("2026-10-05");
     expect(d).toMatchObject({ date: "2026-10-05", number: 7 });
@@ -22,12 +22,16 @@ describe("the daily incident (M3 spec Y1, Y2)", () => {
 
   it("never picks the training shift", () => {
     const training = SCENARIOS.filter((s) => s.training).map((s) => s.id);
-    for (let i = 0; i < 400; i++) expect(training).not.toContain(dailyFor(utcDate(Date.UTC(2026, 8, 29) + i * 86_400_000)).scenarioId);
+    for (let i = 0; i < 400; i++) expect(training).not.toContain(dailyFor(utcDate(dayStartMs(DAILY_EPOCH) + i * DAY_MS)).scenarioId);
   });
 
   it("rolls over at 00:00 UTC", () => {
-    expect(utcDate(Date.UTC(2026, 9, 1, 23, 59, 59, 999))).toBe("2026-10-01");
-    expect(utcDate(Date.UTC(2026, 9, 2, 0, 0, 0, 0))).toBe("2026-10-02");
+    // Epoch milliseconds from Date.UTC, checked once by hand: the calendar math agrees with it.
+    expect(utcDate(1790899200000 - 1)).toBe("2026-10-01");
+    expect(utcDate(1790899200000)).toBe("2026-10-02");
+    expect(dayStartMs("2026-10-02")).toBe(1790899200000);
+    expect(utcDate(951782400000)).toBe("2000-02-29");
+    expect(utcDate(946684799999)).toBe("1999-12-31");
   });
 
   it("knows a date when it sees one", () => {
