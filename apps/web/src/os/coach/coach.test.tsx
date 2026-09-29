@@ -147,15 +147,15 @@ describe("the training shift (M2.5 spec §5)", () => {
     expect(kind).toBe("idle");
   });
 
-  it("the first visit puts Training first; after it, Start shift", () => {
+  it("the first visit puts Training first; after it, the daily", () => {
     function Feed() {
       useNoticeFeed(() => {});
       return null;
     }
     const first = renderOs(<Feed />);
-    expect(first.os().notices.find((n) => n.id === "shift")!.actions.map((a) => a.label)).toEqual(["Training shift (about 3 min)", "Start shift"]);
+    expect(first.os().notices.find((n) => n.id === "shift")!.actions.map((a) => a.label)).toEqual(["Training shift (about 3 min)", "Start daily", "Practice shift"]);
     cleanup();
     const later = renderOs(<Feed />, { prefs: { trainingDone: true } });
-    expect(later.os().notices.find((n) => n.id === "shift")!.actions.map((a) => a.label)).toEqual(["Start shift", "Training shift (about 3 min)"]);
+    expect(later.os().notices.find((n) => n.id === "shift")!.actions.map((a) => a.label)).toEqual(["Start daily", "Practice shift", "Training shift (about 3 min)"]);
   });
 });

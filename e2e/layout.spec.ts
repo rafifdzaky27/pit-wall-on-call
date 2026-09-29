@@ -14,7 +14,7 @@ for (const [width, height] of VIEWPORTS) {
   test(`the service map shows every node whole at ${width}×${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     // Start shift pulls back to the café, which has its own Skip; A acknowledges from anywhere.
     await page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" }).click();
     await page.keyboard.press("a");

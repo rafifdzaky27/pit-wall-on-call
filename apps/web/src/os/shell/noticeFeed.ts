@@ -1,10 +1,11 @@
 import { messageAuthor, messageText } from "@pitwall/scenarios";
-import { fillWorld } from "@pitwall/world";
+import { fillWorld, resolveWorld } from "@pitwall/world";
+import { useDaily } from "../../net/daily";
 import { useEffect, useRef } from "react";
 import { authorName, visibleFor } from "../apps/chat/unread";
 import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
-import { useStartTraining } from "../useStartShift";
+import { useStartDaily, useStartTraining } from "../useStartShift";
 import { useOs } from "./OsContext";
 
 /**
@@ -18,21 +19,37 @@ export function useNoticeFeed(startShift: () => void): void {
   const { phase, world, scenario, result } = incident;
   const { prefs } = usePrefs();
   const startTraining = useStartTraining();
+  const startDaily = useStartDaily();
+  const { daily, played } = useDaily();
 
   useEffect(() => {
     if (phase === "idle") {
-      // Newcomers see the guided training first (M2.5 spec §5); afterwards the real shift leads.
-      const real = { label: "Start shift", run: startShift, primary: prefs.trainingDone };
+      // Today's daily leads (M3 spec Y8); newcomers see the guided training first (M2.5 spec §5).
+      const city = resolveWorld(daily.seed).city.name;
       const drill = { label: "Training shift (about 3 min)", run: startTraining, primary: !prefs.trainingDone };
-      pushNotice({
-        id: "shift",
-        app: "Shift",
-        title: `Shift ready · ${world.city.name}`,
-        body: prefs.trainingDone
-          ? `${world.brand.name} is quiet. Start a practice incident whenever you are ready.`
-          : `${world.brand.name} is quiet. New here? Start with the training shift: a coach walks you through it.`,
-        actions: prefs.trainingDone ? [real, drill] : [drill, real],
-      });
+      if (played) {
+        const practice = { label: "Practice shift", run: startShift, primary: true };
+        const again = { label: "Daily again (practice)", run: startDaily };
+        pushNotice({
+          id: "shift",
+          app: "Shift",
+          title: played.rank === null ? `Daily #${daily.number} done` : `Daily #${daily.number} done · #${played.rank} of ${played.total}`,
+          body: "Your ranked attempt for today is in. Anything you play now is practice. The next daily is at 00:00 UTC.",
+          actions: [practice, again, { ...drill, primary: false }],
+        });
+      } else {
+        const today = { label: "Start daily", run: startDaily, primary: prefs.trainingDone };
+        const practice = { label: "Practice shift", run: startShift };
+        pushNotice({
+          id: "shift",
+          app: "Shift",
+          title: `Daily #${daily.number} · ${city}`,
+          body: prefs.trainingDone
+            ? "Today's incident, the same for everyone. Your first attempt counts on the daily board."
+            : "New here? Start with the training shift: a coach walks you through it. Then try today's daily.",
+          actions: prefs.trainingDone ? [today, practice, drill] : [drill, today, practice],
+        });
+      }
     } else removeNotice("shift");
 
     if (phase === "prepage") {
@@ -69,7 +86,7 @@ export function useNoticeFeed(startShift: () => void): void {
         actions: [{ label: "Open postmortem", run: () => openApp("postmortem") }],
       });
     }
-  }, [phase, result, prefs.trainingDone]);
+  }, [phase, result, prefs.trainingDone, daily, played]);
 
   // Symptoms down but the cause still active: say the incident is open (M2.5 spec §3, finding F1).
   const status = incident.snapshot.status;

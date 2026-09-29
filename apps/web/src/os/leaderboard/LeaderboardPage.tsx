@@ -1,10 +1,10 @@
 import { Fragment, useEffect, useState } from "react";
 import { formatBp, formatClock } from "../../game/format";
-import { fetchLeaderboard, type Board, type BoardEntry } from "../../net/client";
+import { fetchDailyBoard, fetchLeaderboard, type Board, type BoardEntry, type DailyBoard } from "../../net/client";
 import { usePlayer } from "../../net/player";
 import "./leaderboard.css";
 
-type Load = { kind: "loading" } | { kind: "error" } | { kind: "ok"; board: Board };
+type Load = { kind: "loading" } | { kind: "error" } | { kind: "ok"; board: Board | DailyBoard };
 
 function Row({ e }: { e: BoardEntry }) {
   return (
@@ -23,8 +23,9 @@ function Row({ e }: { e: BoardEntry }) {
 }
 
 /**
- * The practice leaderboard (M2 spec §6), as a web page: inside the PitOS Browser and under the lock
- * screen on small screens. It loads again whenever `version` changes.
+ * A leaderboard as a web page: the practice board (M2 spec §6), or a day's daily board with `daily`
+ * (M3 spec Y7). It sits inside the PitOS Browser, the shift report and the lock screen, and loads
+ * again whenever `version` changes.
  */
 export function LeaderboardPage({
   scenarioId,
@@ -32,6 +33,7 @@ export function LeaderboardPage({
   version = 0,
   limit,
   bare = false,
+  daily,
 }: {
   scenarioId: string;
   scenarioTitle: string;
@@ -40,6 +42,8 @@ export function LeaderboardPage({
   limit?: number;
   /** No page heading: the board sits inside another surface. */
   bare?: boolean;
+  /** The day's daily board instead of the practice board. */
+  daily?: { date: string; number: number };
 }) {
   const player = usePlayer();
   const token = player?.token;
@@ -49,14 +53,14 @@ export function LeaderboardPage({
   useEffect(() => {
     let live = true;
     setLoad({ kind: "loading" });
-    fetchLeaderboard(scenarioId, token).then(
+    (daily ? fetchDailyBoard(daily.date, token) : fetchLeaderboard(scenarioId, token)).then(
       (board) => live && setLoad({ kind: "ok", board }),
       () => live && setLoad({ kind: "error" }),
     );
     return () => {
       live = false;
     };
-  }, [scenarioId, token, version, attempt]);
+  }, [scenarioId, daily?.date, token, version, attempt]);
 
   let body;
   if (load.kind === "loading") {
@@ -71,7 +75,7 @@ export function LeaderboardPage({
       </div>
     );
   } else if (load.board.entries.length === 0) {
-    body = <p>No shifts posted yet. Finish a shift and post it from its postmortem.</p>;
+    body = <p>{daily ? "Nobody has posted today's daily yet. Be the first." : "No shifts posted yet. Finish a shift and post it from its postmortem."}</p>;
   } else {
     const { you, total } = load.board;
     const entries = limit === undefined ? load.board.entries : load.board.entries.slice(0, limit);
@@ -79,7 +83,7 @@ export function LeaderboardPage({
     body = (
       <>
         <div className="lb-table-wrap">
-          <table className="lb-table" aria-label="Practice leaderboard">
+          <table className="lb-table" aria-label={daily ? "Daily leaderboard" : "Practice leaderboard"}>
             <thead>
               <tr>
                 <th scope="col">Rank</th>
@@ -118,8 +122,8 @@ export function LeaderboardPage({
     <article className="lb-page">
       <header className="lb-head">
         <p className="lb-site">Pit Wall On-Call</p>
-        <h1>Practice leaderboard</h1>
-        <p className="lb-sub">{scenarioTitle} · best shift per player · all time</p>
+        <h1>{daily ? `Daily #${daily.number}` : "Practice leaderboard"}</h1>
+        <p className="lb-sub">{daily ? `${daily.date} · first attempt per player` : `${scenarioTitle} · best shift per player · all time`}</p>
       </header>
       {body}
     </article>

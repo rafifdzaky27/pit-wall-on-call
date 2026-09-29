@@ -49,6 +49,7 @@
 .mon-calm { max-width: 640px; }
 .mon-calm-head { display: grid; gap: var(--space-2); }
 .mon-calm-head .tag { justify-self: start; }
+.mon-calm-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .mon-services { display: grid; gap: var(--space-2); }
 .mon-services li { display: flex; justify-content: space-between; padding: var(--space-3); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
 .mon-calm .btn, .mon-ended .btn { justify-self: start; }
@@ -185,7 +186,8 @@
 .notice-close:hover { background: var(--raised); color: var(--text); }
 .notice-meta { display: flex; gap: var(--space-2); align-items: center; font-size: var(--fs-xs); color: var(--muted); }
 .notice-escalated { color: var(--warn) !important; }
-.notice-actions { display: flex; gap: var(--space-2); }
+.notice-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.notice-actions .btn { white-space: nowrap; }
 
 /* Overview */
 .overview { position: fixed; top: var(--topbar-h); left: 0; right: 0; bottom: 0; z-index: var(--z-overview); display: grid; place-content: center; justify-items: center; gap: var(--space-5); padding: var(--space-6) var(--space-6) 96px; background: var(--scrim); animation: fade-in var(--motion-slow) var(--ease-out); }

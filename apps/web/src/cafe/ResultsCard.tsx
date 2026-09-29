@@ -46,10 +46,12 @@ export function ResultsCard() {
   const scenario = incident.scenario;
   // Training is never posted: its report points at the real shift instead (M2.5 spec §5).
   const drill = scenario.training === true;
+  // A daily reports as that day's daily, on that day's board (M3 spec Y11, Y12).
+  const daily = incident.daily ? { date: incident.daily.date, number: incident.daily.number } : undefined;
   const told = result.timeline.some((e) => e.kind === "action_start" && e.actionId === "global.status_update");
 
   const share = async () => {
-    const text = shareText(scenario, result, window.location.origin);
+    const text = shareText(scenario, result, window.location.origin, daily);
     try {
       await navigator.clipboard.writeText(text);
       setCopied("yes");
@@ -63,11 +65,11 @@ export function ResultsCard() {
       <div className="results-card" role="dialog" aria-label="Shift report" aria-modal="true" tabIndex={-1} ref={card}>
         {view === "board" ? (
           <div className="results-body">
-            <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} version={leaderboardVersion} />
+            <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} daily={daily} version={leaderboardVersion} />
           </div>
         ) : (
           <div className="results-body">
-            <p className="eyebrow">{scenario.title} · Shift report</p>
+            <p className="eyebrow">{daily ? `Daily #${daily.number}` : scenario.title} · Shift report</p>
             <h2 className="results-title">{resolved ? (drill ? "Training complete" : `Resolved in ${formatClock(result.endTick)}`) : "Out of time"}</h2>
             {drill && (
               <p>
@@ -99,7 +101,7 @@ export function ResultsCard() {
             {!drill && (
               <section className="results-board" aria-label="Leaderboard">
                 <LeaderboardCard bare />
-                <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} version={leaderboardVersion} limit={5} bare />
+                <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} daily={daily} version={leaderboardVersion} limit={5} bare />
               </section>
             )}
             {copied && <p role="status">{copied === "yes" ? "Copied to the clipboard." : "Couldn't copy. Select the text in the postmortem instead."}</p>}

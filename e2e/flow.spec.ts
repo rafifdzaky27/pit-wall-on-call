@@ -32,7 +32,7 @@ test.describe("flow (M2.5 spec §11)", () => {
     await page.clock.install();
     await page.goto("/");
     await page.evaluate(() => document.querySelector(".stage")!.setAttribute("data-marker", "same"));
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
     // The ack leaves you on the desktop; its notice points to Monitoring.
@@ -58,14 +58,14 @@ test.describe("flow (M2.5 spec §11)", () => {
     await page.clock.runFor(2_000);
     await expect(page.locator(".stage")).toHaveAttribute("data-marker", "same");
     await expect(page.locator(".stage-screen .window")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Start shift" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Practice shift" }).first()).toBeVisible();
   });
 
   test("the shift report opens by itself and fits a 1366×657 laptop", async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 657 });
     await page.clock.install();
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
     // The ack leaves you on the desktop; its notice points to Monitoring.
@@ -107,7 +107,7 @@ test.describe("flow (M2.5 spec §11)", () => {
 
   test("? opens Help, and its glossary explains the terms (M2.5 spec §4)", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("button", { name: "Start shift" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Practice shift" }).first()).toBeVisible();
     await page.keyboard.press("?");
     const help = page.getByRole("region", { name: "Help" });
     await expect(help).toBeVisible();
@@ -119,7 +119,7 @@ test.describe("flow (M2.5 spec §11)", () => {
 
   test("pressing L again mid-move turns the camera around where it is, with no snap (M2.5 follow-up)", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await page.waitForTimeout(1500);
     // The laptop screen's width on screen, every frame: one continuous measure of the whole camera.
     await page.evaluate(() => {
@@ -145,14 +145,15 @@ test.describe("flow (M2.5 spec §11)", () => {
       return w.__widths;
     });
     const steps = widths.slice(1).map((v, i) => Math.abs(v - widths[i]!));
-    // A 700 ms move covers about 1000 px, some 50 px a frame at its fastest; a snap is the whole distance at once.
-    expect(Math.max(...steps)).toBeLessThan(400);
+    // A 700 ms move covers about 1000 px, some 50 px a frame at its fastest (more when frames drop under
+    // load); a snap is the whole distance, about 1000 px, at once.
+    expect(Math.max(...steps)).toBeLessThan(700);
   });
 
   // @perf runs alone (PERF=1 playwright test --workers=1, a CI step of its own): frame times mean nothing while other browsers share the CPU.
   test("looking up and back down stays smooth @perf", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
     // The ack leaves you on the desktop; its notice points to Monitoring.

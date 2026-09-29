@@ -29,3 +29,11 @@ describe("shareText (parent spec §7)", () => {
     expect(text).toContain("🟨🟥  root cause ✘");
   });
 });
+
+describe("sharing a daily (M3 spec Y12)", () => {
+  it("names the daily and links to it", () => {
+    const text = shareText(slowLeak, perfect, "https://pitwall.example", { number: 7 });
+    expect(text.split("\n")[0]).toBe("Pit Wall On-Call · Daily #7");
+    expect(text.split("\n").at(-1)).toBe("https://pitwall.example/daily");
+  });
+});

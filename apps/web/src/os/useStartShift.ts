@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useDaily } from "../net/daily";
 import { enterFullscreen } from "./fullscreen";
 import { useIncident } from "./incident/IncidentProvider";
 import { usePrefs } from "./PrefsProvider";
@@ -39,5 +40,23 @@ export function useStartTraining(): () => void {
     if (latest.current.fullscreenOnStart) void enterFullscreen();
     audio.unlock();
     latest.current.training();
+  }, []);
+}
+
+/** Today's daily, as one click, with the same full-screen and audio unlock as Start shift (M3 spec Y8). */
+export function useStartDaily(): () => void {
+  const incident = useIncident();
+  const { daily } = useDaily();
+  const { prefs } = usePrefs();
+  const latest = useRef({ fullscreenOnStart: prefs.fullscreenOnStart, startDaily: incident.startDaily, daily });
+
+  useEffect(() => {
+    latest.current = { fullscreenOnStart: prefs.fullscreenOnStart, startDaily: incident.startDaily, daily };
+  });
+
+  return useCallback(() => {
+    if (latest.current.fullscreenOnStart) void enterFullscreen();
+    audio.unlock();
+    latest.current.startDaily(latest.current.daily);
   }, []);
 }

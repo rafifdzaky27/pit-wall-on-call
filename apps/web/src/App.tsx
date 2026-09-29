@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Stage } from "./cafe/Stage";
+import { DailyProvider } from "./net/daily";
 import { SubmissionProvider } from "./net/SubmissionProvider";
 import { IncidentProvider, ShiftScope, useIncident } from "./os/incident/IncidentProvider";
 import { PrefsProvider } from "./os/PrefsProvider";
@@ -19,29 +20,31 @@ export function App({ newSeed, prepageMs }: { newSeed?: () => number; prepageMs?
   const wide = useMediaQuery("(min-width: 1024px)");
   return (
     <PrefsProvider>
-      <IncidentProvider newSeed={newSeed} prepageMs={prepageMs}>
-        <SubmissionProvider>
-          <CrashGuard>
-            {wide ? (
-              <OsBridge>
-                <Stage>
-                  <ShiftScope>
-                    <OsProvider>
-                      <Desktop />
-                    </OsProvider>
-                  </ShiftScope>
-                </Stage>
-              </OsBridge>
-            ) : (
-              <ShiftScope>
-                <OsProvider>
-                  <Lockscreen />
-                </OsProvider>
-              </ShiftScope>
-            )}
-          </CrashGuard>
-        </SubmissionProvider>
-      </IncidentProvider>
+      <DailyProvider>
+        <IncidentProvider newSeed={newSeed} prepageMs={prepageMs}>
+          <SubmissionProvider>
+            <CrashGuard>
+              {wide ? (
+                <OsBridge>
+                  <Stage>
+                    <ShiftScope>
+                      <OsProvider>
+                        <Desktop />
+                      </OsProvider>
+                    </ShiftScope>
+                  </Stage>
+                </OsBridge>
+              ) : (
+                <ShiftScope>
+                  <OsProvider>
+                    <Lockscreen />
+                  </OsProvider>
+                </ShiftScope>
+              )}
+            </CrashGuard>
+          </SubmissionProvider>
+        </IncidentProvider>
+      </DailyProvider>
     </PrefsProvider>
   );
 }

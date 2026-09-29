@@ -340,3 +340,4 @@ From the opportunity report:
 | 2026-09-28 | `/metrics` stays inside the compose network (Caddy proxies `/api/*` only); scraping it is M5. | M2 spec L9 |
 | 2026-09-29 | The snapshot carries a derived `status` (paging, investigating, mitigated, holding, resolved, dnf) for the UI; scoring never reads it. | M2.5 spec §3 |
 | 2026-09-29 | A training scenario (`training-config-push`) exists, and the API refuses its runs: training is never ranked. | M2.5 spec §5, D4 |
+| 2026-09-29 | The daily is `dailyFor(date)` in `packages/scenarios` (no table). Daily #1 is 2026-09-29. `POST /api/runs` takes `mode: "daily"` with `dailyDate`, accepted for today or yesterday by UTC; the answer adds `ranked`. The practice board also counts ranked dailies. `GET /api/leaderboard?date=` is the day's board. | M3 spec Y1–Y7 |

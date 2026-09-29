@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { ENGINE_VERSION } from "../packages/engine/src/constants";
+import { dailyFor, utcDate } from "../packages/scenarios/src/daily";
 
 const skip = (page: import("@playwright/test").Page) =>
   page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" });
@@ -16,7 +17,7 @@ test.describe("the runs API contract (M2)", () => {
     const handle = `e2e_${Date.now().toString(36).slice(-7)}`;
     await page.clock.install();
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
     // The ack leaves you on the desktop; its notice points to Monitoring.
@@ -51,12 +52,15 @@ test.describe("the runs API contract (M2)", () => {
 
     await board.getByRole("button", { name: "View leaderboard" }).click();
     await expect(page.getByRole("tab", { name: "Leaderboard · Pit Wall On-Call", selected: true })).toBeVisible();
+    // Today's daily leads; this was a practice shift, so it is on the second tab (M3 spec Y11).
+    await page.getByRole("group", { name: "Boards" }).getByRole("button", { name: "Practice" }).click();
     await expect(page.getByRole("table", { name: "Practice leaderboard" }).getByText(`${handle}#`, { exact: false })).toBeVisible();
     await expect(page.getByRole("table", { name: "Practice leaderboard" }).locator(".lb-you")).toContainText("(you)");
   });
 
-  test("below 1024 px, the lock screen shows the practice leaderboard", async ({ page, request }) => {
-    // One ranked shift, so the board has a table: the golden perfect player on seed 1.
+  test("below 1024 px, the lock screen shows today's daily board", async ({ page, request }) => {
+    // One ranked daily, so the board has a table: the golden perfect player's actions on today's daily.
+    const today = dailyFor(utcDate(Date.now()));
     const player = await (await request.post("/api/players", { data: { handle: "phone_seed" } })).json();
     const actions = [
       { tick: 0, actionId: "inspect:laptop.slack.deploys" },
@@ -67,12 +71,12 @@ test.describe("the runs API contract (M2)", () => {
     ];
     const posted = await request.post("/api/runs", {
       headers: { authorization: `Bearer ${player.token}` },
-      data: { scenarioId: "db-pool-exhaustion", seed: 1, mode: "practice", engineVersion: ENGINE_VERSION, runKey: crypto.randomUUID(), actions },
+      data: { scenarioId: today.scenarioId, seed: today.seed, mode: "daily", dailyDate: today.date, engineVersion: ENGINE_VERSION, runKey: crypto.randomUUID(), actions },
     });
     expect(posted.status()).toBe(201);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1, name: "Practice leaderboard" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: `Daily #${today.number}` })).toBeVisible();
     const width = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(width).toBeLessThanOrEqual(390);
     // The table fits too, so the Result column is not hidden behind a sideways scroll (walkthrough W1).

@@ -93,3 +93,21 @@ describe("LeaderboardPage", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("the daily board (M3 spec Y7, Y11)", () => {
+  it("fetches the day's board and names it by number and date", async () => {
+    const fetch = serve({ ...board([entry(1), entry(2, { you: true })]), board: "daily", date: "2026-10-05", number: 7 } as unknown as Board);
+    render(<LeaderboardPage scenarioId="db-pool-exhaustion" scenarioTitle="The Slow Leak" daily={{ date: "2026-10-05", number: 7 }} />);
+    const table = await screen.findByRole("table", { name: "Daily leaderboard" });
+    expect((fetch.mock.calls[0] as unknown as [string])[0]).toBe("/api/leaderboard?date=2026-10-05");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Daily #7");
+    expect(screen.getByText("2026-10-05 · first attempt per player")).toBeTruthy();
+    expect(within(table).getAllByRole("row")).toHaveLength(3);
+  });
+
+  it("says when nobody has played today's yet", async () => {
+    serve({ ...board([]), board: "daily", date: "2026-10-05", number: 7 } as unknown as Board);
+    render(<LeaderboardPage scenarioId="db-pool-exhaustion" scenarioTitle="The Slow Leak" daily={{ date: "2026-10-05", number: 7 }} />);
+    expect(await screen.findByText("Nobody has posted today's daily yet. Be the first.")).toBeTruthy();
+  });
+});

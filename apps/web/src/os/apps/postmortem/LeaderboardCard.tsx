@@ -112,10 +112,14 @@ export function LeaderboardCard({ onView, bare = false }: { onView?: () => void;
   } else if (state.kind === "posting") {
     body = <p role="status">Posting your score…</p>;
   } else if (state.kind === "posted") {
-    const { board, flagged } = state.run;
+    const { board, flagged, ranked, dailyDate } = state.run;
     const line = flagged
       ? "Posted and held for review. Fixes this fast are checked by hand."
-      : board.best
+      : ranked
+        ? `Ranked #${board.rank} of ${board.total} on today's daily board.`
+        : dailyDate
+          ? "Practice: your ranked attempt at today's daily came earlier. This one counts on the practice board."
+          : board.best
         ? `New best: #${board.rank} of ${board.total} on the practice leaderboard.`
         : `Posted. Your best is still #${board.rank} of ${board.total}.`;
     body = (

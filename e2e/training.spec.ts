@@ -44,5 +44,5 @@ test("a first-timer takes the coached training shift from the landing to the rep
   await expect(page.getByRole("region", { name: "Training coach" })).toHaveCount(0);
   // Done once: the landing now leads with the real shift.
   await page.clock.runFor(2_000);
-  await expect(page.getByRole("button", { name: "Start shift" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Practice shift" }).first()).toBeVisible();
 });

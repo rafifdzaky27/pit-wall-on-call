@@ -6,6 +6,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
+  // Flows play whole shifts (the daily spec plays two); under a parallel suite some take over 30 s.
+  timeout: 60_000,
   use: { baseURL: "http://localhost:4173", trace: "retain-on-failure" },
   // Frame-time checks run alone, through pnpm e2e:perf.
   grepInvert: process.env.PERF ? undefined : /@perf/,

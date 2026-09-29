@@ -87,6 +87,20 @@ describe("the postmortem's Leaderboard section", () => {
     expect(text()).toContain("Posted. Your best is still #8 of 340.");
   });
 
+  it("a ranked daily says where it stands on today's board (M3 spec Y11)", async () => {
+    savePlayer(PLAYER);
+    serve(() => json(201, { ...posted({ rank: 12, total: 340, best: true }), mode: "daily_ranked", ranked: true, dailyDate: "2026-10-05" }));
+    await finished();
+    expect(text()).toContain("Ranked #12 of 340 on today's daily board.");
+  });
+
+  it("a second daily says it was practice (M3 spec Y6)", async () => {
+    savePlayer(PLAYER);
+    serve(() => json(201, { ...posted({ rank: 8, total: 340, best: false }), mode: "practice", ranked: false, dailyDate: "2026-10-05" }));
+    await finished();
+    expect(text()).toContain("Practice: your ranked attempt at today's daily came earlier. This one counts on the practice board.");
+  });
+
   it("says a flagged shift is held for review", async () => {
     savePlayer(PLAYER);
     serve(() => json(201, posted({ rank: null, total: 340, best: false }, true)));

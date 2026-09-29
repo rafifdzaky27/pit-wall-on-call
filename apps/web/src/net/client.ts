@@ -1,4 +1,5 @@
 import type { ActionRecord } from "@pitwall/engine";
+import type { Daily } from "@pitwall/scenarios";
 
 /** A response from the API that is not a success (M2 spec §3). */
 export class ApiError extends Error {
@@ -39,6 +40,9 @@ export interface Score {
 export interface PostedRun {
   runId: string;
   mode: string;
+  /** This run is the player's ranked daily (M3 spec Y6). */
+  ranked?: boolean;
+  dailyDate?: string | null;
   flagged: boolean;
   score: Score;
   board: { rank: number | null; total: number; best: boolean };
@@ -47,7 +51,8 @@ export interface PostedRun {
 export interface RunPost {
   scenarioId: string;
   seed: number;
-  mode: "practice";
+  mode: "practice" | "daily";
+  dailyDate?: string;
   engineVersion: string;
   runKey: string;
   actions: ActionRecord[];
@@ -102,3 +107,16 @@ export const renamePlayer = (token: string, handle: string) => request<PlayerVie
 export const postRun = (token: string, run: RunPost) => request<PostedRun>("POST", "/api/runs", { body: run, token });
 export const fetchLeaderboard = (scenarioId: string, token?: string) =>
   request<Board>("GET", `/api/leaderboard?scenario=${encodeURIComponent(scenarioId)}`, { token });
+
+/** The day's board (M3 spec Y7). */
+export interface DailyBoard {
+  board: "daily";
+  date: string;
+  number: number;
+  total: number;
+  entries: BoardEntry[];
+  you: BoardEntry | null;
+}
+
+export const fetchDaily = () => request<Daily & { engineVersion: string }>("GET", "/api/daily");
+export const fetchDailyBoard = (date: string, token?: string) => request<DailyBoard>("GET", `/api/leaderboard?date=${encodeURIComponent(date)}`, { token });

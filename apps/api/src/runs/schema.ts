@@ -1,5 +1,5 @@
 import { ACK, ENGINE_VERSION, INSPECT_PREFIX, type ActionRecord } from "@pitwall/engine";
-import { getScenario } from "@pitwall/scenarios";
+import { getScenario, isDailyDate } from "@pitwall/scenarios";
 import { z } from "zod";
 import { ApiError } from "../http/errors";
 
@@ -12,7 +12,9 @@ const Body = z.object({
     .int()
     .min(0)
     .max(2 ** 32 - 1),
-  mode: z.literal("practice"),
+  mode: z.enum(["practice", "daily"]),
+  /** The daily's UTC date, for `mode: "daily"` (M3 spec Y5). */
+  dailyDate: z.string().max(10).optional(),
   engineVersion: z.string(),
   runKey: z.uuid(),
   actions: z
@@ -25,7 +27,8 @@ const Body = z.object({
 export interface RunBody {
   scenarioId: string;
   seed: number;
-  mode: "practice";
+  mode: "practice" | "daily";
+  dailyDate: string | null;
   engineVersion: string;
   runKey: string;
   actions: ActionRecord[];
@@ -57,6 +60,7 @@ export function parseRunBody(json: unknown): RunBody {
   const scenario = getScenario(body.scenarioId);
   if (!scenario) throw schemaError(`Unknown scenario ${body.scenarioId}.`);
   if (scenario.training) throw schemaError("Training shifts are not posted.");
+  if (body.mode === "daily" && (body.dailyDate === undefined || !isDailyDate(body.dailyDate))) throw schemaError("dailyDate: a daily needs its date, as YYYY-MM-DD.");
 
   const known = new Set<string>([ACK, ...scenario.actions.map((a) => a.id), ...Object.keys(scenario.coldOpen.hotspots).map((h) => `${INSPECT_PREFIX}${h}`)]);
   let last = 0;
@@ -69,6 +73,7 @@ export function parseRunBody(json: unknown): RunBody {
     scenarioId: body.scenarioId,
     seed: body.seed,
     mode: body.mode,
+    dailyDate: body.mode === "daily" ? body.dailyDate! : null,
     engineVersion: body.engineVersion,
     runKey: body.runKey,
     actions: body.actions.map(({ tick, actionId }) => ({ tick, actionId })),

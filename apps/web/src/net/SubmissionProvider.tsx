@@ -1,7 +1,9 @@
 import { ENGINE_VERSION } from "@pitwall/engine";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useIncident } from "../os/incident/IncidentProvider";
-import { ApiError, NetworkError, postRun, registerPlayer, type PostedRun } from "./client";
+import { ApiError, NetworkError, postRun, registerPlayer, type PostedRun, type RunPost } from "./client";
+import { useDaily, type DailyApi } from "./daily";
+import { claim, drop, enqueue, pending, release } from "./queue";
 import { forgetPlayer, loadPlayer, savePlayer } from "./player";
 
 export type SubmitState =
@@ -35,27 +37,62 @@ export function useSubmission(): Submission {
 export const RETRY_DELAYS_MS = [1000, 2000, 4000];
 
 const retryable = (e: unknown) => e instanceof NetworkError || (e instanceof ApiError && e.status >= 500);
+/** The server will never take this run (a stale engine, an impossible log, a closed daily): stop keeping it. */
+const final = (e: unknown) => e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 401 && e.status !== 429;
+
+/** Remembers today's ranked daily on this device, for the landing's notice (M3 spec Y8). */
+function recordDaily(run: RunPost, posted: PostedRun, markPlayed: DailyApi["markPlayed"]): void {
+  if (run.mode !== "daily" || !run.dailyDate) return;
+  if (posted.ranked) markPlayed(run.dailyDate, { rank: posted.board.rank, total: posted.board.total });
+}
+
+/** Sends runs left in the queue by an earlier page (offline, or closed mid-post), once each (spec Y10). */
+async function sendQueued(skip: string | null, markPlayed: DailyApi["markPlayed"]): Promise<boolean> {
+  const player = loadPlayer();
+  if (!player) return false;
+  let sent = false;
+  for (const run of pending()) {
+    if (run.runKey === skip || !claim(run.runKey)) continue;
+    try {
+      const posted = await postRun(player.token, run);
+      drop(run.runKey);
+      recordDaily(run, posted, markPlayed);
+      sent = true;
+    } catch (e) {
+      if (final(e)) drop(run.runKey);
+    } finally {
+      release(run.runKey);
+    }
+  }
+  return sent;
+}
 
 /**
- * Posts each finished shift to the practice leaderboard. It lives inside the incident session, so a
- * new shift starts it over. M3 persists a pending post across reloads.
+ * Posts each finished shift: a daily to the day's board, anything else to the practice board. It
+ * outlives shifts and starts over with each; unsent runs wait in a queue across reloads (M3 spec Y10).
  */
 export function SubmissionProvider({ children }: { children: ReactNode }) {
-  const { result, seed, scenario } = useIncident();
+  const { result, shiftId, scenario, daily } = useIncident();
+  const { markPlayed } = useDaily();
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
-  // This provider outlives each shift (M2.5 plan A4): a new seed starts it over, and a post still in
-  // flight from the previous shift is ignored when it lands.
-  const [shift, setShift] = useState(seed);
-  const current = useRef(seed);
-  current.current = seed;
-  if (shift !== seed) {
-    setShift(seed);
+  // This provider outlives each shift (M2.5 plan A4): a new shift starts it over, and a post still in
+  // flight from the previous shift is ignored when it lands. A daily repeats its seed, so shifts are
+  // told apart by id (M3 spec Y9).
+  const [shift, setShift] = useState(shiftId);
+  const current = useRef(shiftId);
+  current.current = shiftId;
+  if (shift !== shiftId) {
+    setShift(shiftId);
     setState({ kind: "idle" });
   }
   const [leaderboardVersion, setLeaderboardVersion] = useState(0);
-  const runKey = useRef<{ seed: number; key: string } | null>(null);
+  const runKey = useRef<{ shiftId: number; key: string } | null>(null);
   const pendingHandle = useRef<string | undefined>(undefined);
   const alive = useRef(true);
+  // Read at call time: markPlayed changes at the UTC rollover, and that must not re-post a run (review 1).
+  const markRef = useRef(markPlayed);
+  markRef.current = markPlayed;
+  const autoPosted = useRef<number | null>(null);
 
   useEffect(() => {
     alive.current = true;
@@ -67,32 +104,49 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
   const post = useCallback(
     async (handle?: string) => {
       if (!result) return;
-      const mine = seed;
-      if (runKey.current?.seed !== mine) runKey.current = { seed: mine, key: crypto.randomUUID() };
+      const mine = shiftId;
+      if (runKey.current?.shiftId !== mine) runKey.current = { shiftId: mine, key: crypto.randomUUID() };
       const key = runKey.current.key;
       const live = () => alive.current && current.current === mine;
       pendingHandle.current = handle;
       setState({ kind: "posting" });
+      const body: RunPost = {
+        scenarioId: result.scenarioId,
+        seed: result.seed,
+        ...(daily ? { mode: "daily", dailyDate: daily.date } : { mode: "practice" }),
+        engineVersion: ENGINE_VERSION,
+        runKey: key,
+        actions: result.actions,
+      };
       for (let attempt = 0; ; attempt++) {
         try {
           let player = loadPlayer();
+          if (!player && handle === undefined) {
+            setState({ kind: "ask" });
+            return;
+          }
+          // Kept until the server has it, so a closed tab or a dropped network never loses it (spec Y10),
+          // even before a first-time player has registered (review 2).
+          enqueue(body);
           if (!player) {
-            if (handle === undefined) {
-              setState({ kind: "ask" });
-              return;
-            }
-            const created = await registerPlayer(handle);
+            const created = await registerPlayer(handle!);
             player = { playerId: created.playerId, handle: created.handle, tag: created.tag, token: created.token };
             savePlayer(player);
+            // Runs queued while there was no player go out now.
+            void sendQueued(key, markRef.current);
           }
-          const run = await postRun(player.token, {
-            scenarioId: result.scenarioId,
-            seed: result.seed,
-            mode: "practice",
-            engineVersion: ENGINE_VERSION,
-            runKey: key,
-            actions: result.actions,
-          });
+          if (!claim(key)) return;
+          let run: PostedRun;
+          try {
+            run = await postRun(player.token, body);
+            drop(key);
+            recordDaily(body, run, markRef.current);
+          } catch (e) {
+            if (final(e)) drop(key);
+            throw e;
+          } finally {
+            release(key);
+          }
           if (!live()) return;
           setState({ kind: "posted", run });
           setLeaderboardVersion((v) => v + 1);
@@ -120,16 +174,31 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [result, seed],
+    [result, shiftId, daily],
   );
+
+  // Runs an earlier page could not send go out on load and whenever the browser is back online.
+  useEffect(() => {
+    const resend = () => {
+      void sendQueued(runKey.current?.key ?? null, markRef.current).then((sent) => {
+        if (sent && alive.current) setLeaderboardVersion((v) => v + 1);
+      });
+    };
+    resend();
+    window.addEventListener("online", resend);
+    return () => window.removeEventListener("online", resend);
+  }, []);
 
   // A finished shift posts at once when this device has a player, and asks for a handle otherwise.
   useEffect(() => {
     // Training is never posted (M2.5 spec D4): the report says so instead.
     if (!result || scenario.training) return;
+    // Once per shift, whatever re-renders later (review 1).
+    if (autoPosted.current === shiftId) return;
+    autoPosted.current = shiftId;
     if (loadPlayer()) void post();
     else setState({ kind: "ask" });
-  }, [result, post, scenario]);
+  }, [result, post, scenario, shiftId]);
 
   const value = useMemo<Submission>(
     () => ({

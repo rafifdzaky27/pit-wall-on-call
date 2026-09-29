@@ -120,7 +120,8 @@ describe("TopBar", () => {
     act(() => os().pushNotice({ id: "n", app: "Chat", title: "Laras", body: "check v142?", actions: [] }));
     const clock = screen.getByRole("button", { name: /unread notifications/ });
     fireEvent.click(clock);
-    const cal = await screen.findByRole("dialog", { name: "Calendar and notifications" });
+    // The calendar is a lazy chunk; its first import can take over 1 s under a full parallel run.
+    const cal = await screen.findByRole("dialog", { name: "Calendar and notifications" }, { timeout: 5000 });
     expect(cal.textContent).toContain("check v142?");
     expect(cal.querySelector('[aria-current="date"]')).toBeTruthy();
     await vi.waitFor(() => expect(screen.queryByRole("button", { name: /unread notifications/ })).toBeNull());
