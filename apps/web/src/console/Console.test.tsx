@@ -3,13 +3,13 @@ import { slowLeak } from "@pitwall/scenarios";
 import { resolveWorld } from "@pitwall/world";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Console } from "./Console";
+import { Console, type ConsoleProps } from "./Console";
 
 afterEach(cleanup);
 
 const world = resolveWorld(1);
 
-function setup({ steps = 50, acked = true, inspect = [] as string[], active = true } = {}) {
+function setup({ steps = 50, acked = true, inspect = [] as string[], active = true, onOpen = undefined as ConsoleProps["onOpen"] } = {}) {
   const run = new Run<State>(slowLeak, 1);
   for (const id of inspect) run.dispatch(`inspect:${id}`);
   if (acked) run.dispatch(ACK);
@@ -27,6 +27,7 @@ function setup({ steps = 50, acked = true, inspect = [] as string[], active = tr
       onAction={onAction}
       onPause={onPause}
       active={active}
+      onOpen={onOpen}
     />
   );
   const utils = render(view());
@@ -77,7 +78,8 @@ describe("Console", () => {
     fireEvent.click(screen.getByRole("button", { name: /^postgres/ }));
     expect(screen.getByRole("button", { name: /^postgres/ }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("heading", { name: "postgres" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Inspect active connections/ })).toBeTruthy();
+    // Postgres has no dashboard check; its actions live in the DB console (M2.5 plan B4).
+    expect(screen.getByText("No dashboard checks for this service.")).toBeTruthy();
     expect(screen.getByLabelText("Connections metric")).toBeTruthy();
     const logs = screen.getByRole("region", { name: "Logs" });
     expect(within(logs).getByRole("button", { name: /Clear filter/ })).toBeTruthy();
@@ -111,7 +113,21 @@ describe("Console", () => {
     run.dispatch("checkout.pool_stats");
     rerender();
     expect(screen.getByRole("status").textContent).toContain("Running: Check connection pool");
-    expect((screen.getByRole("button", { name: /Roll back to v141/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /^payments/ }));
+    expect((screen.getByRole("button", { name: /Check provider status/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("holds only dashboard checks; the rest is one Open in link away (M2.5 plan B4)", () => {
+    const onOpen = vi.fn();
+    setup({ onOpen });
+    fireEvent.click(screen.getByRole("button", { name: /^checkout-api/ }));
+    expect(screen.queryByRole("button", { name: /Roll back to v141/ })).toBeNull();
+    const links = screen.getByRole("navigation", { name: "Open in" });
+    expect(within(links).getAllByRole("button").map((b) => b.textContent)).toEqual(["Logs", "Deploys", "Incident"]);
+    fireEvent.click(within(links).getByRole("button", { name: "Deploys" }));
+    expect(onOpen).toHaveBeenCalledWith("deploys", "checkout");
+    fireEvent.click(screen.getByRole("button", { name: /^postgres/ }));
+    expect(within(links).getAllByRole("button").map((b) => b.textContent)).toEqual(["Logs", "DB console", "Incident"]);
   });
 
   it("the pause button calls onPause", () => {

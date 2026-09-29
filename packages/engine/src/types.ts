@@ -82,6 +82,8 @@ export interface ActionDef<S extends State> {
   tool?: ActionTool;
   /** A question to a teammate: who, the slash-command topic, and what the player says (M2.5 plan B3). */
   ask?: { to: string; topic: string; prompt: string };
+  /** What the action looks like in its tool, such as the SQL a DB console runs. Content only. */
+  command?: string;
 }
 
 export type ActionTool = "dashboards" | "logs" | "deploys" | "db" | "incident" | "chat";

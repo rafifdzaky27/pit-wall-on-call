@@ -1,5 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type Dispatch, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type Dispatch, type MutableRefObject, type ReactNode } from "react";
+import type { Author } from "@pitwall/scenarios";
 import type { AppId } from "../apps/ids";
+import type { ToolAppId } from "../apps/tools/toolActions";
 import { APP_META } from "../apps/meta";
 import { initialWm, MIN_H, wmReducer, type WmAction, type WmState } from "../wm/wm";
 
@@ -35,6 +37,15 @@ export interface Notice {
   banner: boolean;
 }
 
+/** A message the player (or a teammate answering them) posted this shift. Presentation only (M2.5 plan B3). */
+export interface ChatPost {
+  id: string;
+  channel: string;
+  author: Author | "you";
+  text: string;
+  at: number;
+}
+
 export type NewNotice = Omit<Notice, "at" | "read" | "banner">;
 
 export interface OsApi {
@@ -66,9 +77,35 @@ export interface OsApi {
   /** Apps the player brought forward while it counted, for the incident checklist (M2.5 spec §4). */
   seenApps: ReadonlySet<AppId>;
   markSeen: (id: AppId) => void;
+  /** Messages posted this shift, kept here so they outlive the Chat window. */
+  chatPosts: readonly ChatPost[];
+  postChat: (channel: string, author: ChatPost["author"], text: string) => void;
+  /** The service a tool should show; `nonce` makes a repeated request count (M2.5 plan B4 links). */
+  toolFocus: { app: ToolAppId; serviceId: string | null; nonce: number } | null;
+  openTool: (app: ToolAppId, serviceId: string | null) => void;
 }
 
 const OsContext = createContext<OsApi | null>(null);
+
+/** Where something outside the OS (the coach, on the Stage) asks it to open an app. */
+export type OpenRequest = { app: ToolAppId | "incident"; serviceId: string | null };
+type Opener = (to: OpenRequest) => void;
+const BridgeContext = createContext<MutableRefObject<Opener | null> | null>(null);
+
+/** Lets layers above the OS (the Stage's coach) open apps in it. The OS fills it in while mounted. */
+export function OsBridge({ children }: { children: ReactNode }) {
+  const ref = useRef<Opener | null>(null);
+  return <BridgeContext.Provider value={ref}>{children}</BridgeContext.Provider>;
+}
+
+const openWith = (os: OsApi): Opener => (to) => (to.app === "incident" ? os.openApp("incident") : os.openTool(to.app, to.serviceId));
+
+/** Opens an app from inside the OS, or from above it through the bridge. */
+export function useOsOpener(): Opener {
+  const os = useContext(OsContext);
+  const bridge = useContext(BridgeContext);
+  return (to) => (os ? openWith(os) : bridge?.current)?.(to);
+}
 
 export function useOs(): OsApi {
   const value = useContext(OsContext);
@@ -87,6 +124,8 @@ export function OsProvider({ children }: { children: ReactNode }) {
   const [bootAt] = useState(() => Date.now());
   const [arrivals, setArrivals] = useState<ReadonlyMap<string, number>>(() => new Map());
   const [seenApps, setSeenApps] = useState<ReadonlySet<AppId>>(() => new Set());
+  const [chatPosts, setChatPosts] = useState<readonly ChatPost[]>([]);
+  const [toolFocus, setToolFocus] = useState<OsApi["toolFocus"]>(null);
 
   useEffect(() => {
     const onResize = () => dispatchWm({ type: "setArea", ...workArea() });
@@ -149,6 +188,18 @@ export function OsProvider({ children }: { children: ReactNode }) {
     setSeenApps((prev) => (prev.has(id) ? prev : new Set([...prev, id])));
   }, []);
 
+  const postChat = useCallback((channel: string, author: ChatPost["author"], text: string) => {
+    setChatPosts((list) => [...list, { id: `post-${list.length}`, channel, author, text, at: Date.now() }]);
+  }, []);
+
+  const openTool = useCallback(
+    (app: ToolAppId, serviceId: string | null) => {
+      setToolFocus((prev) => ({ app, serviceId, nonce: (prev?.nonce ?? 0) + 1 }));
+      openApp(app);
+    },
+    [openApp],
+  );
+
   const value = useMemo<OsApi>(
     () => ({
       wm,
@@ -175,8 +226,21 @@ export function OsProvider({ children }: { children: ReactNode }) {
       recordArrivals,
       seenApps,
       markSeen,
+      chatPosts,
+      postChat,
+      toolFocus,
+      openTool,
     }),
-    [wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals, seenApps, markSeen],
+    [chatPosts, postChat, toolFocus, openTool, wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals, seenApps, markSeen],
   );
+  const bridge = useContext(BridgeContext);
+  useLayoutEffect(() => {
+    if (!bridge) return;
+    const open = openWith(value);
+    bridge.current = open;
+    return () => {
+      if (bridge.current === open) bridge.current = null;
+    };
+  }, [bridge, value]);
   return <OsContext.Provider value={value}>{children}</OsContext.Provider>;
 }

@@ -2,7 +2,7 @@ import type { LogEntry, RejectReason, ScenarioDef, Snapshot, State } from "@pitw
 import type { World } from "@pitwall/world";
 import { useCallback, useEffect, useState } from "react";
 import { isTypingTarget } from "../os/useShortcuts";
-import { ActionsPanel } from "./ActionsPanel";
+import { ActionsPanel, type OpenIn } from "./ActionsPanel";
 import { AlertFeed } from "./AlertFeed";
 import { LogStream } from "./LogStream";
 import { MetricPanel } from "./MetricPanel";
@@ -23,9 +23,11 @@ export interface ConsoleProps {
   shortcuts?: boolean;
   /** Monitoring is the focused, visible window; keys act only then (M1.6 F7). */
   active?: boolean;
+  /** Open in links from the selected service to its tools. */
+  onOpen?: OpenIn;
 }
 
-export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true, active = true }: ConsoleProps) {
+export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true, active = true, onOpen }: ConsoleProps) {
   const [selected, setSelected] = useState(scenario.services[0]!.id);
   const [filter, setFilter] = useState<string | null>(null);
 
@@ -69,7 +71,7 @@ export function Console({ scenario, snapshot, logs, history, world, check, onAct
           </div>
         </div>
         <div className="col col-right">
-          <ActionsPanel scenario={scenario} service={service} snapshot={snapshot} check={check} onAction={onAction} />
+          <ActionsPanel scenario={scenario} service={service} snapshot={snapshot} check={check} onAction={onAction} onOpen={onOpen} />
         </div>
       </div>
       <LogStream scenario={scenario} world={world} logs={logs} filter={filter} onClearFilter={() => setFilter(null)} />

@@ -7,7 +7,8 @@ import { useOs } from "../../shell/OsContext";
 import { useNow } from "../../useNow";
 import "./chat.css";
 import { avatarIndex, dayLabel, groupHeads, initials, relative, sameDay } from "./model";
-import { complete, HELP_LINES, PAGE_ACTION, parseCommand, STATUS_ACTION } from "./commands";
+import { useTeamActions } from "../../incident/useTeamActions";
+import { complete, HELP_LINES, parseCommand } from "./commands";
 import { authorName, channelLabel, isBot, isMention, visibleFor } from "./unread";
 
 const PEOPLE: readonly Person[] = ["secondary", "deployer", "infra", "support"];
@@ -33,7 +34,7 @@ function Avatar({ name, bot = false, size = 36 }: { name: string; bot?: boolean;
   );
 }
 
-function DeployCardView({ card, world }: { card: DeployCard; world: World }) {
+function DeployCardView({ card, world, onOpen }: { card: DeployCard; world: World; onOpen: (() => void) | null }) {
   return (
     <div className="deploy-card">
       <p className="deploy-title">
@@ -51,13 +52,19 @@ function DeployCardView({ card, world }: { card: DeployCard; world: World }) {
           <span className={`tag ${card.status === "succeeded" ? "ok" : "crit"}`}>{card.status === "succeeded" ? "Succeeded" : "Failed"}</span>
         </dd>
       </dl>
+      {onOpen && (
+        <button type="button" className="btn deploy-open" onClick={onOpen}>
+          Open in Deploys
+        </button>
+      )}
     </div>
   );
 }
 
 export function ChatApp() {
   const incident = useIncident();
-  const { read, markRead, bootAt, arrivals } = useOs();
+  const { read, markRead, bootAt, arrivals, chatPosts, postChat, openTool } = useOs();
+  const team = useTeamActions();
   const { world, scenario, content, inspect, snapshot } = incident;
   const now = useNow().getTime();
   const visible = visibleFor(incident);
@@ -68,7 +75,6 @@ export function ChatApp() {
 
   const [current, setCurrent] = useState(content.channels[0]!);
   const [mark, setMark] = useState<string | null>(() => firstUnread(content.channels[0]!));
-  const [sent, setSent] = useState<Record<string, Item[]>>({});
   const [draft, setDraft] = useState("");
   const [mine, setMine] = useState<ReadonlySet<string>>(() => new Set());
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -114,7 +120,7 @@ export function ChatApp() {
       const author = messageAuthor(m, scenario);
       return { id: m.id, author, name: authorName(author, world), text: fillWorld(messageText(m, scenario), world), at: atOf(m), msg: m };
     }),
-    ...(sent[current] ?? []),
+    ...chatPosts.filter((p) => p.channel === current).map((p) => ({ ...p, name: p.author === "you" ? "You" : authorName(p.author, world) })),
   ].sort((a, b) => a.at - b.at);
   const heads = groupHeads(items);
   const label = channelLabel(current, world);
@@ -124,44 +130,15 @@ export function ChatApp() {
   const typing = typingFor(content, running).filter((t) => t.channel === current);
   const thread = items.find((i) => i.id === threadId && i.msg?.thread);
 
-  const post = (channel: string, author: Item["author"], text: string) => {
-    const at = Date.now();
-    const name = author === "you" ? "You" : authorName(author, world);
-    setSent((s) => ({ ...s, [channel]: [...(s[channel] ?? []), { id: `${author}-${at}-${(s[channel] ?? []).length}`, author, name, text, at }] }));
-  };
-
-  /** Why an action cannot run now, in the chat's words; null when it can (M2.5 spec §7). */
-  const refusal = (actionId: string): string | null => {
-    switch (incident.check(actionId)) {
-      case null:
-        return null;
-      case "not_acknowledged":
-        return "Acknowledge the page first.";
-      case "pending":
-        return "Still waiting for their answer.";
-      case "busy":
-        return "Wait for the running action to finish.";
-      case "unavailable":
-        return "That's already done.";
-      case "finished":
-        return "The incident is over.";
-      default:
-        return "That can't be done right now.";
-    }
-  };
-
   /** A teammate question from a chip or /ask: your message goes to their DM, then they answer. */
   const ask = (actionId: string): boolean => {
-    const def = scenario.actions.find((a) => a.id === actionId);
-    if (!def?.ask) return false;
-    const why = refusal(actionId);
+    const def = scenario.actions.find((a) => a.id === actionId)!;
+    const why = team.ask(actionId);
     if (why) {
       setNote(why);
       return false;
     }
-    post(`dm:${def.ask.to}`, "you", def.ask.prompt);
-    incident.dispatch(actionId);
-    setNote(current === `dm:${def.ask.to}` ? null : `Asked ${world.colleagues[def.ask.to as Person]} in a direct message.`);
+    setNote(current === `dm:${def.ask!.to}` ? null : `Asked ${world.colleagues[def.ask!.to as Person]} in a direct message.`);
     return true;
   };
 
@@ -184,28 +161,30 @@ export function ChatApp() {
       return;
     }
     if (cmd.kind === "status" || cmd.kind === "page") {
-      const actionId = cmd.kind === "status" ? STATUS_ACTION : PAGE_ACTION;
-      const why = refusal(actionId);
+      const why = cmd.kind === "status" ? team.postStatus(cmd.text) : team.pageSecondary();
       if (why) {
         setNote(why);
         return;
       }
-      if (cmd.kind === "status") post("incidents", "you", `Status update: ${cmd.text}`);
-      else post("dm:secondary", "you", "can you jump in? paging you on this one");
-      incident.dispatch(actionId);
       setNote(null);
       setDraft("");
       return;
     }
-    post(current, "you", text);
+    postChat(current, "you", text);
     setDraft("");
     setNote(null);
     // Teammates only answer what they can; free text gets an honest reply (M2.5 plan B5).
     if (dm) {
       const who = dm;
       const channel = current;
-      replyTimers.current.push(window.setTimeout(() => post(channel, who, "Not sure what you mean. Try /help, or one of the suggestions below."), 5000));
+      replyTimers.current.push(window.setTimeout(() => postChat(channel, who, "Not sure what you mean. Try /help, or one of the suggestions below."), 5000));
     }
+  };
+
+  /** Open in Deploys, for a card about a service in this incident. */
+  const deployTarget = (card: DeployCard) => {
+    const svc = scenario.services.find((s) => s.label === card.service);
+    return svc ? () => openTool("deploys", svc.id) : null;
   };
 
   const asked = (actionId: string) => incident.timeline.some((e) => e.kind === "action_start" && e.actionId === actionId);
@@ -320,7 +299,7 @@ export function ChatApp() {
                       )}
                       <p className="msg-text">{it.text}</p>
                       {it.msg?.code && <pre className="msg-code">{it.msg.code}</pre>}
-                      {it.msg?.card && <DeployCardView card={it.msg.card} world={world} />}
+                      {it.msg?.card && <DeployCardView card={it.msg.card} world={world} onOpen={deployTarget(it.msg.card)} />}
                       {it.msg?.reactions && (
                         <div className="reactions">
                           {it.msg.reactions.map((r) => {
