@@ -1,6 +1,4 @@
 import type { IncidentStatus, ScenarioDef, State, TimelineEntry } from "@pitwall/engine";
-import { slowLeakDesktop } from "./slow-leak.desktop";
-import { trainingDesktop } from "./training.desktop";
 
 export type Person = "deployer" | "secondary" | "infra" | "support";
 export type Author = Person | "bot" | "deploybot";
@@ -82,13 +80,6 @@ export interface DesktopContent {
   requests: readonly RequestPattern[];
 }
 
-const DESKTOP: Record<string, DesktopContent> = { "db-pool-exhaustion": slowLeakDesktop, "training-config-push": trainingDesktop };
-
-export function desktopFor(scenarioId: string): DesktopContent {
-  const content = DESKTOP[scenarioId];
-  if (!content) throw new Error(`no desktop content for scenario ${scenarioId}`);
-  return content;
-}
 
 /** "http_502" → 502. */
 export function symptomCode(scenario: ScenarioDef<State>): number {
