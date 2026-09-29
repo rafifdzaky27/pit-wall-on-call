@@ -12,6 +12,8 @@ export const VARIANTS: readonly Variant[] = [{ key: "" }, { key: "mesh" }];
 export type CertState = {
   /** The renewed certificate is rolled out and loaded. */
   fixed: number;
+  /** The player has found the expired certificate (its secret, or its pending renewal request). The fix is offered only after. */
+  found: number;
   /** Ticks left of a temporary lull after a restart (pooled connections that still hold a valid session). */
   lull: number;
   /** Certificate verification is off: orders pass, unprotected. */
@@ -67,7 +69,7 @@ const CFGS: Record<"" | "mesh", Cfg> = {
     fixOn: { id: "checkout", label: "checkout-api" },
     checkoutVersion: "v88",
     herring: { service: "checkout-api", version: "v88", note: "copy changes on the order confirmation page; no TLS or payments changes", rollbackTo: "v87" },
-    clientLog: (r) => `payment call failed: Post "https://pay.provider.example/v1/charges": tls: failed to verify client certificate: x509: certificate has expired or is not yet valid (attempt ${1 + r.int(3)})`,
+    clientLog: (r) => `payment call failed: Post "https://pay.provider.example/v1/charges": remote error: tls: expired certificate (our client certificate was rejected, attempt ${1 + r.int(3)})`,
     depLog: null,
     hints: [
       "Was it working an hour ago? What is the newest thing that changed, and does it touch the failing path?",
@@ -75,7 +77,7 @@ const CFGS: Record<"" | "mesh", Cfg> = {
       "If restarting quiets it for a while, did you renew what expired?",
     ],
     errLabel: "Search checkout-api for payment errors",
-    errReveal: "checkout-api: every failing charge dies in the TLS handshake with the payment provider: x509: certificate has expired or is not yet valid. The certificate is checkout-api's own client cert (CN=checkout-api.mtls)",
+    errReveal: "checkout-api: every failing charge dies in the TLS handshake with the payment provider: remote error: tls: expired certificate, so the provider rejects our client certificate. The certificate is checkout-api's own client cert (CN=checkout-api.mtls)",
     certReveal: [
       "secret checkout-mtls-client: issued 90 days ago, expired 34 minutes ago; the renew job has failed since day 60 (its DNS challenge was rejected)",
       "a renewed certificate valid for 90 days is already in the vault, not yet rolled out",
@@ -83,9 +85,9 @@ const CFGS: Record<"" | "mesh", Cfg> = {
     ],
     rolloutLabel: "Roll out the renewed client certificate",
     rolloutReveal: "secret checkout-mtls-client updated on 3 of 3 pods: the new client certificate is loaded and valid for 90 days",
-    restartLabel: "Restart edge-gateway",
-    restartId: "edge.restart",
-    restartReveal: "edge-gateway restarted on 2 of 2 nodes; TLS sessions reopened and charges went through for a moment",
+    restartLabel: "Restart checkout pods",
+    restartId: "checkout.restart",
+    restartReveal: "rolling restart done: 3 of 3 pods ready; charges went through for a moment on TLS sessions the provider still honoured",
     bypassLabel: "Turn off certificate verification for payments",
     bypassReveal: "TLS_VERIFY=off rolled out: charges go through, and every connection to the provider is now unauthenticated",
     asks: {
@@ -103,14 +105,14 @@ const CFGS: Record<"" | "mesh", Cfg> = {
       "wall.poster": { kind: "herring", label: "Poster on the wall", text: "{brand} FLASH SALE 50% today" },
     },
     maskNotes: {
-      "edge.restart": "Restarting the gateway made TLS sessions reopen, so charges went through for a while. The client certificate was still expired, and the errors came back.",
+      "checkout.restart": "Restarting the pods let charges through for a while on sessions the provider still honoured. The client certificate was still expired, and the errors came back.",
       "checkout.disable_verify": "Turning verification off let charges through and left every connection to the provider unauthenticated. The certificate was still expired.",
     },
     lessons: {
       dnf: "The client certificate checkout-api presents to the payment provider had expired, and the renewal job had been failing for weeks. The recent deploy was innocent. When a handshake fails, read the error: it names the cause.",
-      restart: "The gateway restart reopened old sessions and bought a few minutes. The certificate was still expired, so the errors returned. Renew what expired.",
+      restart: "The pod restart rode on old sessions and bought a few minutes. The certificate was still expired, so the errors returned. Renew what expired.",
       bypass: "Switching verification off made the errors stop by removing the protection the certificate exists for. Rotate the certificate instead, and alert on days until expiry.",
-      default: "The logs said it: x509, certificate has expired. Renewal automation had been red for weeks with no alert. Alert on days-to-expiry, and read handshake errors before you suspect the last deploy.",
+      default: "The logs said it: tls, expired certificate. Renewal automation had been red for weeks with no alert. Alert on days-to-expiry, and read handshake errors before you suspect the last deploy.",
     },
   },
   mesh: {
@@ -130,12 +132,11 @@ const CFGS: Record<"" | "mesh", Cfg> = {
     errLabel: "Search checkout-api for stock errors",
     errReveal: "checkout-api: every failing order dies reserving stock over the mesh: x509: certificate has expired or is not yet valid. The serving certificate is stock-api's (CN=stock-api.mesh.internal)",
     certReveal: [
-      "stock-api serving certificate: issued 30 days ago by the mesh CA, expired 12 minutes ago; the auto-reissue is stuck on a pending approval",
-      "a reissued certificate is ready and waiting for a rollout",
-      "v301 by {deployer}, 2 h ago: adds an index on reservations; no TLS changes",
+      "mesh.cert_inventory: stock-api serving certificate (CN=stock-api.mesh.internal), issued 30 days ago by the mesh CA, expired 12 minutes ago; its renewal request req-4471 has been pending_approval for 2 days",
+      "also pending: req-4468 for reporting-api, whose certificate is valid for 9 more days",
     ],
-    rolloutLabel: "Reissue and reload the stock-api certificate",
-    rolloutReveal: "stock-api certificate reissued by the mesh CA and hot-reloaded on 2 of 2 pods: valid for 30 days",
+    rolloutLabel: "Approve pending request req-4471 (stock-api)",
+    rolloutReveal: "req-4471 approved: the mesh CA reissued the stock-api certificate and it hot-reloaded on 2 of 2 pods, valid for 30 days",
     restartLabel: "Restart checkout pods",
     restartId: "checkout.restart",
     restartReveal: "rolling restart done: 3 of 3 pods ready; orders went through for a moment, on connections still held open",
@@ -172,9 +173,9 @@ export function makeScenario(v: Variant): ScenarioDef<CertState> {
   const c = CFGS[v.key];
   const mesh = v.key === "mesh";
   const dep = c.dep;
-  const rolloutId = mesh ? "stock.reissue_cert" : "checkout.rollout_cert";
+  const rolloutId = mesh ? "stock.approve_request" : "checkout.rollout_cert";
   const bypassId = "checkout.disable_verify";
-  const restartOn = mesh ? "checkout" : "edge";
+  const restartOn = "checkout";
 
   const logs: LogTemplate<CertState>[] = [
     { id: "edge.err", serviceId: "edge", level: "ERROR", everyTicks: 7, when: (s) => failing(s),
@@ -207,12 +208,34 @@ export function makeScenario(v: Variant): ScenarioDef<CertState> {
       reveals: () => [mesh ? "stock-api: pods ready, CPU 9%, p99 12 ms on the requests it does answer" : "payments provider: all systems operational, p99 182 ms; other merchants are unaffected"] },
     { id: "postgres.status", tool: "dashboards", label: "Check postgres health", serviceId: "postgres", category: "investigate", durationS: 3, verdict: "wasted",
       reveals: () => ["postgres: 24 connections, CPU 21%, no slow queries beyond the usual"] },
-    { id: `${c.fixOn.id}.deploys`, tool: "deploys", label: mesh ? "View stock-api deploys and certificates" : "View checkout-api deploys and secrets", serviceId: c.fixOn.id, category: "investigate", durationS: 3, verdict: "useful",
-      reveals: () => c.certReveal },
-    { id: rolloutId, tool: "deploys", label: c.rolloutLabel, serviceId: c.fixOn.id, category: "fix", durationS: 12, verdict: "useful",
-      available: (s) => s.fixed === 0,
-      effect: (s) => ({ ...s, fixed: 1, lull: 0 }),
-      reveals: () => [c.rolloutReveal] },
+    ...(mesh
+      ? ([
+          // The mesh cert lives in the CA's inventory, so the player reads it in the DB console and fixes it there.
+          { id: "stock.certs", tool: "db", label: "Query the mesh certificate inventory", serviceId: "stock", category: "investigate", durationS: 3, verdict: "useful",
+            command: "SELECT name, not_after, request_id, request_status FROM mesh.cert_inventory WHERE not_after < now() + interval '14 days';",
+            effect: (s) => ({ ...s, found: 1 }),
+            reveals: () => c.certReveal },
+          { id: "stock.deploys", tool: "deploys", label: "View stock-api deploys", serviceId: "stock", category: "investigate", durationS: 3, verdict: "wasted",
+            reveals: () => ["v301 by {deployer}, 2 h ago: adds an index on reservations; no TLS changes"] },
+          { id: rolloutId, tool: "db", label: c.rolloutLabel, serviceId: "stock", category: "fix", durationS: 12, verdict: "useful",
+            command: "UPDATE mesh.cert_requests SET status = 'approved' WHERE id = 'req-4471';",
+            available: (s) => s.fixed === 0 && s.found === 1,
+            effect: (s) => ({ ...s, fixed: 1, lull: 0 }),
+            reveals: () => [c.rolloutReveal] },
+          { id: "stock.approve_other", tool: "db", label: "Approve pending request req-4468 (reporting-api)", serviceId: "stock", category: "mitigate", durationS: 12, verdict: "wasted",
+            command: "UPDATE mesh.cert_requests SET status = 'approved' WHERE id = 'req-4468';",
+            available: (s) => s.found === 1,
+            reveals: () => ["req-4468 approved: reporting-api's certificate renewed for 30 days; stock-api's is untouched and still failing"] },
+        ] as ActionDef<CertState>[])
+      : ([
+          { id: "checkout.deploys", tool: "deploys", label: "View checkout-api deploys and secrets", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
+            effect: (s) => ({ ...s, found: 1 }),
+            reveals: () => c.certReveal },
+          { id: rolloutId, tool: "deploys", label: c.rolloutLabel, serviceId: "checkout", category: "fix", durationS: 12, verdict: "useful",
+            available: (s) => s.fixed === 0 && s.found === 1,
+            effect: (s) => ({ ...s, fixed: 1, lull: 0 }),
+            reveals: () => [c.rolloutReveal] },
+        ] as ActionDef<CertState>[])),
     { id: c.restartId, tool: "deploys", label: c.restartLabel, serviceId: restartOn, category: "mitigate", durationS: 15, verdict: "wasted",
       effect: (s) => ({ ...s, lull: LULL_TICKS, restarts: s.restarts + 1 }),
       reveals: () => [c.restartReveal] },
@@ -273,7 +296,7 @@ export function makeScenario(v: Variant): ScenarioDef<CertState> {
       { from: "checkout", to: "postgres" },
     ],
 
-    setup: () => ({ fixed: 0, lull: 0, insecure: 0, restarts: 0, statusPosted: 0, ducks: 0 }),
+    setup: () => ({ fixed: 0, found: 0, lull: 0, insecure: 0, restarts: 0, statusPosted: 0, ducks: 0 }),
     dynamics: (s) => (s.lull > 0 ? { ...s, lull: s.lull - 1 } : s),
     errorRateBp,
     health: (s) => {

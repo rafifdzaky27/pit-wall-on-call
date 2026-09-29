@@ -1,4 +1,4 @@
-import { ACK, pickLesson, replay, type ActionRecord } from "@pitwall/engine";
+import { ACK, pickLesson, replay, Run, type ActionRecord } from "@pitwall/engine";
 import { describe, expect, it } from "vitest";
 import { diskFullIncident } from "./index";
 
@@ -39,17 +39,35 @@ describe("Disk Full (log volume)", () => {
   });
 
   it("deleting the files by hand burns side effects and frees nothing", () => {
-    const r = replay(logsV!, 1, [at(20, ACK), at(20, "checkout.delete_logs"), at(300, "checkout.rollback_config"), at(600, "checkout.rotate_logs")]);
+    const r = replay(logsV!, 1, [at(20, ACK), at(20, "checkout.delete_logs"), at(300, "checkout.deploys"), at(340, "checkout.rollback_config"), at(600, "checkout.rotate_logs")]);
     expect(r.burnByTag["side_effect:checkout.delete_logs"]).toBeGreaterThan(0);
     expect(pickLesson(logsV!, r).id).toBe("delete-trap");
   });
 
+  it("the fix is not offered until the deploy history has been read", () => {
+    const run = new Run(logsV!, 1);
+    run.dispatch(ACK);
+    expect(run.check("checkout.rollback_config")).toBe("unavailable");
+    run.dispatch("checkout.deploys");
+    for (let i = 0; i < 50; i++) run.step();
+    expect(run.check("checkout.rollback_config")).toBeNull();
+  });
+
   it("rolling back the config alone leaves the old files on disk, so it is not resolved until rotated", () => {
-    expect(replay(logsV!, 1, [at(20, ACK), at(20, "checkout.rollback_config")]).outcome).toBe("dnf");
+    expect(replay(logsV!, 1, [at(20, ACK), at(20, "checkout.deploys"), at(60, "checkout.rollback_config")]).outcome).toBe("dnf");
   });
 });
 
 describe("Disk Full (WAL volume)", () => {
+  it("the fix is not offered until the replication slots have been inspected", () => {
+    const run = new Run(walV!, 1);
+    run.dispatch(ACK);
+    expect(run.check("postgres.drop_slot")).toBe("unavailable");
+    run.dispatch("postgres.slots");
+    for (let i = 0; i < 50; i++) run.step();
+    expect(run.check("postgres.drop_slot")).toBeNull();
+  });
+
   it("growing the volume buys time, then the stale slot fills it again", () => {
     const r = replay(walV!, 1, walGolden!.masking);
     expect(r.outcome).toBe("resolved");
@@ -58,7 +76,7 @@ describe("Disk Full (WAL volume)", () => {
   });
 
   it("deleting WAL files by hand is harmful and gets its lesson", () => {
-    const r = replay(walV!, 1, [at(20, ACK), at(20, "postgres.delete_wal"), at(300, "postgres.drop_slot")]);
+    const r = replay(walV!, 1, [at(20, ACK), at(20, "postgres.delete_wal"), at(300, "postgres.slots"), at(340, "postgres.drop_slot")]);
     expect(r.burnByTag["side_effect:postgres.delete_wal"]).toBeGreaterThan(0);
     expect(pickLesson(walV!, r).id).toBe("wal-trap");
   });

@@ -19,15 +19,15 @@ const REQUESTS: RequestPattern[] = [
 ];
 
 /** Background chat shared by both variants. It adds no clue: the clues live in the hotspots and the teammates' replies. */
-const BACKGROUND: ChatMessage[] = [
-  { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 2900, author: "bot", text: "SEV3 resolved: image-resizer queue backlog. Duration 22 min. Postmortem PM-219." },
+const background = (pm: number): ChatMessage[] => [
+  { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 2900, author: "bot", text: `SEV3 resolved: image-resizer queue backlog. Duration 22 min. Postmortem PM-${pm}.` },
   {
-    id: "incidents.pm219",
+    id: "incidents.pm",
     channel: "incidents",
     trigger: { kind: "prepage" },
     minutesAgo: 2700,
     author: "secondary",
-    text: "PM-219 is up for review. A worker pool was sized too small; resized, alert added.",
+    text: `PM-${pm} is up for review. A worker pool was sized too small; resized, alert added.`,
     reactions: [{ emoji: "👀", by: ["infra", "support"] }],
     thread: [
       { author: "infra", text: "left a comment on the timeline", minutesAgo: 2600 },
@@ -63,7 +63,7 @@ export const diskFullLogsDesktop: DesktopContent = {
   channels: CHANNELS,
   channelInfo: CHANNEL_INFO,
   chat: [
-    ...BACKGROUND,
+    ...background(232),
     {
       id: "deploys.cfg88",
       channel: "deploys",
@@ -91,7 +91,7 @@ export const diskFullLogsDesktop: DesktopContent = {
       author: "secondary",
       text: "Orders are going through again, but /var/log on api-node-2 is filling up again. Did we stop what is writing so much?",
     },
-    { id: "dm.deployer.changes", channel: "dm:deployer", trigger: { kind: "action", actionId: "ask.deployer.changes" }, author: "deployer", text: "only v155, the payments SDK bump. Nothing that touches logging, I'd say. Is it acting up?" },
+    { id: "dm.deployer.changes", channel: "dm:deployer", trigger: { kind: "action", actionId: "ask.deployer.changes" }, author: "deployer", text: "only v155, the payments SDK bump. I did turn LOG_LEVEL up to debug on checkout this morning for the cart trace, but that is a config change and it is temporary, so I did not think it counted. Is it acting up?" },
     { id: "dm.infra.disk", channel: "dm:infra", trigger: { kind: "action", actionId: "ask.infra.disk" }, author: "infra", text: "that's the nightly backup staging, it always spikes /var. Ignore it, it clears itself." },
     SUPPORT_IMPACT("browsing and the cart are fine. Pressing Place order gives a 500 page, every time."),
     ASK_SECONDARY,
@@ -104,7 +104,7 @@ export const diskFullWalDesktop: DesktopContent = {
   channels: CHANNELS,
   channelInfo: CHANNEL_INFO,
   chat: [
-    ...BACKGROUND,
+    ...background(233),
     {
       id: "deploys.v211",
       channel: "deploys",
