@@ -22,13 +22,22 @@ export function cityTime(now: Date, timeZone: string): string {
 
 const HOUR: Record<TimeOfDay, number> = { morning: 9, afternoon: 15, dusk: 18, night: 22 };
 
+/** When this page loaded: the café's clocks count from here. */
+const PAGE_LOADED = Date.now();
+const MINUTE = 60_000;
+const DAY_MIN = 24 * 60;
+
 /**
- * The café's clocks (the wall clock and the phone): the city's own minutes, in the hour the scene is
- * painted in, so a sunny afternoon never reads 01:00. The minutes still tick with the city's time.
+ * The café's clocks (the wall clock and the phone). They start at the city's own minutes, in the
+ * hour the scene is painted in, so a sunny afternoon never reads 01:00, and then only ever move
+ * forward: the hour rolls over rather than jumping back (M2.5 PR C review 1).
  */
-export function sceneTime(now: Date, timeZone: string, time: TimeOfDay): string {
-  const minutes = cityTime(now, timeZone).slice(3);
-  return `${String(HOUR[time]).padStart(2, "0")}:${minutes}`;
+export function sceneTime(now: Date, timeZone: string, time: TimeOfDay, anchor: number = PAGE_LOADED): string {
+  const startMin = Number(cityTime(new Date(anchor), timeZone).slice(3));
+  // Time zones are whole minutes from UTC, so UTC minute boundaries are the city's too.
+  const elapsed = Math.floor(now.getTime() / MINUTE) - Math.floor(anchor / MINUTE);
+  const total = (((HOUR[time] * 60 + startMin + elapsed) % DAY_MIN) + DAY_MIN) % DAY_MIN;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
 /** "Monday 28 September" in a city's time zone, for the lock screen. */

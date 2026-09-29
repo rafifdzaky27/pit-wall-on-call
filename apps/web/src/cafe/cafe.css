@@ -14,20 +14,20 @@
 .cafe .layer-wall { transform: translate(calc(var(--px, 0) * -5px), calc(var(--py, 0) * -2.5px)); transition: transform 0.4s ease-out; }
 .cafe .layer-mid { transform: translate(calc(var(--px, 0) * -3px), calc(var(--py, 0) * -1.5px)); transition: transform 0.4s ease-out; }
 
-/* The street: people, traffic and rain. */
-.walker-a { animation: cafe-walk-right 22s linear infinite; }
-.walker-b { animation: cafe-walk-left 31s linear infinite -9s; }
-.walker-c { animation: cafe-walk-right 27s linear infinite -17s; }
+/* The street: people, traffic and rain. Each mover has a resting pose for reduced motion (review 4); the tram and cars rest off-screen. */
+.walker-a { transform: translateX(180px); animation: cafe-walk-right 22s linear infinite; }
+.walker-b { transform: translateX(520px) scaleX(-1); animation: cafe-walk-left 31s linear infinite -9s; }
+.walker-c { transform: translateX(660px); animation: cafe-walk-right 27s linear infinite -17s; }
 @keyframes cafe-walk-right { from { transform: translateX(-60px); } to { transform: translateX(840px); } }
 @keyframes cafe-walk-left { from { transform: translateX(840px) scaleX(-1); } to { transform: translateX(-60px) scaleX(-1); } }
 
-.prop-scooter { animation: cafe-drive 18s linear infinite -4s; }
-.scooter-b { animation: cafe-drive-back 23s linear infinite -15s; }
-.prop-becak { animation: cafe-drive 26s linear infinite -12s; }
-.car-drive { animation: cafe-drive 14s linear infinite -2s; }
+.prop-scooter { transform: translateX(260px); animation: cafe-drive 18s linear infinite -4s; }
+.scooter-b { transform: translate(560px, -14px) scaleX(-1); animation: cafe-drive-back 23s linear infinite -15s; }
+.prop-becak { transform: translateX(420px); animation: cafe-drive 26s linear infinite -12s; }
+.car-drive { transform: translateX(-200px); animation: cafe-drive 14s linear infinite -2s; }
 @keyframes cafe-drive { from { transform: translateX(-200px); } to { transform: translateX(900px); } }
 @keyframes cafe-drive-back { from { transform: translate(900px, -14px) scaleX(-1); } to { transform: translate(-100px, -14px) scaleX(-1); } }
-.tram { animation: cafe-tram 40s linear infinite -6s; }
+.tram { transform: translateX(-460px); animation: cafe-tram 40s linear infinite -6s; }
 @keyframes cafe-tram { 0% { transform: translateX(800px); } 30%, 100% { transform: translateX(-460px); } }
 .headlights { animation: cafe-sweep 9s linear infinite; }
 @keyframes cafe-sweep { from { transform: translateX(-100px); } to { transform: translateX(900px); } }
@@ -104,6 +104,7 @@
 [data-motion="reduce"] .cafe .layer-far, [data-motion="reduce"] .cafe .layer-wall, [data-motion="reduce"] .cafe .layer-mid { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .cafe *, .cafe .layer-far, .cafe .layer-mid { animation: none !important; transition: none; }
+  .cafe .layer-far, .cafe .layer-wall, .cafe .layer-mid { transform: none; }
 }
 
 /* Hotspots (cold-open spec §6, §9): invisible until hovered or focused, then outlined and named. */

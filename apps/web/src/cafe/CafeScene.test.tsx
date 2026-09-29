@@ -160,3 +160,25 @@ describe("café motion (M2.5 spec §12)", () => {
     for (const r of rules(cafeCss)) if (/transform-box/.test(r.body)) for (const sel of r.sel.split(",")) expect(sel.trim(), sel).not.toMatch(/(\*|^g$|^svg$|^\.cafe$|\bg$)/);
   });
 });
+
+/** The declarations of `.cls { … }` in cafe.css. */
+const ruleOf = (cls: string) => {
+  const start = cafeCss.indexOf(`.${cls} {`);
+  return start === -1 ? "" : cafeCss.slice(start, cafeCss.indexOf("}", start));
+};
+
+describe("reduced motion keeps the street drawn (M2.5 PR C review 4)", () => {
+  it("every street mover has a resting pose, so without its animation it is not left at its origin or unflipped", () => {
+    for (const cls of ["walker-a", "walker-b", "walker-c", "prop-scooter", "scooter-b", "prop-becak", "car-drive", "tram"]) {
+      const rule = ruleOf(cls);
+      expect(rule, cls).toMatch(/[{;]\s*transform:/);
+    }
+    // A mover that walks or drives left is drawn flipped at rest too.
+    for (const cls of ["walker-b", "scooter-b"]) expect(ruleOf(cls)).toContain("scaleX(-1)");
+  });
+
+  it("the OS setting holds the parallax layers still, as the in-app setting does", () => {
+    const media = cafeCss.slice(cafeCss.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(media.slice(0, media.indexOf("\n}") + 2)).toMatch(/\.layer-wall[^{]*\{[^}]*transform: none/);
+  });
+});

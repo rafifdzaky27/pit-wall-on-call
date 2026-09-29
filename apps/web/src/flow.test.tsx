@@ -6,7 +6,14 @@ import { loadCafe, loadResults } from "./cafe/Stage";
 // These are flow tests: the café's hotspots, camera and captions are real, its art is a stand-in.
 // The M2.5 art is hundreds of shapes, and rendering it in jsdom on every tick of a whole shift is
 // what pushed these tests past their timeout under a parallel run. CafeScene.test covers the art.
-vi.mock("./cafe/CafeScene", () => ({ default: () => <svg role="img" aria-label="A café (stand-in)" /> }));
+vi.mock("./cafe/CafeScene", () => ({
+  default: ({ children }: { children?: React.ReactNode }) => (
+    <div className="cafe">
+      <svg role="img" aria-label="A café (stand-in)" />
+      {children}
+    </div>
+  ),
+}));
 
 // The run loop reads performance.now(); setImmediate stays real so lazy chunks can finish loading.
 beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance", "requestAnimationFrame", "cancelAnimationFrame"] }));
@@ -40,6 +47,8 @@ const windows = () => document.querySelectorAll(".stage-screen .window:not(.clos
 /** Start shift → skip → ack → select checkout → open Deploys → roll back, then `hold` seconds. */
 async function playAndFix(hold: number) {
   fireEvent.click(screen.getAllByRole("button", { name: "Start shift" })[0]!);
+  // The café's hotspots are real in these flows, the duck included (M2.5 PR C review 2).
+  await until(() => screen.getByRole("button", { name: "Rubber duck" }));
   fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
   fireEvent.keyDown(window, { key: "a" });
   await until(() => screen.getByRole("region", { name: "Monitoring" }));
