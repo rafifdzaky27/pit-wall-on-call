@@ -3,6 +3,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { App } from "./App";
 import { loadCafe, loadResults } from "./cafe/Stage";
 
+// These are flow tests: the café's hotspots, camera and captions are real, its art is a stand-in.
+// The M2.5 art is hundreds of shapes, and rendering it in jsdom on every tick of a whole shift is
+// what pushed these tests past their timeout under a parallel run. CafeScene.test covers the art.
+vi.mock("./cafe/CafeScene", () => ({ default: () => <svg role="img" aria-label="A café (stand-in)" /> }));
+
 // The run loop reads performance.now(); setImmediate stays real so lazy chunks can finish loading.
 beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance", "requestAnimationFrame", "cancelAnimationFrame"] }));
 afterEach(() => {
