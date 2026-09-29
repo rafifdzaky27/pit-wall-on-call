@@ -13,6 +13,7 @@
 .cafe .layer-far { transform: translate(calc(var(--px, 0) * -8px), calc(var(--py, 0) * -4px)); transition: transform 0.4s ease-out; }
 .cafe .layer-wall { transform: translate(calc(var(--px, 0) * -5px), calc(var(--py, 0) * -2.5px)); transition: transform 0.4s ease-out; }
 .cafe .layer-mid { transform: translate(calc(var(--px, 0) * -3px), calc(var(--py, 0) * -1.5px)); transition: transform 0.4s ease-out; }
+.cafe.moving :is(.layer-far, .layer-wall, .layer-mid) { transition: none; }
 
 /* The street: people, traffic and rain. Each mover has a resting pose for reduced motion (review 4); the tram and cars rest off-screen. */
 .walker-a { transform: translateX(180px); animation: cafe-walk-right 22s linear infinite; }

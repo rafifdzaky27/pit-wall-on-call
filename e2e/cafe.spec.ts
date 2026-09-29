@@ -12,6 +12,17 @@ test.describe("the café cold open", () => {
     await expect(page.getByRole("img", { name: /^A café in / })).toBeVisible();
     await page.getByRole("button", { name: "Laptop", exact: true }).click();
     await expect(page.getByRole("region", { name: "Browser" })).toBeVisible();
+    // At the laptop the café stays painted behind the desktop, ready to pull back to, but none of it shows through.
+    await page.waitForTimeout(1600);
+    const cafeOnTop = await page.evaluate(() => {
+      // Inert content is skipped by hit-testing, so lift it for the probe: this asks what is painted on top.
+      const el = document.querySelector<HTMLElement>(".stage-cafe")!;
+      el.inert = false;
+      const hits = [[window.innerWidth - 40, 32], [window.innerWidth / 2, window.innerHeight / 2]].map(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest(".stage-cafe"));
+      el.inert = true;
+      return hits;
+    });
+    expect(cafeOnTop).toEqual([false, false]);
     await page.keyboard.press("l");
     await expect(cafe(page)).toBeVisible();
     await skip(page).click();
