@@ -1,4 +1,5 @@
-import type { ScenarioDef, State } from "@pitwall/engine";
+import type { Incident } from "./kit/incident";
+import { INCIDENTS } from "./registry";
 import { slowLeak } from "./slow-leak";
 
 /** Daily #1 (M3 spec Y2). */
@@ -14,8 +15,11 @@ export interface Daily {
   seed: number;
 }
 
-/** The scenarios a daily can be. Training never is; M4's scenarios join here. */
-const PLAYABLE: readonly ScenarioDef<State>[] = [slowLeak];
+/** From this date the daily rotates across incidents; before it, every daily was the Slow Leak (M3). */
+export const ROTATION_FROM = "2026-10-01";
+
+/** Harder through the week: Monday is gentle, the weekend is hardest (M4 spec N2). Index 0 is Sunday. */
+const TARGET_DIFFICULTY = [5, 2, 2, 3, 3, 4, 4] as const;
 
 // Calendar arithmetic without the wall clock (content stays deterministic, spec §5): days since
 // 1970-01-01 to and from a proleptic Gregorian date (H. Hinnant's algorithms).
@@ -85,8 +89,37 @@ function fnv1a(text: string): number {
   return h >>> 0;
 }
 
-export function dailyFor(date: string): Daily {
+interface Pick {
+  incident: Incident;
+  scenarioId: string;
+}
+
+/** Each catalogue's picks, day by day from ROTATION_FROM: a day's pick depends on the day before. */
+const memo = new WeakMap<readonly Incident[], Pick[]>();
+
+function pickFor(date: string, catalogue: readonly Incident[]): Pick {
+  const index = dayOf(date) - dayOf(ROTATION_FROM);
+  let picks = memo.get(catalogue);
+  if (!picks) memo.set(catalogue, (picks = []));
+  for (let i = picks.length; i <= index; i++) {
+    const day = utcDate(dayStartMs(ROTATION_FROM) + i * DAY_MS);
+    const previous = picks[i - 1]?.incident.family;
+    // No family two days running, when the catalogue allows it.
+    const fresh = catalogue.filter((c) => c.family !== previous);
+    const pool = fresh.length > 0 ? fresh : catalogue;
+    const target = TARGET_DIFFICULTY[(dayOf(day) + 4) % 7]!;
+    const gap = Math.min(...pool.map((c) => Math.abs(c.difficulty - target)));
+    const closest = pool.filter((c) => Math.abs(c.difficulty - target) === gap);
+    // An incident first, then one of its variants, so incidents with many variants are not favoured.
+    const incident = closest[fnv1a(`pitwall:daily-incident:${day}`) % closest.length]!;
+    const variant = incident.variants[fnv1a(`pitwall:daily-variant:${day}`) % incident.variants.length]!;
+    picks.push({ incident, scenarioId: variant.scenario.id });
+  }
+  return picks[index]!;
+}
+
+export function dailyFor(date: string, catalogue: readonly Incident[] = INCIDENTS): Daily {
   const seed = fnv1a(`pitwall:daily:${date}`);
-  const scenario = PLAYABLE[fnv1a(`pitwall:daily-scenario:${date}`) % PLAYABLE.length]!;
-  return { date, number: dailyNumber(date), scenarioId: scenario.id, seed };
+  const scenarioId = date < ROTATION_FROM || catalogue.length === 0 ? slowLeak.id : pickFor(date, catalogue).scenarioId;
+  return { date, number: dailyNumber(date), scenarioId, seed };
 }

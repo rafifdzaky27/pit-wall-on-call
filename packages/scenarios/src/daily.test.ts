@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DAILY_EPOCH, DAY_MS, dailyFor, dailyNumber, dayStartMs, isDailyDate, utcDate } from "./daily";
+import { DAILY_EPOCH, DAY_MS, dailyFor, dailyNumber, dayStartMs, isDailyDate, ROTATION_FROM, utcDate } from "./daily";
+import type { Family, Incident } from "./kit/incident";
 import { SCENARIOS } from "./index";
 
 describe("the daily incident (M3 spec Y1, Y2)", () => {
@@ -37,5 +38,52 @@ describe("the daily incident (M3 spec Y1, Y2)", () => {
   it("knows a date when it sees one", () => {
     expect(isDailyDate("2026-10-02")).toBe(true);
     for (const bad of ["2026-13-01", "2026-02-30", "26-10-02", "2026-10-2", "", "2026-10-02T00:00"]) expect(isDailyDate(bad), bad).toBe(false);
+  });
+});
+
+describe("the daily rotation (M4 spec N2)", () => {
+  const fake = (id: string, family: Family, difficulty: 1 | 2 | 3 | 4 | 5, keys = ["", "b"]): Incident =>
+    ({ id, title: id, family, difficulty, variants: keys.map((key) => ({ key, scenario: { id: key ? `${id}:${key}` : id }, desktop: {}, golden: {} })) }) as unknown as Incident;
+  const catalogue: Incident[] = [
+    fake("disk", "capacity", 2),
+    fake("cert", "dependencies", 2),
+    fake("regex", "deploys", 3),
+    fake("stampede", "caching", 3),
+    fake("storm", "dependencies", 4),
+    fake("lag", "data", 4),
+    fake("pill", "queues", 5),
+  ];
+  const familyOf = (scenarioId: string) => catalogue.find((c) => scenarioId === c.id || scenarioId.startsWith(`${c.id}:`))!;
+  const days = (from: string, n: number) => Array.from({ length: n }, (_, i) => utcDate(dayStartMs(from) + i * DAY_MS));
+
+  it("keeps every date before the rotation exactly as M3 chose it (Daily #1 and #2 are live)", () => {
+    for (const date of ["2026-09-29", "2026-09-30"]) {
+      expect(dailyFor(date, catalogue).scenarioId).toBe("db-pool-exhaustion");
+      expect(dailyFor(date, catalogue).seed).toBe(dailyFor(date).seed);
+    }
+  });
+
+  it("never picks the same family two days running", () => {
+    const picks = days(ROTATION_FROM, 120).map((d) => familyOf(dailyFor(d, catalogue).scenarioId).family);
+    for (let i = 1; i < picks.length; i++) expect(picks[i], `day ${i}`).not.toBe(picks[i - 1]);
+  });
+
+  it("gets harder through the week: Mondays are easy, Sundays hardest", () => {
+    const all = days(ROTATION_FROM, 84);
+    // 1970-01-01 was a Thursday, so the weekday is (day index + 4) mod 7, 0 for Sunday.
+    const weekday = (d: string) => (dayStartMs(d) / DAY_MS + 4) % 7;
+    const mean = (w: number) => {
+      const ds = all.filter((d) => weekday(d) === w).map((d) => familyOf(dailyFor(d, catalogue).scenarioId).difficulty);
+      return ds.reduce((a, b) => a + b, 0) / ds.length;
+    };
+    expect(mean(1)).toBeLessThan(mean(5));
+    expect(mean(5)).toBeLessThanOrEqual(mean(0));
+  });
+
+  it("is the same answer every time, and uses every incident over a quarter", () => {
+    const quarter = days(ROTATION_FROM, 91);
+    const first = quarter.map((d) => dailyFor(d, catalogue).scenarioId);
+    expect(quarter.map((d) => dailyFor(d, catalogue).scenarioId)).toEqual(first);
+    expect(new Set(first.map((id) => familyOf(id).id)).size).toBe(catalogue.length);
   });
 });
