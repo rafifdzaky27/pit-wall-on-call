@@ -2,6 +2,13 @@ import type { Health, ScenarioDef, State } from "@pitwall/engine";
 
 export const HEALTH_LABEL: Record<Health, string> = { ok: "Healthy", warn: "Degraded", crit: "Critical" };
 
+/** What each health level means for customers (M4.5 N2). Nodes say Healthy or Degraded; the legend pairs them with OK and Warn. */
+const LEGEND: readonly { level: Health; name: string; meaning: string }[] = [
+  { level: "ok", name: "OK", meaning: "healthy, working normally" },
+  { level: "warn", name: "Warn", meaning: "degraded, watch it" },
+  { level: "crit", name: "Critical", meaning: "failing now, customers feel it" },
+];
+
 interface Props {
   scenario: ScenarioDef<State>;
   health: Record<string, Health>;
@@ -20,8 +27,20 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
     <section className="panel map-panel" aria-labelledby="map-h">
       <div className="ph">
         <h2 id="map-h">Service map</h2>
-        <span className="hint">Select a service or press 1–{scenario.services.length}</span>
+        <span className="hint">Press 1–{scenario.services.length} to jump</span>
       </div>
+      <p className="map-lead">
+        {scenario.services.length} services · click one to see its metrics and checks
+      </p>
+      <ul className="map-legend" aria-label="Legend">
+        {LEGEND.map((l) => (
+          <li key={l.level}>
+            <span className={`legend-dot ${l.level}`} aria-hidden="true" />
+            <b className={`node-health ${l.level}`}>{l.name}</b>
+            <span className="muted">{l.meaning}</span>
+          </li>
+        ))}
+      </ul>
       <div className="map">
         <svg className="map-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {scenario.edges.map((e) => {
@@ -42,6 +61,7 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
                 className={`node ${h}${isSelected ? " selected" : ""}`}
                 style={{ left: `${svc.x}%`, top: `${svc.y}%` }}
                 aria-pressed={isSelected}
+                aria-label={`${svc.label}, ${HEALTH_LABEL[h]}. ${details[svc.id]}. Show its metrics and checks`}
                 data-coach={`node:${svc.id}`}
                 onClick={() => onSelect(svc.id)}
               >

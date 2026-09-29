@@ -3,6 +3,7 @@ import { fillWorld } from "@pitwall/world";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ActionButton } from "../../../console/ActionButton";
 import { formatClock } from "../../../game/format";
+import { Term } from "../../Term";
 import { useIncident } from "../../incident/IncidentProvider";
 import { useOs } from "../../shell/OsContext";
 import { visibleFor } from "../chat/unread";
@@ -88,6 +89,9 @@ export function LogsApp() {
             </option>
           ))}
         </select>
+        <span className="muted">
+          <Term id="log-level">Log level</Term>
+        </span>
         <div className="tool-levels" role="group" aria-label="Levels">
           {LEVELS.map((level) => (
             <button key={level} type="button" className={`tool-level lvl ${level}`} aria-pressed={levels.has(level)} onClick={() => toggle(level)}>

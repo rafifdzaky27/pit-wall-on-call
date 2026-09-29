@@ -3,18 +3,32 @@ import type { GlossaryId } from "../content/glossary";
 import { formatMetric } from "../game/format";
 import { Term } from "../os/Term";
 
-/** Metric labels whose first word is a glossary term (M2.5 spec §4). */
-const TERMS: Record<string, GlossaryId> = { "5xx": "5xx", p99: "p99", Pool: "connection-pool" };
+/** The part of a metric label that is a glossary term (M2.5 spec §4, M4.5 N2). First match wins. */
+const TERMS: readonly [RegExp, GlossaryId][] = [
+  [/^5xx/i, "5xx"],
+  [/^p99/i, "p99"],
+  [/^Pool/, "connection-pool"],
+  [/^Consumer lag/i, "consumer-lag"],
+  [/^Replication lag/i, "replica-lag"],
+  [/^Cache hit (rate|ratio)/i, "cache-hit-ratio"],
+  [/^Hit (rate|ratio)/i, "cache-hit-ratio"],
+  [/^WAL/, "wal"],
+  [/^(Data|WAL) volume/i, "disk-volume"],
+  [/^TLS/, "tls-certificate"],
+];
 
 function Label({ text }: { text: string }) {
-  const [first, ...rest] = text.split(" ");
-  const id = TERMS[first!];
-  if (!id) return text;
-  return (
-    <>
-      <Term id={id}>{first}</Term> {rest.join(" ")}
-    </>
-  );
+  for (const [re, id] of TERMS) {
+    const m = re.exec(text);
+    if (m)
+      return (
+        <>
+          <Term id={id}>{m[0]}</Term>
+          {text.slice(m[0].length)}
+        </>
+      );
+  }
+  return text;
 }
 
 const WIDTH = 120;
@@ -43,7 +57,7 @@ export function MetricPanel({ metric, value, history }: { metric: MetricDef<Stat
         <h3>
           <Label text={metric.label} />
         </h3>
-        {level !== "ok" && <span className={`tag ${level}`}>{level === "crit" ? "Crit" : "Warn"}</span>}
+        {level !== "ok" && <span className={`tag ${level}`}><Term id="alert-level">{level === "crit" ? "Crit" : "Warn"}</Term></span>}
       </div>
       <div className="pb">
         <div className={`metric-value mono ${level}`}>
