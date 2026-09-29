@@ -1,4 +1,5 @@
 import { ENGINE_VERSION } from "@pitwall/engine";
+import { dailyFor, utcDate } from "@pitwall/scenarios";
 import { act, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderOs } from "../os/testing";
@@ -178,5 +179,66 @@ describe("posting a finished shift", () => {
     await flush();
     act(() => incident().newShift());
     expect(submission.state.kind).toBe("idle");
+  });
+});
+
+describe("the daily and the queue (M3 spec Y6, Y10)", () => {
+  const today = () => utcDate(Date.now());
+
+  function finishDaily(incident: ReturnType<typeof renderOs>["incident"]) {
+    act(() => incident().startDaily(dailyFor(today())));
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    act(() => incident().dispatch("checkout.rollback"));
+    for (let i = 0; i < 45; i++) act(() => vi.advanceTimersByTime(1000));
+    expect(incident().phase).toBe("ended");
+  }
+
+  it("a daily posts as the day's daily, and remembers today's rank", async () => {
+    savePlayer(PLAYER);
+    serve(() => json(201, { ...POSTED, mode: "daily_ranked", ranked: true, dailyDate: today() }));
+    const { incident } = renderOs(<Probe />);
+    finishDaily(incident);
+    await flush();
+    expect(calls[0]!.body).toMatchObject({ mode: "daily", dailyDate: today(), seed: dailyFor(today()).seed });
+    expect(JSON.parse(localStorage.getItem(`pitwall.daily.${today()}`)!)).toEqual({ rank: 3, total: 40 });
+    expect(localStorage.getItem("pitwall.pending")).toBe("[]");
+  });
+
+  it("a daily finished offline is kept, and sent once on the next load (Review Focus 3)", async () => {
+    savePlayer(PLAYER);
+    serve(() => {
+      throw new TypeError("offline");
+    });
+    const first = renderOs(<Probe />);
+    finishDaily(first.incident);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+    expect(submission.state.kind).toBe("error");
+    const queued = JSON.parse(localStorage.getItem("pitwall.pending")!) as { runKey: string }[];
+    expect(queued).toHaveLength(1);
+    cleanup();
+
+    calls = [];
+    serve(() => json(201, { ...POSTED, mode: "daily_ranked", ranked: true, dailyDate: today() }));
+    // Two tabs load at once: the run still goes out once, with the same key.
+    renderOs(<Probe />);
+    renderOs(<Probe />);
+    await flush();
+    const posts = calls.filter((c) => c.url === "/api/runs");
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body!.runKey).toBe(queued[0]!.runKey);
+    expect(localStorage.getItem("pitwall.pending")).toBe("[]");
+  });
+
+  it("drops a queued run the server refuses for good", async () => {
+    savePlayer(PLAYER);
+    localStorage.setItem("pitwall.pending", JSON.stringify([{ scenarioId: "db-pool-exhaustion", seed: 1, mode: "practice", engineVersion: "0.0.0", runKey: "k-1", actions: [] }]));
+    serve(() => apiError(409, "stale_version"));
+    renderOs(<Probe />);
+    await flush();
+    expect(calls).toHaveLength(1);
+    expect(localStorage.getItem("pitwall.pending")).toBe("[]");
   });
 });
