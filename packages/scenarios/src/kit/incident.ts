@@ -28,6 +28,11 @@ export interface Incident {
   title: string;
   family: Family;
   difficulty: 1 | 2 | 3 | 4 | 5;
+  /**
+   * The first date (YYYY-MM-DD, UTC) this incident can be a daily. Set it to a day after the deploy
+   * that ships it: then adding an incident never changes a daily already picked (M4 PR A review 1).
+   */
+  from: string;
   variants: readonly IncidentVariant[];
 }
 

@@ -42,8 +42,8 @@ describe("the daily incident (M3 spec Y1, Y2)", () => {
 });
 
 describe("the daily rotation (M4 spec N2)", () => {
-  const fake = (id: string, family: Family, difficulty: 1 | 2 | 3 | 4 | 5, keys = ["", "b"]): Incident =>
-    ({ id, title: id, family, difficulty, variants: keys.map((key) => ({ key, scenario: { id: key ? `${id}:${key}` : id }, desktop: {}, golden: {} })) }) as unknown as Incident;
+  const fake = (id: string, family: Family, difficulty: 1 | 2 | 3 | 4 | 5, keys = ["", "b"], from = ROTATION_FROM): Incident =>
+    ({ id, title: id, family, difficulty, from, variants: keys.map((key) => ({ key, scenario: { id: key ? `${id}:${key}` : id }, desktop: {}, golden: {} })) }) as unknown as Incident;
   const catalogue: Incident[] = [
     fake("disk", "capacity", 2),
     fake("cert", "dependencies", 2),
@@ -78,6 +78,21 @@ describe("the daily rotation (M4 spec N2)", () => {
     };
     expect(mean(1)).toBeLessThan(mean(5));
     expect(mean(5)).toBeLessThanOrEqual(mean(0));
+  });
+
+  it("adding an incident never changes a day already picked (review 1)", () => {
+    const window = days(ROTATION_FROM, 40);
+    const before = window.map((d) => dailyFor(d, catalogue).scenarioId);
+    // Shipped on day 30, joining the rotation from day 31.
+    const joined = [...catalogue, fake("dns", "network", 3, [""], window[31]!)];
+    const after = window.map((d) => dailyFor(d, joined).scenarioId);
+    expect(after.slice(0, 31)).toEqual(before.slice(0, 31));
+  });
+
+  it("stays cheap and sane for a clock far in the future (review 2)", () => {
+    const started = performance.now();
+    expect(dailyFor("9999-12-31", catalogue).scenarioId).toBe("db-pool-exhaustion");
+    expect(performance.now() - started).toBeLessThan(200);
   });
 
   it("is the same answer every time, and uses every incident over a quarter", () => {

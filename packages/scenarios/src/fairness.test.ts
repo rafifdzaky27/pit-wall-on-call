@@ -49,12 +49,20 @@ describe.each(cases)("%s", (_id, v) => {
     for (const id of s.rootCauseActionIds) expect(toolOf(s, id), id).not.toBe("dashboards");
   });
 
-  it("never names the fix in an alert or a log line", () => {
+  it("never names the fix in an alert, a log line or a chat message", () => {
     const fixes = s.rootCauseActionIds.map((id) => s.actions.find((a) => a.id === id)!.label.toLowerCase());
-    const run = new Run(s, 1);
-    run.dispatch(ACK);
-    for (let i = 0; i < 1200; i++) run.step();
-    const texts = [...s.alerts.flatMap((a) => [a.title, a.description]), ...run.logs.filter((l) => !l.finding).map((l) => l.text)].map((t) => t.toLowerCase());
+    // Log lines from every kind of play, so lines that appear only after a fix or a mask are seen too (review 3).
+    const logs = [v.golden.perfect, v.golden.masking, v.golden.herring, []].flatMap((list) => {
+      const run = new Run(s, 1);
+      let next = 0;
+      while (run.outcome === "running") {
+        while (next < list.length && list[next]!.tick === run.snapshot().tick) run.dispatch(list[next++]!.actionId);
+        run.step();
+      }
+      return run.logs.filter((l) => !l.finding).map((l) => l.text);
+    });
+    const chat = v.desktop.chat.flatMap((m) => ("text" in m ? [m.text] : []));
+    const texts = [...s.alerts.flatMap((a) => [a.title, a.description]), ...logs, ...chat].map((t) => t.toLowerCase());
     for (const fix of fixes) for (const t of texts) expect(t, fix).not.toContain(fix);
   });
 });

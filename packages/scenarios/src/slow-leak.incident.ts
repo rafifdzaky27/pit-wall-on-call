@@ -11,6 +11,7 @@ export const slowLeakIncident = defineIncident({
   title: "The Slow Leak",
   family: "deploys",
   difficulty: 3,
+  from: "2026-10-01",
   variants: [
     {
       key: "",

@@ -94,7 +94,13 @@ interface Pick {
   scenarioId: string;
 }
 
-/** Each catalogue's picks, day by day from ROTATION_FROM: a day's pick depends on the day before. */
+/** Beyond this many days of rotation (a clock far in the future), the daily falls back to the Slow Leak. */
+const MAX_ROTATION_DAYS = 3650;
+
+/**
+ * Each catalogue's picks, day by day from ROTATION_FROM: a day's pick depends on the day before.
+ * Treat a catalogue as immutable: the memo is keyed by the array.
+ */
 const memo = new WeakMap<readonly Incident[], Pick[]>();
 
 function pickFor(date: string, catalogue: readonly Incident[]): Pick {
@@ -104,9 +110,12 @@ function pickFor(date: string, catalogue: readonly Incident[]): Pick {
   for (let i = picks.length; i <= index; i++) {
     const day = utcDate(dayStartMs(ROTATION_FROM) + i * DAY_MS);
     const previous = picks[i - 1]?.incident.family;
+    // Only incidents already out on that day, so a new one never re-rolls a past or current day.
+    const out = catalogue.filter((c) => c.from <= day);
+    const available = out.length > 0 ? out : catalogue.slice(0, 1);
     // No family two days running, when the catalogue allows it.
-    const fresh = catalogue.filter((c) => c.family !== previous);
-    const pool = fresh.length > 0 ? fresh : catalogue;
+    const fresh = available.filter((c) => c.family !== previous);
+    const pool = fresh.length > 0 ? fresh : available;
     const target = TARGET_DIFFICULTY[(dayOf(day) + 4) % 7]!;
     const gap = Math.min(...pool.map((c) => Math.abs(c.difficulty - target)));
     const closest = pool.filter((c) => Math.abs(c.difficulty - target) === gap);
@@ -120,6 +129,7 @@ function pickFor(date: string, catalogue: readonly Incident[]): Pick {
 
 export function dailyFor(date: string, catalogue: readonly Incident[] = INCIDENTS): Daily {
   const seed = fnv1a(`pitwall:daily:${date}`);
-  const scenarioId = date < ROTATION_FROM || catalogue.length === 0 ? slowLeak.id : pickFor(date, catalogue).scenarioId;
+  const late = dayOf(date) - dayOf(ROTATION_FROM) > MAX_ROTATION_DAYS;
+  const scenarioId = date < ROTATION_FROM || late || catalogue.length === 0 ? slowLeak.id : pickFor(date, catalogue).scenarioId;
   return { date, number: dailyNumber(date), scenarioId, seed };
 }
