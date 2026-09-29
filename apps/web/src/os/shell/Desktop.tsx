@@ -46,7 +46,6 @@ export function Desktop() {
     previous.current = incident.phase;
     if (before === incident.phase) return;
     if (incident.phase === "prepage") openApp("browser");
-    if (incident.phase === "active") openApp("monitoring");
     if (incident.phase === "ended") openApp("postmortem");
   }, [incident.phase, openApp]);
 

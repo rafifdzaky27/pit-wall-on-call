@@ -14,6 +14,8 @@ test.describe("PitOS desktop", () => {
     await expect(page.getByRole("alertdialog", { name: "Checkout returning 5xx" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: "502 Bad Gateway" })).toBeVisible();
     await page.keyboard.press("a");
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Alerts" })).toBeVisible();
   });

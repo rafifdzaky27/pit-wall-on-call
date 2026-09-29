@@ -35,6 +35,8 @@ test.describe("flow (M2.5 spec §11)", () => {
     await page.getByRole("button", { name: "Start shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.keyboard.press("2");
     await page.clock.runFor(3_000);
@@ -66,6 +68,8 @@ test.describe("flow (M2.5 spec §11)", () => {
     await page.getByRole("button", { name: "Start shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.keyboard.press("2");
     await page.clock.runFor(3_000);
@@ -113,12 +117,46 @@ test.describe("flow (M2.5 spec §11)", () => {
     await expect(help.getByLabel("Glossary")).toContainText("Error budget");
   });
 
+  test("pressing L again mid-move turns the camera around where it is, with no snap (M2.5 follow-up)", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.waitForTimeout(1500);
+    // The laptop screen's width on screen, every frame: one continuous measure of the whole camera.
+    await page.evaluate(() => {
+      const w = window as unknown as { __widths: number[]; __run: boolean };
+      w.__widths = [];
+      w.__run = true;
+      const screenEl = document.querySelector("[data-testid=stage-screen]")!;
+      const tick = () => {
+        if (!w.__run) return;
+        w.__widths.push(screenEl.getBoundingClientRect().width);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    for (const gap of [150, 270, 390, 150, 270, 390, 150, 270]) {
+      await page.keyboard.press("l");
+      await page.waitForTimeout(gap);
+    }
+    await page.waitForTimeout(1500);
+    const widths = await page.evaluate(() => {
+      const w = window as unknown as { __widths: number[]; __run: boolean };
+      w.__run = false;
+      return w.__widths;
+    });
+    const steps = widths.slice(1).map((v, i) => Math.abs(v - widths[i]!));
+    // A 700 ms move covers about 1000 px, some 50 px a frame at its fastest; a snap is the whole distance at once.
+    expect(Math.max(...steps)).toBeLessThan(400);
+  });
+
   // @perf runs alone (PERF=1 playwright test --workers=1, a CI step of its own): frame times mean nothing while other browsers share the CPU.
   test("looking up and back down stays smooth @perf", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Start shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.waitForTimeout(1500);
     const up = await frameTimes(page, () => page.keyboard.press("l"));

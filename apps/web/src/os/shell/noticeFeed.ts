@@ -46,6 +46,20 @@ export function useNoticeFeed(startShift: () => void): void {
       });
     } else removeNotice("prepage");
 
+    // The ack leaves you on your own desktop (M2.5 follow-up): a pointer, not a window opening itself.
+    if (phase === "active") {
+      pushNotice({
+        id: "acked",
+        app: "Shift",
+        title: "You're on it",
+        body: "The pager is quiet. Start where you would at work: the dashboards, or the incident itself. The dock has every tool.",
+        actions: [
+          { label: "Open Monitoring", run: () => openApp("monitoring"), primary: true },
+          { label: "Open Incident", run: () => openApp("incident") },
+        ],
+      });
+    } else removeNotice("acked");
+
     if (phase === "ended" && result) {
       pushNotice({
         id: "ended",

@@ -15,6 +15,8 @@ test("a shift worked the way an SRE would: ask, post a status, roll back in Depl
   await page.getByRole("button", { name: "Start shift" }).click();
   await page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" }).click();
   await page.keyboard.press("a");
+  // The ack leaves you on the desktop; its notice points to Monitoring.
+  await page.getByRole("button", { name: "Open Monitoring" }).first().click();
   await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
 
   // Ask the deployer from a suggested question; they answer a while later.

@@ -18,6 +18,7 @@ for (const [width, height] of VIEWPORTS) {
     // Start shift pulls back to the café, which has its own Skip; A acknowledges from anywhere.
     await page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" }).click();
     await page.keyboard.press("a");
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     // Measure after the window's open motion settles. Looping CSS animations never finish, and nor do
     // live transitions such as the budget meter's width, which restarts on every burn tick (M2 flake).
     await page.waitForFunction(() =>

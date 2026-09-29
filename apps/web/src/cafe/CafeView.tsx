@@ -1,5 +1,5 @@
 import { closeState, resolveScene } from "@pitwall/world";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { formatClock } from "../game/format";
 import { isPaged } from "../os/apps/chat/unread";
 import { useIncident } from "../os/incident/IncidentProvider";
@@ -23,13 +23,22 @@ export default function CafeView() {
   useCafeAudio(camera.view, weather === "rain" && close !== "late");
   // While the camera moves, the café's loops hold still: an animated drop would make the art raster again,
   // at the zoom's scale, on every frame of the move. They carry on once it settles.
-  const [moving, setMoving] = useState(true);
+  // Known in the same render as the view change, so no frame of a move runs the loops (review 5).
+  const [moveTo, setMoveTo] = useState<{ view: string; settled: boolean }>({ view: camera.view, settled: false });
+  if (moveTo.view !== camera.view) setMoveTo({ view: camera.view, settled: false });
+  const moving = moveTo.view !== camera.view || !moveTo.settled;
   useEffect(() => {
-    setMoving(true);
-    const id = window.setTimeout(() => setMoving(false), CAMERA_SETTLE_MS);
+    if (moveTo.settled) return;
+    const id = window.setTimeout(() => setMoveTo((m) => (m.view === moveTo.view ? { ...m, settled: true } : m)), CAMERA_SETTLE_MS);
     return () => window.clearTimeout(id);
-  }, [camera.view]);
-  return (
+  }, [moveTo]);
+  // New shift sends the camera back to the laptop: until it gets there, the café stays the city you
+  // were in. The next city is drawn once the café is out of sight, so nothing swaps mid-move (M2.5
+  // follow-up: the flicker on New shift).
+  const held = useRef<{ seed: number; scene: ReactElement } | null>(null);
+  const settledAtLaptop = camera.view === "desktop" && !moving;
+  if (held.current && held.current.seed !== incident.seed && !settledAtLaptop) return held.current.scene;
+  const scene = (
     <CafeScene
       seed={incident.seed}
       close={close}
@@ -44,4 +53,6 @@ export default function CafeView() {
       <Hotspots />
     </CafeScene>
   );
+  held.current = { seed: incident.seed, scene };
+  return scene;
 }

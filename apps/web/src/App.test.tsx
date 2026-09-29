@@ -27,6 +27,8 @@ describe("App", () => {
     // Start shift pulls back to the café; its own controls skip ahead, and A acknowledges from anywhere.
     fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
     fireEvent.keyDown(window, { key: "a" });
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    fireEvent.click(await screen.findByRole("button", { name: "Open Monitoring" }));
     const monitoring = await screen.findByRole("region", { name: "Monitoring" });
     expect(monitoring.querySelector('[aria-labelledby="alerts-h"]')).toBeTruthy();
   });

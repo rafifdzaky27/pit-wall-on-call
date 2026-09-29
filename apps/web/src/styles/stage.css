@@ -2,7 +2,9 @@
 .stage { position: fixed; inset: 0; overflow: clip; background: #000; }
 .stage-world { position: absolute; inset: 0; transform-origin: 0 0; }
 .stage-cafe { position: absolute; inset: 0; }
-.stage-cafe[hidden] { display: none; }
+/* Out of sight, the café keeps its layout and layers, so looking up again never paints it from scratch (the L flicker); its loops hold. */
+.stage-cafe.off { visibility: hidden; }
+.stage-cafe.off * { animation-play-state: paused !important; }
 /* The laptop's screen sits above the café art (layer 1) and below the café's own UI: hotspots, captions, the phone, controls (layer 2). */
 .stage-screen { position: absolute; inset: 0; transform-origin: 0 0; z-index: 1; }
 .stage-cafe .hotspots { z-index: 2; }
@@ -28,9 +30,6 @@
 .cold-close p { margin: 0; }
 
 /* M2.5: a new shift's café fades in; the lead-in before the cold close. */
-.cafe-curtain { position: absolute; inset: 0; z-index: 1; background: var(--bg); pointer-events: none; opacity: 0; animation: cafe-curtain-out 600ms var(--ease-out); }
-@keyframes cafe-curtain-out { from { opacity: 1; } }
-[data-motion="reduce"] .cafe-curtain { animation: none; }
 .fix-confirmed { position: absolute; left: 50%; top: 42%; z-index: 5; transform: translateX(-50%); margin: 0; padding: 14px 22px; border-radius: var(--radius-window); background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-window); font-size: var(--fs-lg); font-weight: 600; animation: fix-confirmed-in 240ms var(--ease-out) both; }
 @keyframes fix-confirmed-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 [data-motion="reduce"] .fix-confirmed { animation: none; }

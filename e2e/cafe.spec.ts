@@ -17,6 +17,8 @@ test.describe("the café cold open", () => {
     await skip(page).click();
     await expect(page.locator(".phone.ringing")).toBeVisible();
     await page.keyboard.press("a");
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await expect(cafe(page)).toBeHidden();
   });
@@ -57,6 +59,8 @@ test.describe("the café cold open", () => {
     await page.getByRole("button", { name: "Start shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.keyboard.press("2");
     // The rollback lives in Deploys (M2.5 plan B4).
@@ -81,6 +85,8 @@ test.describe("the café cold open", () => {
     await expect(page.locator(".cafe-fallback")).toBeVisible();
     await skip(page).click();
     await page.keyboard.press("a");
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
   });
 
