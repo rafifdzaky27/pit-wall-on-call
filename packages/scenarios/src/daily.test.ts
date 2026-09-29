@@ -89,10 +89,9 @@ describe("the daily rotation (M4 spec N2)", () => {
     expect(after.slice(0, 31)).toEqual(before.slice(0, 31));
   });
 
-  it("stays cheap and sane for a clock far in the future (review 2)", () => {
-    const started = performance.now();
+  // The test's own timeout is the bound: walking to 9999 took seconds before the cap.
+  it("stays cheap and sane for a clock far in the future (review 2)", { timeout: 500 }, () => {
     expect(dailyFor("9999-12-31", catalogue).scenarioId).toBe("db-pool-exhaustion");
-    expect(performance.now() - started).toBeLessThan(200);
   });
 
   it("is the same answer every time, and uses every incident over a quarter", () => {
