@@ -1,11 +1,14 @@
 import type { TimelineEntry } from "@pitwall/engine";
 import type { IncidentApi } from "../incident/IncidentProvider";
+import type { OpenRequest } from "../shell/OsContext";
 
 export interface CoachStep {
   id: string;
   text: string;
   /** What Show me outlines: the first visible match wins. */
   target: string;
+  /** The tool that holds the target, opened (and filtered to the service) before the outline. */
+  open?: OpenRequest;
   done(incident: IncidentApi): boolean;
 }
 
@@ -31,26 +34,30 @@ export const TRAINING_STEPS: readonly CoachStep[] = [
   },
   {
     id: "logs",
-    text: "Select shop-api on the service map (it is red), then read its logs.",
-    target: '[data-coach="action:api.logs"], [data-coach="node:api"]',
+    text: "Open Logs (shop-api is red on the map) and run the saved query: Read shop-api logs.",
+    target: '[data-coach="action:api.logs"]',
+    open: { app: "logs", serviceId: "api" },
     done: (i) => finished(i.timeline, "api.logs"),
   },
   {
     id: "config",
-    text: "Redis is fast, but the api gives up after 5 ms. Something changed: check the config history.",
+    text: "Redis is fast, but the api gives up after 5 ms. Something changed: open Deploys and check the config history.",
     target: '[data-coach="action:api.config"]',
+    open: { app: "deploys", serviceId: "api" },
     done: (i) => finished(i.timeline, "api.config"),
   },
   {
     id: "status",
-    text: "Before you fix it, post a status update so customers know you're on it.",
+    text: "Before you fix it, post a status update from Incident (or /status in #incidents), so customers know you're on it.",
     target: '[data-coach="action:global.status_update"]',
+    open: { app: "incident", serviceId: null },
     done: (i) => finished(i.timeline, "global.status_update"),
   },
   {
     id: "rollback",
-    text: "Now roll the config back to v11.",
+    text: "Now roll the config back to v11, in Deploys.",
     target: '[data-coach="action:api.config_rollback"]',
+    open: { app: "deploys", serviceId: "api" },
     done: (i) => started(i.timeline, "api.config_rollback"),
   },
   {
