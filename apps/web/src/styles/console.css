@@ -117,7 +117,7 @@
 .actions li + li { margin-top: 6px; }
 .btn.action { position: relative; width: 100%; justify-content: space-between; overflow: hidden; text-align: left; }
 .btn.action.running { border-color: var(--accent); opacity: 1; }
-.action-d { font-size: var(--fs-xs); color: var(--muted); }
+.action-d { flex: none; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
 .action-progress { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); transition: width 0.1s linear; }
 
 .logs { margin: 0 var(--gap) var(--gap); }

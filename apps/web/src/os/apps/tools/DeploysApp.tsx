@@ -2,6 +2,9 @@ import type { DeployCard } from "@pitwall/scenarios";
 import { fillWorld } from "@pitwall/world";
 import { ActionButton } from "../../../console/ActionButton";
 import { useIncident } from "../../incident/IncidentProvider";
+import { useOs } from "../../shell/OsContext";
+import { useNow } from "../../useNow";
+import { relative } from "../chat/model";
 import { visibleFor } from "../chat/unread";
 import { actionsIn, outputsOf } from "./toolActions";
 import { ToolIdle } from "./ToolIdle";
@@ -13,6 +16,8 @@ export function DeploysApp() {
   const incident = useIncident();
   const { scenario, snapshot, world } = incident;
   const [current, choose] = useToolFocus("deploys");
+  const { bootAt, arrivals } = useOs();
+  const now = useNow().getTime();
   if (incident.phase === "idle" || incident.phase === "prepage") return <ToolIdle name="Deploys" />;
 
   // The deploy history is what Deploy Bot posted, newest first.
@@ -55,7 +60,7 @@ export function DeploysApp() {
                       <span className="tool-version mono">{m.card.version}</span>
                       <span>{m.card.changes}</span>
                       <span className="muted">
-                        {world.colleagues[m.card.by]} · {m.minutesAgo !== undefined ? `${m.minutesAgo} min ago` : "just now"} · <span className="mono">{m.card.sha}</span>
+                        {world.colleagues[m.card.by]} · {relative(m.minutesAgo !== undefined ? bootAt - m.minutesAgo * 60_000 : (arrivals.get(m.id) ?? now), now)} · <span className="mono">{m.card.sha}</span>
                       </span>
                     </li>
                   ))}

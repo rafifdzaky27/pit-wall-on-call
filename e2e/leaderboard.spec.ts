@@ -23,6 +23,8 @@ test.describe("the runs API contract (M2)", () => {
     await page.keyboard.press("2");
     // A fix within 2 s of the page is held for review (spec §8), so look around first, as a person would.
     await page.clock.runFor(3_000);
+    // The rollback lives in Deploys (M2.5 plan B4).
+    await page.getByRole("navigation", { name: "Open in" }).getByRole("button", { name: "Deploys" }).click();
     await page.getByRole("button", { name: /Roll back to v141/ }).click();
     await page.clock.runFor(31_000);
     await page.clock.runFor(11_000);

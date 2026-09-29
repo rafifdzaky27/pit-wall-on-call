@@ -38,6 +38,8 @@ test.describe("flow (M2.5 spec §11)", () => {
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.keyboard.press("2");
     await page.clock.runFor(3_000);
+    // The rollback lives in Deploys (M2.5 plan B4).
+    await page.getByRole("navigation", { name: "Open in" }).getByRole("button", { name: "Deploys" }).click();
     await page.getByRole("button", { name: /Roll back to v141/ }).click();
     // "Fix confirmed" shows for 1.5 s before the cold close: step the clock and catch it in its window.
     await page.clock.runFor(38_000);
@@ -67,6 +69,8 @@ test.describe("flow (M2.5 spec §11)", () => {
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.keyboard.press("2");
     await page.clock.runFor(3_000);
+    // The rollback lives in Deploys (M2.5 plan B4).
+    await page.getByRole("navigation", { name: "Open in" }).getByRole("button", { name: "Deploys" }).click();
     await page.getByRole("button", { name: /Roll back to v141/ }).click();
     await page.clock.runFor(45_000);
     await page.clock.runFor(3_200);

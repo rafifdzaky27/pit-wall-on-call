@@ -81,7 +81,8 @@ describe("Console", () => {
     // Postgres has no dashboard check; its actions live in the DB console (M2.5 plan B4).
     expect(screen.getByText("No dashboard checks for this service.")).toBeTruthy();
     expect(screen.getByLabelText("Connections metric")).toBeTruthy();
-    const logs = screen.getByRole("region", { name: "Logs" });
+    // "Log stream", so it is never confused with the Logs app (M2.5 PR B walkthrough W1).
+    const logs = screen.getByRole("region", { name: "Log stream" });
     expect(within(logs).getByRole("button", { name: /Clear filter/ })).toBeTruthy();
     const services = within(logs).getAllByTestId("log-service").map((el) => el.textContent);
     expect(services.length).toBeGreaterThan(0);
