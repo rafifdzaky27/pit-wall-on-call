@@ -1,3 +1,4 @@
+import { INCIDENTS } from "./registry";
 import { describe, expect, it } from "vitest";
 import { DAILY_EPOCH, DAY_MS, dailyFor, dailyNumber, dayStartMs, isDailyDate, ROTATION_FROM, utcDate } from "./daily";
 import type { Family, Incident } from "./kit/incident";
@@ -99,5 +100,34 @@ describe("the daily rotation (M4 spec N2)", () => {
     const first = quarter.map((d) => dailyFor(d, catalogue).scenarioId);
     expect(quarter.map((d) => dailyFor(d, catalogue).scenarioId)).toEqual(first);
     expect(new Set(first.map((id) => familyOf(id).id)).size).toBe(catalogue.length);
+  });
+
+  it("rests an incident for half the catalogue's size in days before it comes back (PR 30 review I4)", () => {
+    const picks = days(ROTATION_FROM, 120).map((d) => familyOf(dailyFor(d, catalogue).scenarioId).id);
+    for (let i = 0; i < picks.length; i++) expect(picks.slice(Math.max(0, i - 3), i), `day ${i}`).not.toContain(picks[i]);
+  });
+});
+
+describe("the shipped rotation (PR 30 review I4: every weekend was the same two incidents)", () => {
+  const days = (from: string, n: number) => Array.from({ length: n }, (_, i) => utcDate(dayStartMs(from) + i * DAY_MS));
+  const weekday = (d: string) => (dayStartMs(d) / DAY_MS + 4) % 7;
+  const incidentOf = (scenarioId: string) => INCIDENTS.find((c) => c.variants.some((v) => v.scenario.id === scenarioId))!;
+  const all = days("2026-10-03", 8 * 7);
+
+  it("gives each day of the week at least four different incidents over eight weeks", () => {
+    for (let w = 0; w < 7; w++) {
+      const ids = new Set(all.filter((d) => weekday(d) === w).map((d) => incidentOf(dailyFor(d).scenarioId).id));
+      expect(ids.size, `weekday ${w}`).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it("plays every incident within five weeks, and still gets harder towards the weekend", () => {
+    const month = new Set(days("2026-10-03", 35).map((d) => incidentOf(dailyFor(d).scenarioId).id));
+    expect(month.size).toBe(INCIDENTS.length);
+    const mean = (ws: number[]) => {
+      const ds = all.filter((d) => ws.includes(weekday(d))).map((d) => incidentOf(dailyFor(d).scenarioId).difficulty);
+      return ds.reduce((a, b) => a + b, 0) / ds.length;
+    };
+    expect(mean([1, 2])).toBeLessThan(mean([5, 6, 0]));
   });
 });

@@ -49,6 +49,18 @@ describe.each(cases)("%s", (_id, v) => {
     for (const id of s.rootCauseActionIds) expect(toolOf(s, id), id).not.toBe("dashboards");
   });
 
+  it("never lists an action that names the cause before the player has found it (PR 30 reviews)", () => {
+    expect(v.spoilers.length, "declare the words that name the cause").toBeGreaterThan(0);
+    // What the tools list from the first second, before the ack too. A check has to say what it looks at;
+    // a fix, a decoy or a question must not say what is wrong.
+    const run = new Run(s, 1);
+    for (const a of s.actions.filter((x) => run.offers(x.id) && (x.category !== "investigate" || x.ask))) {
+      const shown = `${a.label} ${a.command ?? ""} ${a.ask ?? ""}`.toLowerCase();
+      const names = v.spoilers.filter((w) => shown.includes(w.toLowerCase()));
+      expect(names, `${a.id} is listed from the start and says ${names.join(", ")}`).toEqual([]);
+    }
+  });
+
   it("never names the fix in an alert, a log line or a chat message", () => {
     const fixes = s.rootCauseActionIds.map((id) => s.actions.find((a) => a.id === id)!.label.toLowerCase());
     // Log lines from every kind of play, so lines that appear only after a fix or a mask are seen too (review 3).

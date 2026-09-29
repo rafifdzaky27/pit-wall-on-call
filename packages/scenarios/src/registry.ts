@@ -1,12 +1,30 @@
 import type { ScenarioDef, State } from "@pitwall/engine";
 import type { DesktopContent } from "./desktop";
 import type { Incident } from "./kit/incident";
+import { cacheStampedeIncident } from "./incidents/cache-stampede";
+import { diskFullIncident } from "./incidents/disk-full";
+import { expiredCertIncident } from "./incidents/expired-cert";
+import { paymentProviderBlinksIncident } from "./incidents/payment-provider-blinks";
+import { poisonPillIncident } from "./incidents/poison-pill";
+import { regexCpuIncident } from "./incidents/regex-cpu";
+import { replicaLagIncident } from "./incidents/replica-lag";
+import { retryStormIncident } from "./incidents/retry-storm";
 import { slowLeakIncident } from "./slow-leak.incident";
 import { training } from "./training";
 import { trainingDesktop } from "./training.desktop";
 
 /** Every incident a shift or a daily can be (M4 spec N1). Training is apart (N8). */
-export const INCIDENTS: readonly Incident[] = [slowLeakIncident];
+export const INCIDENTS: readonly Incident[] = [
+  slowLeakIncident,
+  diskFullIncident,
+  expiredCertIncident,
+  paymentProviderBlinksIncident,
+  retryStormIncident,
+  regexCpuIncident,
+  cacheStampedeIncident,
+  poisonPillIncident,
+  replicaLagIncident,
+];
 
 export const SCENARIOS: readonly ScenarioDef<State>[] = [...INCIDENTS.flatMap((i) => i.variants.map((v) => v.scenario)), training];
 

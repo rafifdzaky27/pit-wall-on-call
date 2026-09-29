@@ -12,7 +12,7 @@ import {
   type State,
   type TimelineEntry,
 } from "@pitwall/engine";
-import { desktopFor, getScenario, slowLeak, training, type Daily, type DesktopContent } from "@pitwall/scenarios";
+import { desktopFor, getScenario, practiceFor, training, type Daily, type DesktopContent } from "@pitwall/scenarios";
 import { resolveWorld, type World } from "@pitwall/world";
 import { createContext, Fragment, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRunLoop } from "../../game/useRunLoop";
@@ -41,6 +41,8 @@ export interface IncidentApi {
   result: RunResult | null;
   paused: boolean;
   check: (actionId: string) => RejectReason | null;
+  /** Whether a tool lists the action now (its target found), before and after the ack alike. */
+  offers: (actionId: string) => boolean;
   start: () => void;
   skipPrepage: () => void;
   acknowledge: () => void;
@@ -68,6 +70,7 @@ const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0]!;
 
 interface ProviderProps {
   children: ReactNode;
+  /** Pins every practice shift to one scenario (a `?incident=` link, and tests). Otherwise each seed picks one (M4). */
   scenario?: ScenarioDef<State>;
   newSeed?: () => number;
   prepageMs?: number;
@@ -79,16 +82,24 @@ interface ProviderProps {
  * The session reports its API up to here, so the children do not remount with it: the camera and the
  * café stay (M2.5 spec §11). What must start over per shift sits in a `ShiftScope`.
  */
-export function IncidentProvider({ children, scenario = slowLeak, newSeed = randomSeed, prepageMs = PREPAGE_MS, now }: ProviderProps) {
-  const [shift, setShift] = useState<Shift>(() => ({ id: 1, seed: newSeed(), scenario, startNow: false, daily: null }));
+export function IncidentProvider({ children, scenario, newSeed = randomSeed, prepageMs = PREPAGE_MS, now }: ProviderProps) {
+  const practice = useCallback((seed: number) => scenario ?? practiceFor(seed), [scenario]);
+  const [shift, setShift] = useState<Shift>(() => {
+    const seed = newSeed();
+    return { id: 1, seed, scenario: practice(seed), startNow: false, daily: null };
+  });
   const [api, setApi] = useState<IncidentApi | null>(null);
-  const newShift = useCallback(() => setShift((s) => ({ id: s.id + 1, seed: newSeed(), scenario, startNow: false, daily: null })), [newSeed, scenario]);
+  const newShift = useCallback(() => {
+    const seed = newSeed();
+    setShift((s) => ({ id: s.id + 1, seed, scenario: practice(seed), startNow: false, daily: null }));
+  }, [newSeed, practice]);
   const startTraining = useCallback(() => setShift((s) => ({ id: s.id + 1, seed: newSeed(), scenario: training, startNow: true, daily: null })), [newSeed]);
   const startDaily = useCallback((daily: Daily) => {
     const dailyScenario = getScenario(daily.scenarioId);
     // A daily of a scenario this build does not have (a newer server) plays as practice instead.
-    setShift((s) => (dailyScenario ? { id: s.id + 1, seed: daily.seed, scenario: dailyScenario, startNow: true, daily } : { id: s.id + 1, seed: newSeed(), scenario, startNow: true, daily: null }));
-  }, [newSeed, scenario]);
+    const seed = newSeed();
+    setShift((s) => (dailyScenario ? { id: s.id + 1, seed: daily.seed, scenario: dailyScenario, startNow: true, daily } : { id: s.id + 1, seed, scenario: practice(seed), startNow: true, daily: null }));
+  }, [newSeed, practice]);
   return (
     <>
       <Session
@@ -195,6 +206,7 @@ const Session = memo(function Session({ onApi, shiftId, daily, onStartDaily, onS
       result,
       paused: loop.paused,
       check: (actionId) => run.check(actionId),
+      offers: (actionId) => run.offers(actionId),
       start: () => setPhase((p) => (p === "idle" ? "prepage" : p)),
       skipPrepage: () => setPhase((p) => (p === "prepage" ? "paging" : p)),
       acknowledge: () => {

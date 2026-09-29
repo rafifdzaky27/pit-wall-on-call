@@ -21,8 +21,8 @@ describe("Stage with the café not loaded yet", () => {
     act(() => incident().start());
     // Still at the laptop: the whole world zoomed in, the desktop filling the view.
     expect(world.style.transform).toBe(`scale(${1 / laptopFit(window.innerWidth, window.innerHeight).k})`);
-    // Once the café is in, the camera pulls back.
-    await waitFor(() => expect(world.style.transform).toBe(""));
+    // Once the café is in, the camera pulls back. The chunk's import is slow under a busy parallel run.
+    await waitFor(() => expect(world.style.transform).toBe(""), { timeout: 5000 });
     expect(document.querySelector(".stage-cafe .cafe")).not.toBeNull();
   });
 

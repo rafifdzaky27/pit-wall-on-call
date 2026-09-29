@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_DAY } from "./e2e/day";
 
 export default defineConfig({
   testDir: "e2e",
@@ -18,6 +19,7 @@ export default defineConfig({
       // The API on a fresh, migrated pitwall_e2e database (pnpm db:up locally, a service container in CI).
       command: "pnpm --filter @pitwall/api e2e:serve",
       url: "http://localhost:8787/healthz",
+      env: { E2E_DAY },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
@@ -25,6 +27,8 @@ export default defineConfig({
       // vite preview proxies /api to the API above (preview.proxy defaults to server.proxy).
       command: "pnpm --filter @pitwall/web build && pnpm --filter @pitwall/web exec vite preview --port 4173 --strictPort",
       url: "http://localhost:4173",
+      // Practice shifts in this build are always the Slow Leak, which the specs play (M4: practice picks by seed).
+      env: { VITE_PIN_INCIDENT: "db-pool-exhaustion" },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

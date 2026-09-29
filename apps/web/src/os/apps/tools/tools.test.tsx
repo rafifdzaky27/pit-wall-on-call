@@ -1,5 +1,5 @@
-import type { ActionTool } from "@pitwall/engine";
-import { slowLeak, training } from "@pitwall/scenarios";
+import type { ActionTool, ScenarioDef, State } from "@pitwall/engine";
+import { getScenario, SCENARIOS, slowLeak, training } from "@pitwall/scenarios";
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,8 +19,8 @@ afterEach(() => {
 
 const seconds = (n: number) => act(() => vi.advanceTimersByTime(n * 1000));
 
-function paged(ui: React.ReactNode, { training: drill = false } = {}) {
-  const r = renderOs(ui);
+function paged(ui: React.ReactNode, { training: drill = false, scenario = slowLeak }: { training?: boolean; scenario?: ScenarioDef<State> } = {}) {
+  const r = renderOs(ui, { scenario });
   act(() => (drill ? r.incident().startTraining() : r.incident().start()));
   act(() => r.incident().skipPrepage());
   act(() => r.incident().acknowledge());
@@ -36,18 +36,19 @@ const APPS: [Exclude<ActionTool, "chat">, ComponentType][] = [
 ];
 
 describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
-  it.each([
-    ["Slow Leak", slowLeak, false],
-    ["training", training, true],
-  ] as const)("%s: each action is in exactly one tool, and that tool shows it", (_name, scenario, drill) => {
+  // Every incident's every variant, and training (M4 spec N4).
+  it.each(SCENARIOS.map((s) => [s.id, s, s.id === training.id] as const))("%s: each action is in exactly one tool, and that tool shows it", (_name, scenario, drill) => {
     const shown = new Map<string, string[]>();
+    // A fix whose target is not found yet is not listed anywhere until it is (PR 30 review I3).
+    const hidden = new Set<string>();
     for (const [tool, App] of APPS) {
-      const { unmount, container } = paged(<App />, { training: drill });
+      const { unmount, container, incident } = paged(<App />, { training: drill, scenario });
+      for (const a of scenario.actions) if (!incident().offers(a.id)) hidden.add(a.id);
       const ids =
         tool === "dashboards"
           ? // Monitoring shows one service at a time.
             scenario.services.flatMap((s) => {
-              fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${s.label}`) }));
+              fireEvent.click(screen.getByRole("button", { name: (n) => n.startsWith(s.label) }));
               return [...container.querySelectorAll("[data-coach^='action:']")].map((b) => b.getAttribute("data-coach")!.slice(7));
             })
           : [...container.querySelectorAll("[data-coach^='action:']")].map((b) => b.getAttribute("data-coach")!.slice(7));
@@ -58,6 +59,8 @@ describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
       if (toolOf(a) === "chat") {
         expect(a.ask, `${a.id} is a question in Chat`).toBeDefined();
         expect(shown.get(a.id), `${a.id} only in Chat`).toBeUndefined();
+      } else if (hidden.has(a.id)) {
+        expect(shown.get(a.id), `${a.id} waits for its target`).toBeUndefined();
       } else {
         expect(shown.get(a.id), a.id).toEqual([toolOf(a)]);
       }
@@ -65,11 +68,34 @@ describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
   });
 });
 
+describe("a fix shows once its target is found (PR 30 review I3)", () => {
+  it("the DB console lists the poison pill's move only after the message has been found", () => {
+    const pill = getScenario("poison-pill")!;
+    paged(<DbApp />, { scenario: pill });
+    seconds(5);
+    const commands = () => screen.getByRole("list").textContent ?? "";
+    expect(commands()).not.toContain("dead-letter");
+    fireEvent.click(screen.getByRole("button", { name: /Peek at the head of the queue/ }));
+    seconds(6);
+    expect(commands()).toContain("dead-letter");
+    // Once it has run, its line and output stay in the psql session, though the button is gone (PR 30 re-review I3).
+    fireEvent.click(screen.getByRole("button", { name: /dead-letter/ }));
+    seconds(25);
+    expect(screen.getByRole("log", { name: "psql session" }).textContent).toContain(pill.actions.find((a) => a.id === "queue.dlq_move")!.command!);
+  });
+
+  it("nor before the page is acknowledged, while the tools are already open (PR 30 re-review I1)", () => {
+    const pill = getScenario("poison-pill")!;
+    const r = renderOs(<DbApp />, { scenario: pill });
+    act(() => r.incident().start());
+    act(() => r.incident().skipPrepage());
+    expect(r.incident().phase).toBe("paging");
+    expect(screen.getByRole("list").textContent).not.toContain("dead-letter");
+  });
+});
+
 describe("Monitoring alone is not enough (M2.5 follow-up)", () => {
-  it.each([
-    ["Slow Leak", slowLeak],
-    ["training", training],
-  ] as const)("%s: every fix for the root cause lives in another tool, so the player has to leave Monitoring", (_name, scenario) => {
+  it.each(SCENARIOS.map((s) => [s.id, s] as const))("%s: every fix for the root cause lives in another tool, so the player has to leave Monitoring", (_name, scenario) => {
     expect(scenario.rootCauseActionIds.length).toBeGreaterThan(0);
     for (const id of scenario.rootCauseActionIds) {
       const action = scenario.actions.find((a) => a.id === id)!;

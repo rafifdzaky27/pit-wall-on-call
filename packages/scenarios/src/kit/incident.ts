@@ -20,6 +20,12 @@ export interface IncidentVariant<S extends State = State> {
   scenario: ScenarioDef<S>;
   desktop: DesktopContent;
   golden: Golden;
+  /**
+   * Words that name this variant's cause ("slot", "certificate", "dead-letter"), lower case. The tools list
+   * every action the player can take now, so a fix whose label or command says one of these must stay
+   * unavailable until the player has found its target (PR 30 review I3).
+   */
+  spoilers: readonly string[];
 }
 
 /** One incident: a family of variants that share a cause chain but change its nouns and numbers (M4 spec N1). */

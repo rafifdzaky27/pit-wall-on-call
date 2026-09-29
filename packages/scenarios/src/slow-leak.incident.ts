@@ -17,6 +17,7 @@ export const slowLeakIncident = defineIncident({
       key: "",
       scenario: slowLeak,
       desktop: slowLeakDesktop,
+      spoilers: ["leak", "connection pool"],
       golden: {
         perfect: [at(0, inspectAction("laptop.slack.deploys")), at(20, ACK), at(20, "checkout.pool_stats"), at(60, "checkout.deploys"), at(90, "checkout.rollback")],
         masking: [at(20, ACK), at(20, "checkout.restart"), at(3200, "checkout.rollback")],

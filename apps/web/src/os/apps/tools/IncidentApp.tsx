@@ -8,7 +8,7 @@ import { useTeamActions } from "../../incident/useTeamActions";
 import { useOs } from "../../shell/OsContext";
 import { statusLabel } from "../../shell/StatusChip";
 import { PAGE_ACTION, STATUS_ACTION } from "../chat/commands";
-import { actionsIn } from "./toolActions";
+import { actionsIn, offered } from "./toolActions";
 import "./tools.css";
 
 /** A timeline entry in words, or null for the ones nobody needs to read (a glance at the café). */
@@ -60,7 +60,7 @@ export function IncidentApp() {
   const page = scenario.coldOpen.page;
   const { text: status, tone } = statusLabel(incident.phase, snapshot);
   const items = checklist(scenario, incident.timeline, snapshot, { browserOpened: seenApps.has("browser"), postmortemOpened: seenApps.has("postmortem") });
-  const others = actionsIn(scenario, "incident").filter((a) => a.id !== STATUS_ACTION && a.id !== PAGE_ACTION);
+  const others = offered(actionsIn(scenario, "incident"), incident.offers).filter((a) => a.id !== STATUS_ACTION && a.id !== PAGE_ACTION);
   const entries = incident.timeline.flatMap((e) => {
     const line = describe(e, scenario);
     return line ? [{ tick: e.tick, line }] : [];

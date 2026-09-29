@@ -128,6 +128,15 @@ export class Run<S extends State> {
     return null;
   }
 
+  /**
+   * Whether the action is on offer in this state, whatever the ack, the clock or a busy hand say: a tool
+   * lists only these, so a fix whose target is not found yet is not there to read (M4 PR B review).
+   */
+  offers(actionId: string): boolean {
+    const def = this.actionDefs.get(actionId);
+    return !!def && (!def.available || def.available(this.s));
+  }
+
   /** Records the action at the current tick. Throws ActionRejected if it is not allowed. */
   dispatch(actionId: string): void {
     const reason = this.check(actionId);

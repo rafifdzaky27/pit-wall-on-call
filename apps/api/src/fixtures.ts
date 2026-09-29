@@ -1,5 +1,5 @@
 import { ACK, ENGINE_VERSION, inspectAction, type ActionRecord } from "@pitwall/engine";
-import { slowLeak } from "@pitwall/scenarios";
+import { INCIDENTS, slowLeak } from "@pitwall/scenarios";
 
 const at = (tick: number, actionId: string): ActionRecord => ({ tick, actionId });
 
@@ -14,6 +14,13 @@ export const PERFECT_ACTIONS: ActionRecord[] = [
 
 /** What the server's replay must score it. The deploy smoke test checks this literal (M2 spec §7). */
 export const PERFECT_EXPECTED = { outcome: "resolved", budgetBurnedBp: 253, mitigatedAtTick: 389, endTick: 489 } as const;
+
+/** Any variant's golden perfect player (M4): a daily is whichever incident the day picked. */
+export function perfectActionsFor(scenarioId: string): ActionRecord[] {
+  const variant = INCIDENTS.flatMap((i) => i.variants).find((v) => v.scenario.id === scenarioId);
+  if (!variant) throw new Error(`no incident variant ${scenarioId}`);
+  return variant.golden.perfect;
+}
 
 export function perfectRun(overrides: Record<string, unknown> = {}) {
   return {

@@ -20,6 +20,8 @@ export const ROTATION_FROM = "2026-10-01";
 
 /** Harder through the week: Monday is gentle, the weekend is hardest (M4 spec N2). Index 0 is Sunday. */
 const TARGET_DIFFICULTY = [5, 2, 2, 3, 3, 4, 4] as const;
+/** An incident rests up to this many days before it can be the daily again: half the catalogue, so the difficulty curve still has room. */
+const COOLDOWN_DAYS = 5;
 
 // Calendar arithmetic without the wall clock (content stays deterministic, spec §5): days since
 // 1970-01-01 to and from a proleptic Gregorian date (H. Hinnant's algorithms).
@@ -113,14 +115,20 @@ function pickFor(date: string, catalogue: readonly Incident[]): Pick {
     // Only incidents already out on that day, so a new one never re-rolls a past or current day.
     const out = catalogue.filter((c) => c.from <= day);
     const available = out.length > 0 ? out : catalogue.slice(0, 1);
-    // No family two days running, when the catalogue allows it.
+    // Not an incident from the last few days, and no family two days running, when the catalogue allows it.
+    const rest = Math.min(COOLDOWN_DAYS, Math.floor(available.length / 2));
+    const recent = new Set(picks.slice(Math.max(0, i - rest), i).map((p) => p.incident.id));
+    const rested = available.filter((c) => !recent.has(c.id) && c.family !== previous);
     const fresh = available.filter((c) => c.family !== previous);
-    const pool = fresh.length > 0 ? fresh : available;
+    const pool = rested.length > 0 ? rested : fresh.length > 0 ? fresh : available;
+    // Near the day's difficulty, not only the nearest: anything one step either side, so a weekday is not
+    // stuck with the same one or two incidents (PR 30 review).
     const target = TARGET_DIFFICULTY[(dayOf(day) + 4) % 7]!;
+    const near = pool.filter((c) => Math.abs(c.difficulty - target) <= 1);
     const gap = Math.min(...pool.map((c) => Math.abs(c.difficulty - target)));
-    const closest = pool.filter((c) => Math.abs(c.difficulty - target) === gap);
+    const candidates = near.length > 0 ? near : pool.filter((c) => Math.abs(c.difficulty - target) === gap);
     // An incident first, then one of its variants, so incidents with many variants are not favoured.
-    const incident = closest[fnv1a(`pitwall:daily-incident:${day}`) % closest.length]!;
+    const incident = candidates[fnv1a(`pitwall:daily-incident:${day}`) % candidates.length]!;
     const variant = incident.variants[fnv1a(`pitwall:daily-variant:${day}`) % incident.variants.length]!;
     picks.push({ incident, scenarioId: variant.scenario.id });
   }

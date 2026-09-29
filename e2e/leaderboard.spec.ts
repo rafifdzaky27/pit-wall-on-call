@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { ENGINE_VERSION } from "../packages/engine/src/constants";
-import { dailyFor, utcDate } from "../packages/scenarios/src/daily";
+import { dailyFor } from "../packages/scenarios/src/daily";
+import { E2E_DAY, E2E_NOW } from "./day";
 
 const skip = (page: import("@playwright/test").Page) =>
   page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" });
@@ -60,7 +61,8 @@ test.describe("the runs API contract (M2)", () => {
 
   test("below 1024 px, the lock screen shows today's daily board", async ({ page, request }) => {
     // One ranked daily, so the board has a table: the golden perfect player's actions on today's daily.
-    const today = dailyFor(utcDate(Date.now()));
+    const today = dailyFor(E2E_DAY);
+    expect(today.scenarioId).toBe("db-pool-exhaustion");
     const player = await (await request.post("/api/players", { data: { handle: "phone_seed" } })).json();
     const actions = [
       { tick: 0, actionId: "inspect:laptop.slack.deploys" },
@@ -75,6 +77,7 @@ test.describe("the runs API contract (M2)", () => {
     });
     expect(posted.status()).toBe(201);
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install({ time: E2E_NOW });
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1, name: `Daily #${today.number}` })).toBeVisible();
     const width = await page.evaluate(() => document.documentElement.scrollWidth);
