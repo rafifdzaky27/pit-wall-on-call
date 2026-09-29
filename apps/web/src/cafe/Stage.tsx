@@ -3,7 +3,7 @@ import { formatClock } from "../game/format";
 import { preloadable } from "../lazyPreload";
 import { motionGate } from "../game/motionGate";
 import { useIncident } from "../os/incident/IncidentProvider";
-import { animation, DUR, EASE_IN_OUT } from "../os/motion";
+import { animation, DUR, EASE_IN_OUT, EASE_OUT } from "../os/motion";
 import { usePrefs } from "../os/PrefsProvider";
 import { CoachCard } from "../os/coach/CoachCard";
 import { PausedOverlay } from "../os/shell/PausedOverlay";
@@ -41,6 +41,8 @@ class CafeBoundary extends Component<{ children: ReactNode }, { failed: boolean 
 export const COLD_CLOSE_DELAY_MS = 1500;
 /** The cold close pulls back slower than a look up, so the ending reads as an ending (M2.5 spec §11). */
 export const CLOSE_MOVE_MS = 1200;
+/** The shortest turn-around when a move is cut short near its end. */
+const MIN_TURN_MS = 180;
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -100,14 +102,20 @@ export function Stage({ children }: { children: ReactNode }) {
     const screenEl = screen.current;
     if (!worldEl || !screenEl || shown.current === camera.view) return;
     shown.current = camera.view;
+    // A move cut short turns around from where the camera is, not from its start: pressing L again
+    // mid-move never snaps (M2.5 follow-up). The rest of the way takes its share of the time.
+    const from = moving.current ? getComputedStyle(worldEl).transform : null;
     moving.current?.cancel();
     moving.current = null;
-    const duration = camera.closing ? CLOSE_MOVE_MS : DUR.camera;
+    const full = camera.closing ? CLOSE_MOVE_MS : DUR.camera;
+    // How far in the camera is: 0 in the café, 1 at the laptop (the zoom is a scale of 1 / fit.k).
+    const inward = from && from !== "none" ? Math.min(1, Math.max(0, Math.log(new DOMMatrix(from).a) / Math.log(1 / fit.k))) : null;
+    const duration = inward === null ? full : Math.max(MIN_TURN_MS, Math.round(full * (camera.view === "cafe" ? inward : 1 - inward)));
     const into = `translate(${fit.x}px, ${fit.y}px) scale(${fit.k})`;
     const outOf = `scale(${1 / fit.k}) translate(${-fit.x}px, ${-fit.y}px)`;
     if (camera.view === "cafe") {
       setCafeShown(true);
-      const a = animation(worldEl, [{ transform: outOf }, { transform: "none" }], { duration, easing: EASE_IN_OUT });
+      const a = animation(worldEl, [{ transform: from && from !== "none" ? from : outOf }, { transform: "none" }], { duration, easing: from ? EASE_OUT : EASE_IN_OUT });
       moving.current = a;
       if (!a) {
         // No animation (reduced motion): a cut, and nothing left holding the desktop's renders.
@@ -127,7 +135,7 @@ export function Stage({ children }: { children: ReactNode }) {
     }
     // Zooming in keeps the desktop in the laptop until the move ends, then drops every transform.
     screenEl.style.transform = into;
-    const a = animation(worldEl, [{ transform: "none" }, { transform: outOf }], { duration, easing: EASE_IN_OUT, fill: "forwards" });
+    const a = animation(worldEl, [{ transform: from && from !== "none" ? from : "none" }, { transform: outOf }], { duration, easing: from ? EASE_OUT : EASE_IN_OUT, fill: "forwards" });
     if (a) motionGate.set(true);
     const settle = () => {
       if (moving.current !== a) return;
@@ -164,7 +172,7 @@ export function Stage({ children }: { children: ReactNode }) {
       <div className={`stage${inCafe ? " in-cafe" : ""}`}>
         <div className="stage-world" ref={world}>
           {camera.started && (
-            <div className="stage-cafe" role="region" aria-label="Café" hidden={!cafeShown && !inCafe} inert={!inCafe} aria-hidden={!inCafe}>
+            <div className={`stage-cafe${!cafeShown && !inCafe ? " off" : ""}`} role="region" aria-label="Café" inert={!inCafe} aria-hidden={!inCafe}>
               <CafeBoundary>
                 <Suspense fallback={<CafeFallback />}>
                   <CafeView />
@@ -172,9 +180,6 @@ export function Stage({ children }: { children: ReactNode }) {
               </CafeBoundary>
               <CafeControls />
               <ColdClose />
-              {/* A new shift's city fades in: a curtain on layer 1 lifts off the art. The café wrapper
-                  itself never animates, so it never traps the café UI under the screen (M2.5). */}
-              <div className="cafe-curtain" key={incident.seed} aria-hidden="true" />
             </div>
           )}
           <div

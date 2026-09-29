@@ -51,6 +51,7 @@ async function playAndFix(hold: number) {
   await until(() => screen.getByRole("button", { name: "Rubber duck" }));
   fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
   fireEvent.keyDown(window, { key: "a" });
+  fireEvent.click(await until(() => screen.getByRole("button", { name: "Open Monitoring" })));
   await until(() => screen.getByRole("region", { name: "Monitoring" }));
   fireEvent.keyDown(window, { key: "2" });
   seconds(3);
@@ -141,6 +142,7 @@ describe("Review Focus 2 and 5 (M2.5 review I5)", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Training shift (about 3 min)" })[0]!);
     fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
     fireEvent.keyDown(window, { key: "a" });
+    fireEvent.click(await until(() => screen.getByRole("button", { name: "Open Monitoring" })));
     await until(() => screen.getByRole("region", { name: "Monitoring" }));
     // The coach sits above the OS, and its Show me still opens the tool (M2.5 plan B Task 5).
     fireEvent.click(within(screen.getByRole("region", { name: "Training coach" })).getByRole("button", { name: "Show me" }));

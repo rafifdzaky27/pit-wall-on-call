@@ -67,6 +67,12 @@ describe("Desktop", () => {
     expect(screen.getByRole("alertdialog", { name: "Checkout returning 5xx" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "a" });
     expect(incident().phase).toBe("active");
+    // The ack leaves you on your desktop: finding the right tool is part of the job (M2.5 follow-up).
+    expect(os().wm.windows.map((w) => w.appId)).toEqual(["browser"]);
+    const notice = os().notices.find((n) => n.id === "acked")!;
+    expect(notice.title).toBe("You're on it");
+    expect(notice.actions.map((a) => a.label)).toEqual(["Open Monitoring", "Open Incident"]);
+    act(() => notice.actions[0]!.run());
     expect(os().wm.windows.find((w) => w.appId === "monitoring")?.mode).toBe("maximized");
   });
 
@@ -137,6 +143,7 @@ describe("Desktop", () => {
     act(() => incident().start());
     act(() => incident().skipPrepage());
     act(() => incident().acknowledge());
+    fireEvent.click(screen.getByRole("button", { name: "Open Monitoring" }));
     await screen.findByRole("region", { name: "Monitoring" });
     expect(screen.getByRole("navigation", { name: "Dock" }).className).toContain("hidden");
   });

@@ -12,6 +12,8 @@ test("a first-timer takes the coached training shift from the landing to the rep
   await page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" }).click();
   await expect(coach.getByRole("status")).toHaveText(/^The pager is ringing/);
   await page.keyboard.press("a");
+  // The ack leaves you on the desktop; its notice points to Monitoring.
+  await page.getByRole("button", { name: "Open Monitoring" }).first().click();
   await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
   await expect(coach.getByRole("status")).toHaveText(/^Open Logs/);
   // Show me opens the tool, filtered to the service, and outlines the control (M2.5 plan B Task 5).

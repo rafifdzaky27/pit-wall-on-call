@@ -21,7 +21,7 @@ export function cameraReducer(c: Camera, e: CameraEvent): Camera {
       // New shift keeps the café and returns to the laptop's fresh desktop (M2.5 spec §11).
       if (e.to === "idle") return c.started ? { view: "desktop", started: true, closing: false } : INITIAL_CAMERA;
       if (e.to === "prepage") return { view: "cafe", started: true, closing: false };
-      // The ack takes you into the laptop, with Monitoring open.
+      // The ack takes you into the laptop, to the desktop as you left it (M2.5 follow-up).
       if (e.to === "active") return { view: "desktop", started: true, closing: false };
       if (e.to === "ended") return { view: "cafe", started: true, closing: true };
       // The page does not move the camera (spec C10).

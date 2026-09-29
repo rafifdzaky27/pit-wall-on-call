@@ -65,6 +65,19 @@ describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
   });
 });
 
+describe("Monitoring alone is not enough (M2.5 follow-up)", () => {
+  it.each([
+    ["Slow Leak", slowLeak],
+    ["training", training],
+  ] as const)("%s: every fix for the root cause lives in another tool, so the player has to leave Monitoring", (_name, scenario) => {
+    expect(scenario.rootCauseActionIds.length).toBeGreaterThan(0);
+    for (const id of scenario.rootCauseActionIds) {
+      const action = scenario.actions.find((a) => a.id === id)!;
+      expect(toolOf(action), id).not.toBe("dashboards");
+    }
+  });
+});
+
 describe("Logs", () => {
   it("runs a saved query, which is the engine action, and filters by service, level and text", () => {
     const { incident } = paged(<LogsApp />);

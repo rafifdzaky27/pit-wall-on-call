@@ -45,10 +45,12 @@ describe("Stage", () => {
     expect(screenEl().hasAttribute("inert")).toBe(false);
     expect(screenEl().style.transform).toBe("");
     expect(document.querySelector<HTMLElement>(".stage-world")!.style.transform).toBe("");
-    expect(cafeEl()!.hidden).toBe(true);
+    // Out of sight but never display: none, so looking up again does not lay out and paint the art from scratch (the L flicker).
+    expect(cafeEl()!.hidden).toBe(false);
+    expect(cafeEl()!.classList.contains("off")).toBe(true);
     expect(cafeEl()!.hasAttribute("inert")).toBe(true);
     press("l");
-    expect(cafeEl()!.hidden).toBe(false);
+    expect(cafeEl()!.classList.contains("off")).toBe(false);
   });
 
   it("after looking up, keyboard focus is on the laptop, ready to go back down", async () => {

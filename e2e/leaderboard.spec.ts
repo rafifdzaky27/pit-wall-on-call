@@ -19,6 +19,8 @@ test.describe("the runs API contract (M2)", () => {
     await page.getByRole("button", { name: "Start shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
+    // The ack leaves you on the desktop; its notice points to Monitoring.
+    await page.getByRole("button", { name: "Open Monitoring" }).first().click();
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.keyboard.press("2");
     // A fix within 2 s of the page is held for review (spec §8), so look around first, as a person would.
