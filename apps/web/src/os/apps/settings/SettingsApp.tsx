@@ -18,6 +18,7 @@ const PAGES: { id: SettingsPageId; label: string; keywords: string }[] = [
   { id: "sound", label: "Sound", keywords: "volume mute pager alert audio" },
   { id: "accessibility", label: "Accessibility", keywords: "motion animation larger text cursor shortcuts" },
   { id: "display", label: "Display", keywords: "full screen fullscreen" },
+  { id: "gameplay", label: "Gameplay", keywords: "hints guide next step help newcomer" },
   { id: "keyboard", label: "Keyboard", keywords: "shortcuts keys" },
   { id: "account", label: "Account", keywords: "handle leaderboard name player" },
   { id: "about", label: "About", keywords: "version build api license credits photos" },
@@ -190,6 +191,14 @@ export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?:
                 <Switch label="Full screen now" checked={full} onChange={(on) => void (on ? enterFullscreen() : exitFullscreen())} />
               </Row>
             )}
+          </Group>
+        )}
+
+        {page === "gameplay" && (
+          <Group title="Guidance">
+            <Row title="Show next-step hints" subtitle="After a quiet spell in an early shift, a notice points at where to look next. It never says what the fix is.">
+              <Switch label="Show next-step hints" checked={prefs.nextStepHints} onChange={(on) => update({ nextStepHints: on })} />
+            </Row>
           </Group>
         )}
 

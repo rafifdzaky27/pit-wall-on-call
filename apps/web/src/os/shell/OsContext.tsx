@@ -13,7 +13,7 @@ export function workArea(): { w: number; h: number } {
 }
 
 export type MenuId = "phone" | "system" | "calendar";
-export type SettingsPageId = "appearance" | "sound" | "accessibility" | "display" | "keyboard" | "account" | "about";
+export type SettingsPageId = "appearance" | "sound" | "accessibility" | "display" | "gameplay" | "keyboard" | "account" | "about";
 export type BrowserTabId = "store" | "leaderboard";
 
 export interface NoticeAction {
@@ -83,6 +83,9 @@ export interface OsApi {
   /** The service a tool should show; `nonce` makes a repeated request count (M2.5 plan B4 links). */
   toolFocus: { app: ToolAppId; serviceId: string | null; nonce: number } | null;
   openTool: (app: ToolAppId, serviceId: string | null) => void;
+  /** Things the player did that no window state shows ("service:<id>" selected on the map, "chat:<channel>" read). For the next-step guide. */
+  signals: ReadonlySet<string>;
+  signal: (id: string) => void;
 }
 
 const OsContext = createContext<OsApi | null>(null);
@@ -126,6 +129,7 @@ export function OsProvider({ children }: { children: ReactNode }) {
   const [seenApps, setSeenApps] = useState<ReadonlySet<AppId>>(() => new Set());
   const [chatPosts, setChatPosts] = useState<readonly ChatPost[]>([]);
   const [toolFocus, setToolFocus] = useState<OsApi["toolFocus"]>(null);
+  const [signals, setSignals] = useState<ReadonlySet<string>>(() => new Set());
 
   useEffect(() => {
     const onResize = () => dispatchWm({ type: "setArea", ...workArea() });
@@ -188,6 +192,10 @@ export function OsProvider({ children }: { children: ReactNode }) {
     setSeenApps((prev) => (prev.has(id) ? prev : new Set([...prev, id])));
   }, []);
 
+  const signal = useCallback((id: string) => {
+    setSignals((prev) => (prev.has(id) ? prev : new Set([...prev, id])));
+  }, []);
+
   const postChat = useCallback((channel: string, author: ChatPost["author"], text: string) => {
     setChatPosts((list) => [...list, { id: `post-${list.length}`, channel, author, text, at: Date.now() }]);
   }, []);
@@ -230,8 +238,10 @@ export function OsProvider({ children }: { children: ReactNode }) {
       postChat,
       toolFocus,
       openTool,
+      signals,
+      signal,
     }),
-    [chatPosts, postChat, toolFocus, openTool, wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals, seenApps, markSeen],
+    [signals, signal, chatPosts, postChat, toolFocus, openTool, wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals, seenApps, markSeen],
   );
   const bridge = useContext(BridgeContext);
   useLayoutEffect(() => {

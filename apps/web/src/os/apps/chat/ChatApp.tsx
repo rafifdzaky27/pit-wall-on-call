@@ -63,7 +63,7 @@ function DeployCardView({ card, world, onOpen }: { card: DeployCard; world: Worl
 
 export function ChatApp() {
   const incident = useIncident();
-  const { read, markRead, bootAt, arrivals, chatPosts, postChat, openTool } = useOs();
+  const { read, markRead, bootAt, arrivals, chatPosts, postChat, openTool, signal } = useOs();
   const team = useTeamActions();
   const { world, scenario, content, inspect, snapshot } = incident;
   const now = useNow().getTime();
@@ -76,6 +76,9 @@ export function ChatApp() {
   const [current, setCurrent] = useState(content.channels[0]!);
   const [mark, setMark] = useState<string | null>(() => firstUnread(content.channels[0]!));
   const [draft, setDraft] = useState("");
+  useEffect(() => {
+    signal(`chat:${current}`);
+  }, [current, signal]);
   const [mine, setMine] = useState<ReadonlySet<string>>(() => new Set());
   const [threadId, setThreadId] = useState<string | null>(null);
   /** An ephemeral line above the composer: /help, or why a command could not run. */

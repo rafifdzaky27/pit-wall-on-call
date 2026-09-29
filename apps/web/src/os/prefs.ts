@@ -26,6 +26,10 @@ export interface Prefs {
   radio: boolean;
   /** The guided training shift was finished once (M2.5 spec §5). */
   trainingDone: boolean;
+  /** Next-step hints on first shifts (M4.5 spec N3). Turned off by the first resolved shift; the player can turn them back on. */
+  nextStepHints: boolean;
+  /** A real (not training) shift was resolved once, so the hints stepped aside. */
+  resolvedOnce: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -45,12 +49,14 @@ export const DEFAULT_PREFS: Prefs = {
   reduceAudio: false,
   radio: false,
   trainingDone: false,
+  nextStepHints: true,
+  resolvedOnce: false,
 };
 
 const KEY = "pitwall.prefs";
 const LEGACY_THEME_KEY = "pitwall.theme";
 const WALLPAPERS: readonly string[] = ["auto", "jakarta", "yogyakarta", "tokyo", "melbourne"];
-const FLAGS = ["reduceMotion", "largeText", "systemCursor", "singleKeyShortcuts", "muted", "fullscreenOnStart", "reduceAudio", "radio", "trainingDone"] as const;
+const FLAGS = ["reduceMotion", "largeText", "systemCursor", "singleKeyShortcuts", "muted", "fullscreenOnStart", "reduceAudio", "radio", "trainingDone", "nextStepHints", "resolvedOnce"] as const;
 const LEVELS = ["volume", "ambience", "music", "alerts"] as const;
 
 function sanitize(raw: unknown): Prefs {
