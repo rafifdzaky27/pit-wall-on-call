@@ -45,10 +45,15 @@ describe("Stage with the café not loaded yet", () => {
       void enterFullscreen();
       act(() => incident().start());
       expect(world.style.transform).toBe(`scale(${1 / laptopFit(window.innerWidth, window.innerHeight).k})`);
+      // Nothing of the café shows or takes clicks over the desktop while the camera holds.
+      expect(document.querySelector(".stage-cafe")!.classList.contains("off")).toBe(true);
+      expect(document.querySelector(".stage-cafe")!.hasAttribute("inert")).toBe(true);
       act(() => {
         Object.assign(window, { innerWidth: 1440, innerHeight: 900 });
         window.dispatchEvent(new Event("resize"));
       });
+      // The hold follows the new size at once, so the desktop never shows framed for the old one (PR 29 review I1).
+      expect(world.style.transform).toBe(`scale(${1 / laptopFit(1440, 900).k})`);
       await waitFor(() => expect(world.style.transform).toBe(""));
     } finally {
       delete (root as { requestFullscreen?: unknown }).requestFullscreen;
@@ -72,6 +77,25 @@ describe("Stage with the café not loaded yet", () => {
       act(() => incident().start());
       await waitFor(() => expect(world.style.transform).toBe(""));
       expect(document.querySelector(".cafe-fallback")).not.toBeNull();
+    } finally {
+      vi.doUnmock("./CafeView");
+    }
+  });
+
+  it("never holds longer than PULL_BACK_WAIT_MS, even when the café's chunk hangs (PR 29 review I2)", async () => {
+    vi.doMock("./CafeView", () => new Promise(() => undefined));
+    try {
+      const { Stage, PULL_BACK_WAIT_MS } = await import("./Stage");
+      const { renderOs } = await import("../os/testing");
+      const { incident } = renderOs(
+        <Stage>
+          <p>laptop screen</p>
+        </Stage>,
+      );
+      const world = document.querySelector<HTMLElement>(".stage-world")!;
+      act(() => incident().start());
+      expect(world.style.transform).not.toBe("");
+      await waitFor(() => expect(world.style.transform).toBe(""), { timeout: PULL_BACK_WAIT_MS + 1000 });
     } finally {
       vi.doUnmock("./CafeView");
     }

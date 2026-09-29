@@ -60,10 +60,15 @@ function focusAfter(view: View): void {
   }
 }
 
+/** The longest a pull-back waits at the laptop: a café chunk stuck on a slow network gets the plain backdrop instead. */
+export const PULL_BACK_WAIT_MS = 2000;
+
 /** What a pull-back must wait for: the café's chunk, and the window going full screen. Null when nothing. */
 function beforePullBack(): Promise<unknown> | null {
   const waits = [cafe.loaded() ? null : Promise.resolve(cafe.load()), fullscreenSettling()].filter((w) => w !== null);
-  return waits.length ? Promise.all(waits).then(undefined, () => undefined) : null;
+  if (!waits.length) return null;
+  const cap = new Promise((resolve) => window.setTimeout(resolve, PULL_BACK_WAIT_MS));
+  return Promise.race([Promise.all(waits), cap]).catch(() => undefined);
 }
 
 /**
@@ -84,7 +89,7 @@ export function Stage({ children }: { children: ReactNode }) {
   const inCafe = camera.view === "cafe";
   // The café's chunk comes in while the desktop is idle, so Start shift rarely waits on it.
   useEffect(() => {
-    const id = window.setTimeout(() => void Promise.resolve(cafe.load()).then(undefined, () => undefined), CAFE_WARM_MS);
+    const id = window.setTimeout(() => void Promise.resolve(cafe.load()).catch(() => undefined), CAFE_WARM_MS);
     return () => window.clearTimeout(id);
   }, []);
   // What a pull-back to the café is waiting on, and a nudge to run the move once it lands.
@@ -92,6 +97,8 @@ export function Stage({ children }: { children: ReactNode }) {
   // A pull-back waits once: a café that failed to load gets the plain backdrop, not a camera stuck at the laptop.
   const waited = useRef(false);
   const [released, release] = useReducer((n: number) => n + 1, 0);
+  // While it holds, the café stays out of sight and out of reach, as at the laptop.
+  const [holding, setHolding] = useState(false);
 
   // Fetch the report's chunk as the shift starts: a stale tab then fails before anything is at stake,
   // and the report renders without suspending when the run ends (M2.5 review I4).
@@ -121,8 +128,10 @@ export function Stage({ children }: { children: ReactNode }) {
     const screenEl = screen.current;
     if (!worldEl || !screenEl) return;
     // Every move is a pure zoom about one point, so the laptop stays put on screen (M2.5 follow-up).
+    // The window's size is part of it: a full screen landing re-frames the hold at once (PR 29 review I1).
+    // A running move keeps its origin, so a resize never makes it jump.
     const origin = zoomOrigin(fit);
-    worldEl.style.transformOrigin = `${origin.x}px ${origin.y}px`;
+    if (!moving.current) worldEl.style.transformOrigin = `${origin.x}px ${origin.y}px`;
     // The camera holds at the laptop until the café is in and a full screen has its size: pulling back
     // onto an empty café, or on geometry that changes mid-move, is the glitch on every new shift (M2.5 follow-up).
     if (camera.view === "cafe" && shown.current !== "cafe" && !moving.current) {
@@ -130,6 +139,7 @@ export function Stage({ children }: { children: ReactNode }) {
       if (wait) {
         waitFor.current = wait;
         worldEl.style.transform = `scale(${1 / fit.k})`;
+        setHolding(true);
         void wait.then(() => {
           if (waitFor.current !== wait) return;
           waitFor.current = null;
@@ -139,10 +149,16 @@ export function Stage({ children }: { children: ReactNode }) {
         return;
       }
     }
+    const held = waitFor.current !== null;
     waitFor.current = null;
     waited.current = false;
     worldEl.style.transform = "";
-    if (shown.current === camera.view) return;
+    setHolding(false);
+    if (shown.current === camera.view) {
+      // Back at the laptop before the café ever came: focus returns to the desktop (PR 29 review).
+      if (held) focusAfter("desktop");
+      return;
+    }
     shown.current = camera.view;
     // A move cut short turns around from where the camera is, not from its start: pressing L again
     // mid-move never snaps. The rest of the way takes its share of the time.
@@ -193,7 +209,7 @@ export function Stage({ children }: { children: ReactNode }) {
     moving.current = a;
     if (!a) settle();
     else a.finished.then(settle, () => undefined);
-  }, [camera.view, released]);
+  }, [camera.view, released, fit.x, fit.y, fit.k]);
 
   // A cancelled move (unmount) must not leave the desktop frozen.
   useEffect(() => () => motionGate.set(false), []);
@@ -216,7 +232,13 @@ export function Stage({ children }: { children: ReactNode }) {
       <div className={`stage${inCafe ? " in-cafe" : ""}`}>
         <div className="stage-world" ref={world}>
           {camera.started && (
-            <div className={`stage-cafe${!cafeShown && !inCafe ? " off" : ""}`} role="region" aria-label="Café" inert={!inCafe} aria-hidden={!inCafe}>
+            <div
+              className={`stage-cafe${(!cafeShown && !inCafe) || holding ? " off" : ""}`}
+              role="region"
+              aria-label="Café"
+              inert={!inCafe || holding}
+              aria-hidden={!inCafe || holding}
+            >
               <CafeBoundary>
                 <Suspense fallback={<CafeFallback />}>
                   <CafeView />

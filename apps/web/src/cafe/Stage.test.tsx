@@ -1,10 +1,13 @@
 import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Desktop } from "../os/shell/Desktop";
 import { renderOs } from "../os/testing";
 import { motionGate } from "../game/motionGate";
 import { laptopFit, zoomOrigin } from "./camera";
-import { Stage } from "./Stage";
+import { loadCafe, Stage } from "./Stage";
+
+// The café chunk is in, as after the desktop's idle warm-up: a pull-back never waits on it here (StageCold covers that).
+beforeAll(() => loadCafe());
 
 afterEach(() => {
   cleanup();

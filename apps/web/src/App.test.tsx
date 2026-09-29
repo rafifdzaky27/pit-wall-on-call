@@ -1,6 +1,10 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { loadCafe } from "./cafe/Stage";
+
+// The café chunk is in, as after the desktop's idle warm-up.
+beforeAll(() => loadCafe());
 
 afterEach(() => {
   cleanup();
