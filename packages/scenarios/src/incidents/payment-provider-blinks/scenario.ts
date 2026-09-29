@@ -14,6 +14,11 @@ type Blinks = {
   fallback: number;
   restarts: number;
   rolledBack: number;
+  /** The player has read the checkout payment config. */
+  sawConfig: number;
+  raised: number;
+  held: number;
+  skipped: number;
   statusPosted: number;
   ducks: number;
 };
@@ -35,10 +40,24 @@ export interface BlinksVariant {
   fallbackName: string;
   fallbackLabel: string;
   fallbackDone: string;
+  /** The log line for one payment that took the fallback. */
+  routedLine: string;
   /** How the fallback's box on the service map reads: [standby, taking traffic]. */
   fallbackDetail: readonly [string, string];
-  /** What is loud but innocent. */
-  herring: "deploy" | "db";
+  /** What is loud but innocent: a recent deploy, a rules change, or a busy database. */
+  herring: "deploy" | "rules" | "db";
+  /** How the fix works. "reroute" sends new payments elsewhere; "exempt" skips the card check for small orders (fail open). */
+  mechanism: "reroute" | "exempt";
+  /** Words that name the cause, lower case, for the harness (PR 30 review I3). */
+  spoilers: readonly string[];
+  /** The number in the postmortem the channel shows, so each variant has its own. */
+  pm: number;
+  /** What checkout's payment config says, once the player opens it. */
+  configLine: string;
+  /** The fix's command, as the Deploys config panel shows it. */
+  fixCommand: string;
+  /** The recent innocent deploy (not used when the herring is the database). */
+  deploy: { change: string; slack: string; history: string; dm: string; rollbackLabel: string; rollbackDone: string };
   symptom: { code: 503 | 504; path: string };
   region: string;
 }
@@ -57,7 +76,8 @@ const jitter = (rng: Rng, spread: number) => (rng.next() - 0.5) * spread;
 export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
   const id = v.key ? `payment-provider-blinks:${v.key}` : "payment-provider-blinks";
   const noisyDb = v.herring === "db";
-  const innocentDeploy = v.herring === "deploy";
+  const innocentDeploy = v.herring !== "db";
+  const exempt = v.mechanism === "exempt";
   const isCard = v.method === "card";
 
   return defineScenario<Blinks>({
@@ -90,6 +110,10 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
       fallback: 0,
       restarts: 0,
       rolledBack: 0,
+      sawConfig: 0,
+      raised: 0,
+      held: 0,
+      skipped: 0,
       statusPosted: 0,
       ducks: 0,
     }),
@@ -107,7 +131,7 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
         fallback: "ok",
       };
     },
-    mitigated: (s) => s.fallback === 0 && s.restarts > 0,
+    mitigated: (s) => s.fallback === 0 && (s.restarts > 0 || s.held > 0),
     resolvedWhen: (s) => s.fallback === 1 && s.blocked < 20_000,
 
     metrics: [
@@ -129,9 +153,9 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
       { id: "checkout.provider_timeout", serviceId: "checkout", level: "WARN", everyTicks: 6, when: (s) => s.fallback === 0,
         text: (s, r) => `${v.provider} authorise timed out after 8000ms, order ${100_000 + r.int(900_000)} (threads waiting=${inUse(s)} of 100)` },
       { id: "checkout.ok", serviceId: "checkout", level: "INFO", everyTicks: 16, when: (s) => s.blocked < 90_000,
-        text: (s, r) => `POST ${v.symptom.path} ${s.fallback || s.blocked < FLOOR ? 200 : v.symptom.code}${s.blocked > FLOOR ? 8000 + r.int(200) : 320 + r.int(160)}ms` },
+        text: (s, r) => `POST ${v.symptom.path} ${s.fallback || s.blocked < FLOOR ? 200 : v.symptom.code} ${s.blocked > FLOOR ? 8000 + r.int(200) : 320 + r.int(160)}ms` },
       { id: "checkout.fallback_route", serviceId: "checkout", level: "INFO", everyTicks: 14, when: (s) => s.fallback === 1,
-        text: (_s, r) => `authorisation ${100_000 + r.int(900_000)} routed to ${v.fallbackName} 200 ${260 + r.int(140)}ms` },
+        text: (_s, r) => `authorisation ${100_000 + r.int(900_000)} ${v.routedLine} 200 ${260 + r.int(140)}ms` },
       { id: "checkout.cart", serviceId: "checkout", level: "INFO", everyTicks: 20, text: (_s, r) => `POST /cart 201 ${60 + r.int(60)}ms` },
       ...(noisyDb
         ? [
@@ -163,23 +187,54 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
       { id: "checkout.threads", tool: "dashboards", label: "Check worker threads", serviceId: "checkout", category: "investigate", durationS: 4, verdict: "useful",
         reveals: (s) => [`checkout-api: ${inUse(s)} of 100 worker threads are waiting on an outbound call; the rest are idle. All ${inUse(s)} are inside the payment client`] },
       { id: "payments.latency", tool: "dashboards", label: `Check ${v.provider} latency`, serviceId: "payments", category: "investigate", durationS: 3, verdict: "useful",
-        reveals: () => [`${v.provider} ${v.region}: authorise p99 7.8 s (normally 210 ms), 72% timeouts. ${v.fallbackName} is idle at 0 req/s`] },
+        reveals: () => [exempt
+          ? `${v.provider} ${v.region}: challenge p99 7.8 s (normally 210 ms), 72% timeouts. Every card order waits on the check before it can be paid`
+          : `${v.provider} ${v.region}: authorise p99 7.8 s (normally 210 ms), 72% timeouts. ${v.fallbackName} is idle at 0 req/s`] },
       { id: "checkout.deploys", tool: "deploys", label: "View recent deploys", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
         reveals: () => innocentDeploy
-          ? [`v207 by {deployer}, 61 min ago: "receipts email template"; error rate stayed flat for 35 min after it went out. The first authorise timeout was 24 min ago`]
+          ? [v.deploy.history]
           : [`v207 by {deployer}, 9 h ago: "receipts email template"; it has run clean since. No config changes today`] },
-      { id: "checkout.rollback", tool: "deploys", label: "Roll back to v206", serviceId: "checkout", category: "mitigate", durationS: 30, verdict: "wasted",
+      { id: "checkout.payment_config", tool: "deploys", label: exempt ? "View card check config" : "View payment config", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
+        effect: (s) => ({ ...s, sawConfig: 1 }),
+        reveals: () => [v.configLine] },
+      { id: "checkout.rollback", tool: "deploys", label: innocentDeploy ? v.deploy.rollbackLabel : "Roll back to v206", serviceId: "checkout", category: "mitigate", durationS: 30, verdict: "wasted",
         available: (s) => s.rolledBack === 0,
         effect: (s) => ({ ...s, rolledBack: 1 }),
-        reveals: () => ["rollback to v206 complete: 6 of 6 pods ready; threads waiting unchanged"] },
+        reveals: () => [innocentDeploy ? v.deploy.rollbackDone : "rollback to v206 complete: 6 of 6 pods ready; threads waiting unchanged"] },
       { id: "checkout.restart", tool: "deploys", label: "Restart pods", serviceId: "checkout", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4000,
         effect: (s) => ({ ...s, blocked: 12_000, restarts: s.restarts + 1 }),
         reveals: () => ["rolling restart done: 6 of 6 pods ready, threads reset"] },
       { id: "checkout.enable_fallback", tool: "deploys", label: v.fallbackLabel, serviceId: "checkout", category: "fix", durationS: 20, verdict: "useful",
-        command: v.method === "card" ? "config set payments.route_on_timeout = secondary" : "config set wallet.deferred_capture = true",
-        available: (s) => s.fallback === 0,
+        command: v.fixCommand,
+        // The config change is only on offer once the player has opened the config that says it exists.
+        available: (s) => s.fallback === 0 && s.sawConfig === 1,
         effect: (s) => ({ ...s, fallback: 1 }),
         reveals: () => [v.fallbackDone] },
+      ...(exempt
+        ? [
+            { id: "checkout.hold_orders", tool: "deploys" as const, label: "Hold card orders until the check answers", serviceId: "checkout", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
+              command: "config set checkout.threeds.hold_on_timeout = true",
+              available: (s: Blinks) => s.fallback === 0 && s.sawConfig === 1 && s.held === 0,
+              effect: (s: Blinks) => ({ ...s, held: 1, blocked: Math.min(s.blocked, 20_000) }),
+              reveals: () => [`card orders now show "payment pending" while they wait: 188 orders held, none confirmed. Threads freed for now, but every held order still waits on ${v.provider} for its answer`] },
+            { id: "checkout.skip_check", tool: "deploys" as const, label: "Turn the card check off", serviceId: "checkout", category: "mitigate" as const, durationS: 10, verdict: "harmful" as const, sideEffectBp: 3000,
+              command: "config set checkout.threeds.enabled = false",
+              available: (s: Blinks) => s.fallback === 0 && s.sawConfig === 1,
+              effect: (s: Blinks) => ({ ...s, fallback: 1, skipped: 1 }),
+              reveals: () => ["card check off for every order: threads are draining, but all card orders now go through with no issuer check, including the large ones. Chargebacks are on us"] },
+          ]
+        : [
+            { id: "checkout.raise_timeout", tool: "deploys" as const, label: "Raise the payment timeout to 15 s", serviceId: "checkout", category: "mitigate" as const, durationS: 10, verdict: "wasted" as const,
+              command: "config set payments.timeout_ms = 15000",
+              available: (s: Blinks) => s.fallback === 0 && s.sawConfig === 1 && s.raised === 0,
+              effect: (s: Blinks) => ({ ...s, raised: 1, rate: s.rate * 2 }),
+              reveals: () => ["timeout raised to 15 s: each stuck thread now waits almost twice as long before giving up, and the pool is filling faster"] },
+          ]),
+      ...(exempt
+        ? [{ id: "orders.value_split", tool: "db" as const, label: "See what the waiting orders are worth", serviceId: "postgres", category: "investigate" as const, durationS: 3, verdict: "useful" as const,
+            command: "SELECT width_bucket(total, ARRAY[30, 100, 500]) AS band, count(*) FROM orders WHERE status = 'pending_auth' GROUP BY 1 ORDER BY 1;",
+            reveals: () => ["orders waiting on the card check: 212, of which 187 are under 30 (median 14), 21 are 30 to 500 and 4 are over 500"] }]
+        : []),
       { id: "postgres.activity", tool: "db", label: "Inspect running queries", serviceId: "postgres", category: "investigate", durationS: 3, verdict: "wasted",
         command: "SELECT pid, application_name, state, now() - query_start AS runtime FROM pg_stat_activity WHERE state <> 'idle' ORDER BY runtime DESC;",
         reveals: () => noisyDb
@@ -199,7 +254,7 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
       duckAction<Blinks>(HINTS),
       { id: "ask.deployer.changes", tool: "chat", label: "Ask the deployer what went out today", serviceId: null, category: "investigate", durationS: 30, verdict: "useful", async: true,
         ask: { to: "deployer", topic: "changes", prompt: "hey, what went out in checkout today?" },
-        reveals: () => [`{deployer}: "v207, the receipts email template. Nothing near the payment call."`] },
+        reveals: () => [innocentDeploy ? `{deployer}: "${v.deploy.dm}"` : `{deployer}: "v207, the receipts email template. Nothing near the payment call."`] },
       { id: "ask.infra.db", tool: "chat", label: "Ask infra about postgres", serviceId: null, category: "investigate", durationS: 25, verdict: "wasted", async: true,
         ask: { to: "infra", topic: "db", prompt: "is postgres OK? checkout is failing" },
         reveals: () => noisyDb ? [`{infra}: "the reporting job is hammering the primary again. Kill it and checkout will recover."`] : [`{infra}: "postgres is fine: CPU 22%, connections 31 of 120."`] },
@@ -213,6 +268,7 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
     hints: HINTS,
     maskNotes: {
       "checkout.restart": `Restart pods emptied the stuck threads, so the errors stopped for a while. ${v.provider} was still slow, so the threads filled up again.`,
+      ...(exempt ? { "checkout.hold_orders": `Holding orders freed the threads, so the errors stopped for a while. Every held order was still waiting on ${v.provider}, so the threads filled up again.` } : {}),
     },
 
     coldOpen: {
@@ -223,7 +279,7 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
         "phone.mention": { kind: "clue", label: "Phone: new mention", text: isCard ? "@{brand} the pay button just spins and then errors, can't pay by card" : "@{brand} paying with my e-wallet just times out, card still works?", appearsAt: "incident_start" },
         "table.neighbours": { kind: "clue", label: "The next table", text: "The shop loads fine for me. It only dies when I hit pay." },
         ...(innocentDeploy
-          ? { "laptop.slack.deploys": { kind: "herring" as const, label: "Laptop: Slack #deploys", author: "deployer" as const, text: "receipts template is live (v207), checkout looks fine on my side" } }
+          ? { "laptop.slack.deploys": { kind: "herring" as const, label: "Laptop: Slack #deploys", author: "deployer" as const, text: v.deploy.slack } }
           : { "laptop.slack.infra": { kind: "herring" as const, label: "Laptop: Slack #infra", author: "infra" as const, text: "the analytics reporting job is running long again, postgres CPU is up" } }),
         "wall.poster": { kind: "herring", label: "Poster on the wall", text: "{brand} FLASH SALE 50% today" },
       },
@@ -236,40 +292,62 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
         text: "Acknowledging took more than 30 seconds. A fast ack tells the team someone is on it and stops the page from escalating." },
       { id: "restart-trap", when: (r) => r.actions.some((a) => a.actionId === "checkout.restart"),
         text: `Restarting checkout emptied the pool, then the threads stuck on ${v.provider} filled it again. When a dependency is the cause, a restart only resets your side of the wait.` },
+      ...(exempt
+        ? [
+            { id: "hold-trap", when: (r: { actions: { actionId: string }[] }) => r.actions.some((a) => a.actionId === "checkout.hold_orders"),
+              text: `Holding the orders freed the threads, but every held order was still waiting on ${v.provider}, so nothing was paid and the pool filled again. A hold is a queue, not a way around the slow step.` },
+            { id: "open-door", when: (r: { actions: { actionId: string }[] }) => r.actions.some((a) => a.actionId === "checkout.skip_check"),
+              text: "Turning the card check off ended the timeouts, but it also removed the issuer's check on every order, big ones included. A bounded exemption for small orders keeps most of the protection while the provider is down." },
+          ]
+        : []),
       { id: "innocent", when: (r) => r.actions.some((a) => a.actionId === "checkout.rollback" || a.actionId === "postgres.cancel_report"),
         text: noisyDb
           ? "The reporting query was loud but not blocking checkout. Before touching your own systems, confirm whether the slow part is one you call out to."
-          : "The v207 deploy was recent but innocent: errors began long after it went out. Check what the failing calls have in common before you roll anything back." },
+          : "The v207 deploy was recent but innocent: errors began long after it went out, and it does not touch the failing call. Check what the failing calls have in common before you roll anything back." },
       { id: "default", when: () => true,
         text: `A slow dependency looks like your own outage. The logs showed every timeout was on the call to ${v.provider}; a fallback that stops waiting on it is faster than any restart.` },
     ],
   }) as unknown as ScenarioDef<State>;
 }
 
-const CARD_FALLBACK_DONE = "config applied: card authorisations that time out are re-routed to the secondary provider; checkout is draining its stuck threads";
+const RECEIPTS_DEPLOY = {
+  change: "Receipts email template (#2107)",
+  slack: "receipts template is live (v207), checkout looks fine on my side",
+  history: `v207 by {deployer}, 61 min ago: "receipts email template"; error rate stayed flat for 35 min after it went out. The first authorise timeout was 24 min ago`,
+  dm: "v207 went out about an hour ago: the receipts email template, nothing near the payment call. Why, is it acting up?",
+  rollbackLabel: "Roll back to v206",
+  rollbackDone: "rollback to v206 complete: 6 of 6 pods ready; threads waiting unchanged",
+};
 
-/** The variants: which provider blinks, what the fallback is, whether the status page is honest, what is loud. */
+/** The variants: which provider blinks, what the fix is, what the player reads first, and what is loud. */
 export const BLINKS_VARIANTS: readonly BlinksVariant[] = [
   {
     key: "",
     title: "The Payment Provider Blinks",
-    summary: "Paying by card times out and checkout keeps waiting. Is it your code, or someone else's?",
+    summary: "Paying by card fails at the last step, and checkout is slow to answer. Where is the time going?",
     provider: "Kestrel Pay",
     providerLabel: "kestrel-pay",
     method: "card",
     statusPage: { honest: false, text: `Kestrel Pay status: "All systems operational." (last updated 41 min ago, and it disagrees with your own timeout numbers)` },
     fallbackName: "Larkspur",
     fallbackLabel: "Route card payments to Larkspur",
-    fallbackDone: CARD_FALLBACK_DONE,
+    fallbackDone: "config applied: card authorisations that time out are re-routed to the secondary provider; checkout is draining its stuck threads",
+    routedLine: "routed to Larkspur",
     fallbackDetail: ["secondary card provider · standby", "secondary card provider · taking traffic"],
     herring: "deploy",
+    mechanism: "reroute",
+    spoilers: ["larkspur", "secondary", "route_on_timeout", "re-route", "route card"],
+    pm: 241,
+    configLine: "checkout-api payment config: payments.provider = kestrel-pay, payments.timeout_ms = 8000, payments.route_on_timeout = off. A secondary card provider (Larkspur) is configured and idle",
+    fixCommand: "config set payments.route_on_timeout = secondary",
+    deploy: RECEIPTS_DEPLOY,
     symptom: { code: 504, path: "/checkout/pay" },
     region: "eu-west",
   },
   {
     key: "wallet",
     title: "The E-wallet Blinks",
-    summary: "Only e-wallet payments fail, and postgres looks busy. What is checkout really waiting on?",
+    summary: "Only e-wallet payments fail, and the whole checkout feels sluggish. What is it really waiting on?",
     provider: "Mangosteen Wallet",
     providerLabel: "mangosteen-wallet",
     method: "wallet",
@@ -277,24 +355,45 @@ export const BLINKS_VARIANTS: readonly BlinksVariant[] = [
     fallbackName: "Deferred capture",
     fallbackLabel: "Accept e-wallet payments and capture later",
     fallbackDone: "config applied: e-wallet orders are accepted now and captured from a queue once the provider recovers; checkout is draining its stuck threads",
+    routedLine: "accepted for deferred capture",
     fallbackDetail: ["capture queue · idle", "capture queue · taking orders"],
     herring: "db",
+    mechanism: "reroute",
+    spoilers: ["deferred", "capture", "wallet.deferred_capture", "capture later"],
+    pm: 242,
+    configLine: "checkout-api payment config: wallet.provider = mangosteen-wallet, wallet.timeout_ms = 8000, wallet.deferred_capture = false. A capture queue is configured and idle",
+    fixCommand: "config set wallet.deferred_capture = true",
+    deploy: RECEIPTS_DEPLOY,
     symptom: { code: 503, path: "/checkout/wallet" },
     region: "ap-southeast",
   },
   {
     key: "3ds",
     title: "The Card Check Blinks",
-    summary: "Card payments hang at the bank check step. Your own database is busy, but is it the reason?",
+    summary: "Card payments hang at the bank check step and the pay button spins. What are the orders waiting for?",
     provider: "Halyard 3DS",
     providerLabel: "halyard-3ds",
     method: "card",
     statusPage: { honest: true, text: `Halyard 3DS status: "Partial outage: card authentication is slow for issuers in us-east." (posted 12 min ago)` },
-    fallbackName: "Larkspur",
-    fallbackLabel: "Route card payments to Larkspur",
-    fallbackDone: CARD_FALLBACK_DONE,
-    fallbackDetail: ["secondary card provider · standby", "secondary card provider · taking traffic"],
-    herring: "db",
+    fallbackName: "Low-value exemption",
+    fallbackLabel: "Exempt orders under 30 from the card check",
+    fallbackDone: "config applied: orders under 30 skip the card check and are paid straight away; larger orders still wait for it. Checkout is draining its stuck threads, and the exempt orders carry the fraud risk while the check is down",
+    routedLine: "exempted from the card check (under 30)",
+    fallbackDetail: ["exemption rule · off", "exemption rule · under 30"],
+    herring: "rules",
+    mechanism: "exempt",
+    spoilers: ["3ds", "threeds", "card check", "exempt", "halyard"],
+    pm: 243,
+    configLine: "checkout-api card check config: threeds.provider = halyard-3ds, threeds.challenge_timeout_ms = 8000, threeds.exempt_below = 0 (no exemptions), threeds.hold_on_timeout = false, threeds.enabled = true",
+    fixCommand: "config set checkout.threeds.exempt_below = 3000",
+    deploy: {
+      change: "Challenge rules for big baskets (#2131)",
+      slack: "the challenge rules for big baskets went out at lunch (v207), nothing else changed",
+      history: `v207 by {deployer}, 61 min ago: "challenge rules for big baskets"; it only affects orders over 500, and the error rate stayed flat for 35 min after it went out. The first challenge timeout was 24 min ago`,
+      dm: "v207 went out about an hour ago: the challenge rules for big baskets. It only touches orders over 500, about 1 in 40. Why, is it acting up?",
+      rollbackLabel: "Roll back the challenge rules to v206",
+      rollbackDone: "checkout-api rolled back to v206: 6 of 6 pods ready; challenge rate 31% → 30%, threads waiting unchanged",
+    },
     symptom: { code: 504, path: "/checkout/pay" },
     region: "us-east",
   },

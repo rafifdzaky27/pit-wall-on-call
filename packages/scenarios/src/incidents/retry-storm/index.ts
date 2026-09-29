@@ -16,10 +16,11 @@ export const retryStormIncident = defineIncident({
     key: v.key,
     scenario: retryStorm(v),
     desktop: stormDesktop(v),
+    spoilers: v.spoilers,
     golden: {
-      perfect: [at(0, inspectAction("phone.mention")), at(20, ACK), at(20, "caller.retry_logs"), at(60, "caller.fix")],
-      masking: [at(20, ACK), at(20, "dep.scale_up"), at(2300, "caller.fix")],
-      herring: [at(20, ACK), at(20, v.herring === "dependency_deploy" ? "dep.rollback" : "store.flush"), at(400, "dep.restart"), at(900, "caller.fix")],
+      perfect: [at(0, inspectAction("phone.mention")), at(20, ACK), at(20, "caller.retry_logs"), at(50, "caller.deploys"), at(80, "caller.fix")],
+      masking: [at(20, ACK), at(20, "dep.scale_up"), at(2300, "caller.deploys"), at(2350, "caller.fix")],
+      herring: [at(20, ACK), at(20, v.herring === "dependency_deploy" ? "dep.rollback" : "store.flush"), at(400, "dep.restart"), at(900, "caller.deploys"), at(950, "caller.fix")],
     },
   })),
 });

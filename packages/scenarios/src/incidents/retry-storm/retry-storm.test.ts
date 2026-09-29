@@ -31,7 +31,7 @@ describe.each(incident.variants.map((v) => [v.scenario.id, v] as const))("%s: go
   });
 
   it("restarting the dependency is a thundering herd: it burns side effects and does not mask", () => {
-    const r = replay(s, 1, [{ tick: 20, actionId: ACK }, { tick: 20, actionId: "dep.restart" }, { tick: 300, actionId: "caller.fix" }]);
+    const r = replay(s, 1, [{ tick: 20, actionId: ACK }, { tick: 20, actionId: "dep.restart" }, { tick: 300, actionId: "caller.deploys" }, { tick: 350, actionId: "caller.fix" }]);
     expect(r.burnByTag["side_effect:dep.restart"]).toBeGreaterThan(0);
     expect(r.burnByTag.mitigated_unfixed ?? 0).toBe(0);
     expect(pickLesson(s, r).id).toBe("restart-trap");
@@ -48,13 +48,26 @@ describe.each(incident.variants.map((v) => [v.scenario.id, v] as const))("%s: go
     const run = new Run(s, 1);
     run.dispatch(ACK);
     for (let i = 0; i < 1400; i++) run.step();
+    run.dispatch("caller.deploys");
+    for (let i = 0; i < 40; i++) run.step();
     run.dispatch("caller.fix");
     for (let i = 0; i < 3000 && run.outcome === "running"; i++) run.step();
     expect(run.outcome).toBe("resolved");
   });
 
   it("a slow ack gets the ack lesson, and doing nothing gets the dnf lesson", () => {
-    expect(pickLesson(s, replay(s, 1, [{ tick: 400, actionId: ACK }, { tick: 400, actionId: "caller.fix" }])).id).toBe("slow-ack");
+    expect(pickLesson(s, replay(s, 1, [{ tick: 400, actionId: ACK }, { tick: 400, actionId: "caller.deploys" }, { tick: 450, actionId: "caller.fix" }])).id).toBe("slow-ack");
     expect(pickLesson(s, replay(s, 1, [])).id).toBe("dnf");
+  });
+
+  it("the fix is not on offer until the caller's config has been read, and the event log states the load for this variant", () => {
+    const run = new Run(s, 1);
+    run.dispatch(ACK);
+    expect(run.check("caller.fix")).toBe("unavailable");
+    run.dispatch("caller.deploys");
+    for (let i = 0; i < 40; i++) run.step();
+    expect(run.check("caller.fix")).not.toBe("unavailable");
+    const load = v.scenario.actions.find((a) => a.id === "dep.incident_log")!.reveals!(undefined as never)[0] ?? "";
+    expect(load).toContain(v.key === "auth" ? "about 4.5x" : "about 3.6x");
   });
 });

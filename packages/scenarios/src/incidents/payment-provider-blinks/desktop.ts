@@ -7,7 +7,7 @@ import type { BlinksVariant } from "./scenario";
  * mention and the teammates' replies; nothing here names the fix.
  */
 export function blinksDesktop(v: BlinksVariant): DesktopContent {
-  const deployHerring = v.herring === "deploy";
+  const deployHerring = v.herring !== "db";
   const card = v.method === "card";
 
   const v207 = (minutesAgo: number): ChatMessage => ({
@@ -17,7 +17,7 @@ export function blinksDesktop(v: BlinksVariant): DesktopContent {
     minutesAgo,
     author: "deploybot",
     text: "checkout-api v207 deployed to production",
-    card: { service: "checkout-api", version: "v207", sha: "7a3d9e1", by: "deployer", env: "production", changes: "Receipts email template (#2107)", status: "succeeded" },
+    card: { service: "checkout-api", version: "v207", sha: "7a3d9e1", by: "deployer", env: "production", changes: v.deploy.change, status: "succeeded" },
   });
 
   const herringChat: ChatMessage[] = deployHerring
@@ -36,14 +36,14 @@ export function blinksDesktop(v: BlinksVariant): DesktopContent {
     channels: CHANNELS,
     channelInfo: CHANNEL_INFO,
     chat: [
-      { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 2900, author: "bot", text: "SEV3 resolved: image CDN cache misses above 30%. Duration 22 min. Postmortem PM-231." },
+      { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 2900, author: "bot", text: `SEV3 resolved: image CDN cache misses above 30%. Duration 22 min. Postmortem PM-${v.pm}.` },
       {
-        id: "incidents.pm231",
+        id: `incidents.pm${v.pm}`,
         channel: "incidents",
         trigger: { kind: "prepage" },
         minutesAgo: 2700,
         author: "secondary",
-        text: "PM-231 is up for review. A purge script ran against the wrong bucket, nobody hurt.",
+        text: `PM-${v.pm} is up for review. A purge script ran against the wrong bucket, nobody hurt.`,
         reactions: [{ emoji: "👀", by: ["infra", "support"] }],
         thread: [
           { author: "infra", text: "added a note about the bucket naming", minutesAgo: 2600 },
@@ -86,7 +86,7 @@ export function blinksDesktop(v: BlinksVariant): DesktopContent {
         channel: "dm:deployer",
         trigger: { kind: "action", actionId: "ask.deployer.changes" },
         author: "deployer",
-        text: deployHerring ? "v207 went out about an hour ago: the receipts email template, nothing near the payment call. Why, is it acting up?" : "only v207 today, the receipts email template. That was this morning and it has been quiet since.",
+        text: deployHerring ? v.deploy.dm : "only v207 today, the receipts email template. That was this morning and it has been quiet since.",
       },
       {
         id: "dm.infra.db",

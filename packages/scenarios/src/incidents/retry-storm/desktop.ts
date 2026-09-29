@@ -63,14 +63,14 @@ export function stormDesktop(v: StormVariant): DesktopContent {
     channels: CHANNELS,
     channelInfo: CHANNEL_INFO,
     chat: [
-      { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 1900, author: "bot", text: "SEV3 resolved: search-api index lag above 5 min. Duration 31 min. Postmortem PM-244." },
+      { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 1900, author: "bot", text: `SEV3 resolved: search-api index lag above 5 min. Duration 31 min. Postmortem PM-${v.pm}.` },
       {
-        id: "incidents.pm244",
+        id: `incidents.pm${v.pm}`,
         channel: "incidents",
         trigger: { kind: "prepage" },
         minutesAgo: 1700,
         author: "secondary",
-        text: "PM-244 is up for review. A reindex ran during peak, tuned the schedule.",
+        text: `PM-${v.pm} is up for review. A reindex ran during peak, tuned the schedule.`,
         reactions: [{ emoji: "👀", by: ["infra", "support"] }],
         thread: [
           { author: "infra", text: "left a comment on the timeline", minutesAgo: 1600 },
