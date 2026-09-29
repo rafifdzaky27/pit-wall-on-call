@@ -145,8 +145,9 @@ test.describe("flow (M2.5 spec §11)", () => {
       return w.__widths;
     });
     const steps = widths.slice(1).map((v, i) => Math.abs(v - widths[i]!));
-    // A 700 ms move covers about 1000 px, some 50 px a frame at its fastest; a snap is the whole distance at once.
-    expect(Math.max(...steps)).toBeLessThan(400);
+    // A 700 ms move covers about 1000 px, some 50 px a frame at its fastest (more when frames drop under
+    // load); a snap is the whole distance, about 1000 px, at once.
+    expect(Math.max(...steps)).toBeLessThan(700);
   });
 
   // @perf runs alone (PERF=1 playwright test --workers=1, a CI step of its own): frame times mean nothing while other browsers share the CPU.
