@@ -35,6 +35,19 @@ Start shift goes full screen and the pager rings (synthesized with WebAudio, no 
    - one lesson
 **The daily incident.** Every UTC day has one incident, the same for everyone: the same scenario, seed, city, time of day and weather. The landing leads with "Daily #N", and a share link opens at `/daily`. Your first attempt ranks on the day's board; anything after it is practice. A post that fails offline waits in a queue and is sent on the next visit, once.
 
+**The incidents.** Nine incidents, 19 variants between them, each grounded in failures from public postmortems:
+- the Slow Leak (a connection pool that leaks after a deploy)
+- a disk that fills at 3 AM
+- an expired certificate
+- a payment provider that blinks
+- a retry storm
+- a regex that eats the CPU
+- a cache stampede after a restart
+- a poison-pill message
+- replica lag that serves old carts
+
+A variant changes what you look at (another service, volume, cert, queue or red herring), not only the numbers. Practice shifts pick one by seed, and `?incident=<id>` pins one.
+
 6. **The shift report and the leaderboard.** The report opens by itself over the café, like Wordle's: your score, your rank and a spoiler-free Share. The first time, it asks for a handle. The shift is posted, the server replays it and stores its own score, and you see your place on today's daily board (first attempt per player) or the practice leaderboard (each player's best shift). Later shifts are posted automatically. The boards open as a site in the PitOS Browser, with Daily and Practice tabs; handles change in Settings → Account.
 
 ![A rainy evening in a Tokyo café, the page ringing on the phone](docs/media/cafe.png)
