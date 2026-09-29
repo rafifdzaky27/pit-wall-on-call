@@ -9,8 +9,8 @@ import { useCamera } from "./CameraContext";
 import { Hotspots } from "./Hotspots";
 import { useCafeAudio } from "./useCafeAudio";
 
-/** Longest camera move (the cold close's 1.2 s pull-back) plus a little slack. */
-const CAMERA_SETTLE_MS = 1400;
+/** Longest camera move (the cold close's 1.2 s pull-back), plus a full screen's hold before a pull-back, plus slack. */
+const CAMERA_SETTLE_MS = 2300;
 
 /** The café for this shift, with its hotspots and sound; loaded apart from the main chunk. */
 export default function CafeView() {

@@ -17,5 +17,5 @@ export function preloadable<P = object>(factory: () => Promise<Module<P>>) {
     return factory().then((m) => (loaded = m));
   };
   // React only calls `then`; the loaded case is deliberately not a real Promise.
-  return { load, Component: lazy(load as () => Promise<Module<P>>) };
+  return { load, loaded: () => loaded !== null, Component: lazy(load as () => Promise<Module<P>>) };
 }

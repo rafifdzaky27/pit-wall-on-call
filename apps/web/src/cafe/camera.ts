@@ -60,3 +60,18 @@ export function laptopFit(vw: number, vh: number): { x: number; y: number; k: nu
   const k = Math.min(r.w / vw, r.h / vh);
   return { x: r.x + (r.w - vw * k) / 2, y: r.y + (r.h - vh * k) / 2, k };
 }
+
+/**
+ * The one point the camera zooms about: under `scale(1 / k)` around it, the laptop's screen fills the
+ * viewport. Zooming about a fixed point keeps the laptop where it is on screen for the whole move; a
+ * scale and a translate interpolated apart swing the view across the street first (M2.5 follow-up).
+ */
+export function zoomOrigin(fit: { x: number; y: number; k: number }): { x: number; y: number } {
+  const d = 1 - fit.k || 1;
+  return { x: fit.x / d, y: fit.y / d };
+}
+
+/** Pure scales about the zoom origin, evenly spaced in zoom, so the move reads at one steady pace. */
+export function zoomKeyframes(from: number, to: number, steps = 8): Keyframe[] {
+  return Array.from({ length: steps + 1 }, (_, i) => ({ offset: i / steps, transform: `scale(${from * Math.pow(to / from, i / steps)})` }));
+}
