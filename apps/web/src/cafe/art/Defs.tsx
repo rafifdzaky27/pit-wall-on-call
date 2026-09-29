@@ -38,10 +38,18 @@ export const Defs = memo(function Defs({ model }: { model: SceneModel }) {
         <stop offset="0" stopColor="#cfe0ff" stopOpacity={0.55} />
         <stop offset="1" stopColor="#cfe0ff" stopOpacity={0} />
       </radialGradient>
-      <radialGradient id="cf-vignette" cx="0.5" cy="0.45" r="0.75">
-        <stop offset="0.55" stopColor="#000000" stopOpacity={0} />
-        <stop offset="1" stopColor="#000000" stopOpacity={0.45} />
-      </radialGradient>
+      {(
+        [
+          ["l", "1", "0", "0", "0"],
+          ["r", "0", "0", "1", "0"],
+          ["b", "0", "0", "0", "1"],
+        ] as const
+      ).map(([id, x1, y1, x2, y2]) => (
+        <linearGradient key={id} id={`cf-edge-${id}`} x1={x1} y1={y1} x2={x2} y2={y2}>
+          <stop offset="0" stopColor="#000000" stopOpacity={0} />
+          <stop offset="1" stopColor="#000000" stopOpacity={0.4} />
+        </linearGradient>
+      ))}
       {(
         [
           ["warm", "#ffd9a0"],

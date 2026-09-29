@@ -1,6 +1,10 @@
 /* The café scene (cold-open spec §6, M2.5 spec §12). Only transform and opacity animate. */
 .cafe { position: absolute; inset: 0; overflow: hidden; background: #1d1512; }
-.cafe-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* The art is its own layer (will-change): a camera zoom then scales it rather than rastering it again at every scale.
+   It holds no café UI, so its stacking context traps nothing (the hotspots are its siblings, at z 2). */
+.cafe-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; will-change: transform; }
+/* The grain sits out camera moves: a full-frame bitmap is the costliest thing to raster at a zoom's scale. */
+.cafe.moving .cafe-grain { display: none; }
 
 /* Only the loops that turn or grow about their own centre use their own box; everything else keeps the scene's coordinates. */
 .patron-head, .radio-grille, .cat-body, .cat-tail, .pendulum, .flame, .phone-buzz, .phone-glow { transform-box: fill-box; }

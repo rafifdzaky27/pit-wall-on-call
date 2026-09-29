@@ -61,8 +61,11 @@ export default function CafeScene({ seed, close, ringing, page, radioOn, paused,
           <TablePhone ringing={ringing} paged={paged} page={page} clock={clock} hhmm={hhmm} mention={paged ? "1 new mention" : null} />
         </g>
         <Lights model={model} />
-        {/* Vignette and grain are part of the art (raster once with it), not overlay layers composited every frame. */}
-        <rect x={-40} y={-40} width={1680} height={980} fill="url(#cf-vignette)" pointerEvents="none" />
+        {/* Falloff at the edges and grain are part of the art, not overlay layers composited every frame.
+            The edges are bands, not a full-frame radial vignette, which cost the zoom a third of its raster time. */}
+        <rect className="cafe-edge" x={-40} y={-40} width={300} height={980} fill="url(#cf-edge-l)" pointerEvents="none" />
+        <rect className="cafe-edge" x={1340} y={-40} width={300} height={980} fill="url(#cf-edge-r)" pointerEvents="none" />
+        <rect className="cafe-edge" x={-40} y={800} width={1680} height={140} fill="url(#cf-edge-b)" pointerEvents="none" />
         <rect className="cafe-grain" x={-40} y={-40} width={1680} height={980} fill="url(#cf-noise)" opacity={0.05} pointerEvents="none" />
       </svg>
       {children}
