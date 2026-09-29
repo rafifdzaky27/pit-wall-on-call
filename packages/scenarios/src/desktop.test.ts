@@ -1,6 +1,7 @@
 import { ACK, replay, Run, type State } from "@pitwall/engine";
 import { describe, expect, it } from "vitest";
-import { desktopFor, messageAuthor, messageText, symptomCode, typingFor, visibleMessages } from "./desktop";
+import { messageAuthor, messageText, symptomCode, typingFor, visibleMessages } from "./desktop";
+import { desktopFor } from "./registry";
 import { SCENARIOS, slowLeak } from "./index";
 
 describe.each(SCENARIOS.map((s) => [s.id, s] as const))("%s desktop content", (_id, scenario) => {
