@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { ENGINE_VERSION } from "../packages/engine/src/constants";
 
 const skip = (page: import("@playwright/test").Page) =>
   page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" });
@@ -22,6 +23,8 @@ test.describe("the runs API contract (M2)", () => {
     await page.keyboard.press("2");
     // A fix within 2 s of the page is held for review (spec §8), so look around first, as a person would.
     await page.clock.runFor(3_000);
+    // The rollback lives in Deploys (M2.5 plan B4).
+    await page.getByRole("navigation", { name: "Open in" }).getByRole("button", { name: "Deploys" }).click();
     await page.getByRole("button", { name: /Roll back to v141/ }).click();
     await page.clock.runFor(31_000);
     await page.clock.runFor(11_000);
@@ -62,7 +65,7 @@ test.describe("the runs API contract (M2)", () => {
     ];
     const posted = await request.post("/api/runs", {
       headers: { authorization: `Bearer ${player.token}` },
-      data: { scenarioId: "db-pool-exhaustion", seed: 1, mode: "practice", engineVersion: "1.0.0", runKey: crypto.randomUUID(), actions },
+      data: { scenarioId: "db-pool-exhaustion", seed: 1, mode: "practice", engineVersion: ENGINE_VERSION, runKey: crypto.randomUUID(), actions },
     });
     expect(posted.status()).toBe(201);
     await page.setViewportSize({ width: 390, height: 844 });

@@ -29,7 +29,7 @@ export function LogStream({ scenario, world, logs, filter, onClearFilter }: Prop
   return (
     <section className="panel logs" aria-labelledby="logs-h">
       <div className="ph">
-        <h2 id="logs-h">Logs</h2>
+        <h2 id="logs-h">Log stream</h2>
         {filter ? (
           <button type="button" className="chip" onClick={onClearFilter}>
             Clear filter: {labels.get(filter)} <kbd>Esc</kbd>

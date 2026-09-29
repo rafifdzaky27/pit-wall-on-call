@@ -32,7 +32,7 @@ async function until<T>(get: () => T, tries = 80): Promise<T> {
 const stage = () => document.querySelector(".stage");
 const windows = () => document.querySelectorAll(".stage-screen .window:not(.closing)");
 
-/** Start shift → skip → ack → select checkout → roll back, then `hold` seconds. */
+/** Start shift → skip → ack → select checkout → open Deploys → roll back, then `hold` seconds. */
 async function playAndFix(hold: number) {
   fireEvent.click(screen.getAllByRole("button", { name: "Start shift" })[0]!);
   fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
@@ -40,6 +40,8 @@ async function playAndFix(hold: number) {
   await until(() => screen.getByRole("region", { name: "Monitoring" }));
   fireEvent.keyDown(window, { key: "2" });
   seconds(3);
+  // The rollback lives in Deploys, one Open in link from the service (M2.5 plan B4).
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Open in" })).getByRole("button", { name: "Deploys" }));
   fireEvent.click(await until(() => screen.getByRole("button", { name: /Roll back to v141/ })));
   seconds(hold);
 }
@@ -126,7 +128,12 @@ describe("Review Focus 2 and 5 (M2.5 review I5)", () => {
     fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
     fireEvent.keyDown(window, { key: "a" });
     await until(() => screen.getByRole("region", { name: "Monitoring" }));
+    // The coach sits above the OS, and its Show me still opens the tool (M2.5 plan B Task 5).
+    fireEvent.click(within(screen.getByRole("region", { name: "Training coach" })).getByRole("button", { name: "Show me" }));
+    await until(() => screen.getByRole("searchbox", { name: "Search logs" }));
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Dock" })).getByRole("button", { name: "Monitoring" }));
     fireEvent.keyDown(window, { key: "2" });
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Open in" })).getByRole("button", { name: "Deploys" }));
     fireEvent.click(await until(() => screen.getByRole("button", { name: /Roll back config to v11/ })));
     seconds(30);
     seconds(4);

@@ -10,6 +10,7 @@ export const DUCK_DONE = "The duck has nothing more to add.";
 export function duckAction<S extends State & { ducks: number }>(hints: readonly string[]): ActionDef<S> {
   return {
     id: DUCK,
+    tool: "incident",
     label: "Explain it to the duck",
     serviceId: null,
     category: "investigate",

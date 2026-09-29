@@ -127,3 +127,97 @@ describe("ChatApp scrolling", () => {
     }
   });
 });
+
+describe("a chat you can use (M2.5 spec §7)", () => {
+  const seconds = (n: number) => {
+    for (let i = 0; i < n; i++) act(() => vi.advanceTimersByTime(1000));
+  };
+  const box = () => screen.getByRole("textbox", { name: /^Message / }) as HTMLTextAreaElement;
+  const type = (text: string) => {
+    fireEvent.change(box(), { target: { value: text } });
+    fireEvent.keyDown(box(), { key: "Enter" });
+  };
+  const paged = () => {
+    const view = renderOs(<ChatApp />);
+    act(() => view.incident().start());
+    act(() => view.incident().skipPrepage());
+    act(() => view.incident().acknowledge());
+    return view;
+  };
+  const dm = (person: "deployer" | "support" | "secondary") => fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${world.colleagues[person]}`) }));
+
+  it("a teammate's DM offers questions; asking posts yours, they type, and answer on their own clock", () => {
+    const { incident } = paged();
+    dm("deployer");
+    fireEvent.click(screen.getByRole("button", { name: "hey, what went out in checkout today?" }));
+    expect(screen.getByText("hey, what went out in checkout today?", { selector: ".msg-text, p" })).toBeTruthy();
+    expect(incident().timeline.some((e) => e.kind === "action_start" && e.actionId === "ask.deployer.changes")).toBe(true);
+    expect(screen.getByText(`${world.colleagues.deployer} is typing…`)).toBeTruthy();
+    // You can keep working while they answer.
+    expect(incident().snapshot.busy).toBeNull();
+    seconds(31);
+    expect(screen.getByText(/v142, the checkout refactor/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "hey, what went out in checkout today?" })).toBeNull();
+  });
+
+  it("/ask works from any channel, and says where the question went", () => {
+    const { incident } = paged();
+    type(`/ask @${world.colleagues.support.toLowerCase()} impact`);
+    expect(incident().timeline.some((e) => e.kind === "action_start" && e.actionId === "ask.support.impact")).toBe(true);
+    expect(screen.getByRole("status", { name: "Chat note" }).textContent).toBe(`Asked ${world.colleagues.support} in a direct message.`);
+  });
+
+  it("/status posts your words in #incidents and runs the status update", () => {
+    const { incident } = paged();
+    type("/status Investigating failed payments");
+    expect(screen.getByText("Status update: Investigating failed payments")).toBeTruthy();
+    expect(incident().snapshot.busy?.actionId).toBe("global.status_update");
+  });
+
+  it("/help and mistakes show a note, and nothing is posted", () => {
+    paged();
+    type("/help");
+    expect(screen.getByRole("status", { name: "Chat note" }).textContent).toContain("/ask @name topic");
+    type("/ask @nobody changes");
+    expect(screen.getByRole("status", { name: "Chat note" }).textContent).toBe("No teammate called nobody. Try /help.");
+    expect(box().value).toBe("/ask @nobody changes");
+  });
+
+  it("Tab completes a command", () => {
+    paged();
+    fireEvent.change(box(), { target: { value: "/st" } });
+    fireEvent.keyDown(box(), { key: "Tab" });
+    expect(box().value).toBe("/status ");
+  });
+
+  it("Tab leaves the composer once there is nothing left to complete, and Shift+Tab always does (review I1)", () => {
+    paged();
+    fireEvent.change(box(), { target: { value: "/ask @" } });
+    fireEvent.keyDown(box(), { key: "Tab" });
+    fireEvent.keyDown(box(), { key: "Tab" });
+    const whole = box().value;
+    expect(whole).toMatch(/^\/ask @\w+ \w+$/);
+    // A whole command has nothing more to complete: Tab moves focus on, as it does everywhere else.
+    expect(fireEvent.keyDown(box(), { key: "Tab" })).toBe(true);
+    expect(box().value).toBe(whole);
+    fireEvent.change(box(), { target: { value: "/st" } });
+    expect(fireEvent.keyDown(box(), { key: "Tab", shiftKey: true })).toBe(true);
+    expect(box().value).toBe("/st");
+  });
+
+  it("before the page is acknowledged, a question explains why it can't go yet", () => {
+    const view = renderOs(<ChatApp />);
+    act(() => view.incident().start());
+    dm("deployer");
+    fireEvent.click(screen.getByRole("button", { name: "hey, what went out in checkout today?" }));
+    expect(screen.getByRole("status", { name: "Chat note" }).textContent).toBe("Acknowledge the page first.");
+  });
+
+  it("free text in a DM gets an honest answer", () => {
+    paged();
+    dm("deployer");
+    type("did you break prod");
+    seconds(6);
+    expect(screen.getByText("Not sure what you mean. Try /help, or one of the suggestions below.")).toBeTruthy();
+  });
+});

@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSubmission } from "../../net/SubmissionProvider";
 import { loadPrefs } from "../prefs";
@@ -30,7 +31,7 @@ describe("the training shift (M2.5 spec §5)", () => {
     act(() => incident().skipPrepage());
     expect(step()).toMatch(/^The pager is ringing/);
     act(() => incident().acknowledge());
-    expect(step()).toMatch(/^Select shop-api/);
+    expect(step()).toMatch(/^Open Logs/);
     act(() => incident().dispatch("api.logs"));
     seconds(4);
     expect(step()).toMatch(/config history/);
@@ -75,6 +76,49 @@ describe("the training shift (M2.5 spec §5)", () => {
     expect(screen.getByRole("button", { name: "Acknowledge" }).classList.contains("coach-highlight")).toBe(true);
     seconds(4);
     expect(screen.getByRole("button", { name: "Acknowledge" }).classList.contains("coach-highlight")).toBe(false);
+  });
+
+  it("Show me opens the tool that holds the control, filtered to the service (M2.5 plan B Task 5)", () => {
+    const { incident, os } = renderOs(<CoachCard />);
+    act(() => incident().startTraining());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    fireEvent.click(within(coach()).getByRole("button", { name: "Show me" }));
+    expect(os().wm.windows.map((w) => w.appId)).toEqual(["logs"]);
+    expect(os().toolFocus).toMatchObject({ app: "logs", serviceId: "api" });
+    act(() => incident().dispatch("api.logs"));
+    seconds(4);
+    fireEvent.click(within(coach()).getByRole("button", { name: "Show me" }));
+    expect(os().toolFocus).toMatchObject({ app: "deploys", serviceId: "api" });
+    act(() => incident().dispatch("api.config"));
+    seconds(4);
+    fireEvent.click(within(coach()).getByRole("button", { name: "Show me" }));
+    expect(os().wm.windows.map((w) => w.appId)).toContain("incident");
+  });
+
+  it("Show me finds a control that renders a moment after its app opens", () => {
+    function Late() {
+      const [on, setOn] = useState(false);
+      useEffect(() => void window.setTimeout(() => setOn(true), 300), []);
+      return on ? (
+        <button type="button" data-coach="action:api.logs">
+          Read shop-api logs
+        </button>
+      ) : null;
+    }
+    const { incident } = renderOs(
+      <>
+        <CoachCard />
+        <Late />
+      </>,
+    );
+    act(() => incident().startTraining());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    fireEvent.click(within(coach()).getByRole("button", { name: "Show me" }));
+    // Frame by frame, as a browser would render the app while Show me keeps looking.
+    for (let i = 0; i < 5; i++) act(() => vi.advanceTimersByTime(100));
+    expect(screen.getByRole("button", { name: "Read shop-api logs" }).classList.contains("coach-highlight")).toBe(true);
   });
 
   it("is not there on a real shift", () => {

@@ -40,11 +40,11 @@ describe("the status chip (M2.5 spec §3)", () => {
     expect(chip().textContent).toBe("Resolved");
   });
 
-  it("opens Monitoring when pressed", () => {
+  it("opens Incident when pressed (M2.5 plan B4)", () => {
     const { incident, os } = renderOs(<StatusChip />);
     act(() => incident().start());
     fireEvent.click(screen.getByRole("button", { name: /^Incident status/ }));
-    expect(os().wm.windows.some((w) => w.appId === "monitoring")).toBe(true);
+    expect(os().wm.windows.some((w) => w.appId === "incident")).toBe(true);
   });
 
   it("entering mitigated says the incident is still open, and records when it began", () => {

@@ -130,10 +130,10 @@ export function visibleMessages(content: DesktopContent, view: ChatView): ChatMe
   });
 }
 
-/** Who is typing: the authors of messages the running action will produce (polish plan R6). */
-export function typingFor(content: DesktopContent, busyActionId: string | null): { channel: string; author: Author }[] {
-  if (!busyActionId) return [];
-  return content.chat.flatMap((m) => (m.trigger.kind === "action" && m.trigger.actionId === busyActionId && "author" in m ? [{ channel: m.channel, author: m.author }] : []));
+/** Who is typing: the authors of messages the running actions will produce (polish plan R6, M2.5 plan B1). */
+export function typingFor(content: DesktopContent, runningActionIds: readonly string[]): { channel: string; author: Author }[] {
+  const running = new Set(runningActionIds);
+  return content.chat.flatMap((m) => (m.trigger.kind === "action" && running.has(m.trigger.actionId) && "author" in m ? [{ channel: m.channel, author: m.author }] : []));
 }
 
 export function messageAuthor(msg: ChatMessage, scenario: ScenarioDef<State>): Author {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ACK, ESCALATION_TICK, inspectAction } from "./constants";
+import { ACK, ENGINE_VERSION, ESCALATION_TICK, inspectAction } from "./constants";
 import { defineScenario } from "./define";
+import { replay } from "./replay";
 import { ActionRejected, Run } from "./run";
 import { fixture, runToEnd } from "./testing/fixture";
 
@@ -292,5 +293,49 @@ describe("mitigated needs the symptoms down (M2.5 review)", () => {
     steps(run, 20);
     expect(run.snapshot().errorRateBp).toBe(1000);
     expect(run.snapshot().status).toBe("investigating");
+  });
+});
+
+describe("asynchronous actions (M2.5 plan B1)", () => {
+  it("do not block the next action, and complete on their own clock", () => {
+    const run = newRun();
+    run.dispatch(ACK);
+    run.dispatch("ask");
+    expect(run.snapshot().busy).toBeNull();
+    expect(run.snapshot().pending).toEqual([{ actionId: "ask", startTick: 0, endTick: 50 }]);
+    run.dispatch("svc.poke");
+    steps(run, 49);
+    expect(run.timeline.some((e) => e.kind === "action_done" && e.actionId === "ask")).toBe(false);
+    steps(run, 1);
+    expect(run.timeline).toContainEqual({ tick: 49, kind: "action_done", actionId: "ask" });
+    expect(run.logs.some((l) => l.finding && l.text.startsWith("teammate answered"))).toBe(true);
+    expect(run.snapshot().pending).toEqual([]);
+  });
+
+  it("cannot be asked again while the first is pending", () => {
+    const run = newRun();
+    run.dispatch(ACK);
+    run.dispatch("ask");
+    expect(run.check("ask")).toBe("pending");
+    steps(run, 50);
+    expect(run.check("ask")).toBeNull();
+  });
+
+  it("replay agrees with the live run", () => {
+    const actions = [
+      { tick: 0, actionId: ACK },
+      { tick: 0, actionId: "ask" },
+      { tick: 0, actionId: "svc.poke" },
+      { tick: 20, actionId: "svc.fix" },
+    ];
+    const r = replay(fixture, 1, actions);
+    expect(r.outcome).toBe("resolved");
+    expect(r.timeline.filter((e) => e.kind === "action_done").map((e) => (e as { actionId: string }).actionId)).toEqual(["svc.poke", "svc.fix", "ask"]);
+  });
+});
+
+describe("engine version", () => {
+  it("is 1.1.0 since asynchronous actions (M2.5 spec D3)", () => {
+    expect(ENGINE_VERSION).toBe("1.1.0");
   });
 });

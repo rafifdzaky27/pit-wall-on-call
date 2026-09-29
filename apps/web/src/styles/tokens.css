@@ -92,6 +92,10 @@
   --app-trash: #737c88;
   --app-phone: #2f8a3a;
   --app-postmortem: #4b5563;
+  --app-logs: #2f6690;
+  --app-deploys: #b85c1e;
+  --app-db: #a3485f;
+  --app-incident: #c43d3d;
   --shadow-window: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.3);
   --shadow-window-rest: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.25);
 }

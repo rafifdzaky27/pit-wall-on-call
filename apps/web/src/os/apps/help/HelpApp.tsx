@@ -15,10 +15,11 @@ const PAGES: { id: HelpPageId; label: string }[] = [
   { id: "tools", label: "Tools" },
 ];
 
-/** The loop in six lines (M2.5 spec §4). It explains the job, never this incident's answer. */
+/** The loop in seven lines (M2.5 spec §4). It explains the job, never this incident's answer. */
 const LOOP = [
   "The pager goes off. Acknowledge it with A, from the page or your phone.",
-  "See what customers see, then open Monitoring: alerts, the service map, metrics and logs.",
+  "See what customers see, then open Monitoring: alerts, the service map and metrics.",
+  "Dig in with the tool a real engineer would open: Logs, Deploys, the DB console, or a question to a teammate in Chat.",
   "Investigate before you change anything. Every action takes time, and the clock keeps running.",
   "Stop the bleeding with a mitigation, then remove the cause with a fix.",
   "The incident is resolved once the fix holds for 10 s. Failed requests burn the error budget.",
@@ -26,9 +27,13 @@ const LOOP = [
 ];
 
 const TOOLS: [name: string, what: string][] = [
-  ["Monitoring", "Alerts, the service map, metrics, logs and the actions you can take on each service."],
+  ["Monitoring", "Alerts, the service map, metrics and dashboard checks. Open in links take you to each service's other tools."],
+  ["Logs", "Search every service's log lines by text, service and level. Saved queries read a service's logs for you."],
+  ["Deploys", "Each service's version and deploy history, with rollback and restart."],
+  ["DB console", "The database: see who holds connections, change its settings, or fail over."],
+  ["Incident", "The incident itself: its status, the checklist, the timeline, the status page and paging your secondary."],
   ["Browser", "The store as customers see it, and the leaderboard."],
-  ["Chat", "Your team: the incident channel and direct messages."],
+  ["Chat", "Your team: the incident channel and direct messages. Ask teammates with the suggestions or /ask, post with /status."],
   ["Files", "Notes on this machine, such as the on-call handover."],
   ["Settings", "Appearance, sound, accessibility and keyboard shortcuts."],
   ["postmortem.md", "What happened in your run and what to learn from it. It opens when the incident ends."],

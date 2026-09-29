@@ -17,7 +17,7 @@ describe("HelpApp", () => {
     expect(within(nav()).getAllByRole("button").map((b) => b.textContent)).toEqual(["How to play", "Checklist", "Glossary", "Tools"]);
     expect(within(nav()).getByRole("button", { name: "How to play" }).getAttribute("aria-current")).toBe("page");
     expect(screen.getByRole("heading", { level: 2, name: "How to play" })).toBeTruthy();
-    expect(within(screen.getByRole("list", { name: "The loop" })).getAllByRole("listitem")).toHaveLength(6);
+    expect(within(screen.getByRole("list", { name: "The loop" })).getAllByRole("listitem")).toHaveLength(7);
     const keys = screen.getByRole("table", { name: "Keyboard shortcuts" });
     expect(within(keys).getByRole("rowheader", { name: "?" }).closest("tr")!.textContent).toContain("Help");
   });

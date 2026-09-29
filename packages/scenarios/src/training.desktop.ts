@@ -55,6 +55,8 @@ export const trainingDesktop: DesktopContent = {
       author: "secondary",
       text: "rolled back. Now watch the fix hold for 10 s, and post a status update so customers know.",
     },
+    { id: "dm.deployer.changes", channel: "dm:deployer", trigger: { kind: "action", actionId: "ask.deployer.changes" }, author: "deployer", text: "just config v12: I tuned the redis timeouts down, 5 ms felt like plenty? everything was green in staging." },
+    { id: "dm.support.impact", channel: "dm:support", trigger: { kind: "action", actionId: "ask.support.impact" }, author: "support", text: "about 1 in 4 checkouts fail with 500 Internal Server Error. People are retrying a lot." },
     { id: "dm.secondary.deploy", channel: "dm:secondary", trigger: { kind: "action", actionId: "global.ask_secondary" }, author: "secondary", text: "{deployer} pushed a config change a few minutes ago. Worth a look." },
   ],
   // The same shop, so the same traffic; only the failing status differs (a 500, from the symptom).

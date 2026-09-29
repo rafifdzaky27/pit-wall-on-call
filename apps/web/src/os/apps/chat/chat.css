@@ -48,6 +48,7 @@
 .deploy-card { margin-top: 4px; padding: var(--space-2) var(--space-3); border-left: 4px solid var(--ok); border-radius: 0 var(--radius-md) var(--radius-md) 0; background: var(--sunken); display: grid; gap: 4px; max-width: 460px; }
 .deploy-card dl { display: grid; grid-template-columns: 76px 1fr; gap: 2px var(--space-2); font-size: var(--fs-sm); }
 .deploy-card dt { color: var(--muted); }
+.deploy-open { justify-self: start; margin-top: 2px; }
 .reactions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .reaction { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--raised); font-size: var(--fs-sm); }
 .reaction[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); }
@@ -64,3 +65,9 @@
 .chat-thread-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); }
 .chat-thread-head h3 { font-size: var(--fs-md); font-weight: 700; }
 .chat-thread-head .icon-btn { margin-left: auto; }
+/* M2.5: suggested replies, and the ephemeral note above the composer. */
+.chat-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0 var(--space-4) var(--space-2); }
+.chat-chip { padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--raised); color: var(--text); font: var(--fs-sm) var(--font); cursor: pointer; }
+.chat-chip:hover { border-color: var(--accent); }
+.chat-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chat-note { margin: 0 var(--space-4) var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--sunken); color: var(--muted); font-size: var(--fs-sm); white-space: pre-line; }

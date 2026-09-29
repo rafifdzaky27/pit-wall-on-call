@@ -49,6 +49,9 @@ test.describe("the café cold open", () => {
   });
 
   test("a whole run: the fix holds on a visible countdown, then the cold close leads to the postmortem", async ({ page }) => {
+    // Camera moves are cuts here: the fake clock races the real-time camera animations (the desktop
+    // holds its renders while one runs). flow.spec covers the motion itself.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.clock.install();
     await page.goto("/");
     await page.getByRole("button", { name: "Start shift" }).click();
@@ -56,6 +59,8 @@ test.describe("the café cold open", () => {
     await page.keyboard.press("a");
     await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
     await page.keyboard.press("2");
+    // The rollback lives in Deploys (M2.5 plan B4).
+    await page.getByRole("navigation", { name: "Open in" }).getByRole("button", { name: "Deploys" }).click();
     await page.getByRole("button", { name: /Roll back to v141/ }).click();
     await page.clock.runFor(31_000);
     await expect(page.getByRole("status").filter({ hasText: "Fix holding" })).toBeVisible();

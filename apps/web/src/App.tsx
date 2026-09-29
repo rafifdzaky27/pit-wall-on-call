@@ -5,7 +5,7 @@ import { IncidentProvider, ShiftScope, useIncident } from "./os/incident/Inciden
 import { PrefsProvider } from "./os/PrefsProvider";
 import { Desktop } from "./os/shell/Desktop";
 import { Lockscreen } from "./os/shell/Lockscreen";
-import { OsProvider } from "./os/shell/OsContext";
+import { OsBridge, OsProvider } from "./os/shell/OsContext";
 import { ErrorBoundary } from "./screens/ErrorBoundary";
 import { useMediaQuery } from "./useMediaQuery";
 
@@ -23,13 +23,15 @@ export function App({ newSeed, prepageMs }: { newSeed?: () => number; prepageMs?
         <SubmissionProvider>
           <CrashGuard>
             {wide ? (
-              <Stage>
-                <ShiftScope>
-                  <OsProvider>
-                    <Desktop />
-                  </OsProvider>
-                </ShiftScope>
-              </Stage>
+              <OsBridge>
+                <Stage>
+                  <ShiftScope>
+                    <OsProvider>
+                      <Desktop />
+                    </OsProvider>
+                  </ShiftScope>
+                </Stage>
+              </OsBridge>
             ) : (
               <ShiftScope>
                 <OsProvider>

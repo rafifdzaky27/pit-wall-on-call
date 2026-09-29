@@ -7,6 +7,8 @@ import { useOs } from "../../shell/OsContext";
 import { useNow } from "../../useNow";
 import "./chat.css";
 import { avatarIndex, dayLabel, groupHeads, initials, relative, sameDay } from "./model";
+import { useTeamActions } from "../../incident/useTeamActions";
+import { complete, HELP_LINES, parseCommand } from "./commands";
 import { authorName, channelLabel, isBot, isMention, visibleFor } from "./unread";
 
 const PEOPLE: readonly Person[] = ["secondary", "deployer", "infra", "support"];
@@ -32,7 +34,7 @@ function Avatar({ name, bot = false, size = 36 }: { name: string; bot?: boolean;
   );
 }
 
-function DeployCardView({ card, world }: { card: DeployCard; world: World }) {
+function DeployCardView({ card, world, onOpen }: { card: DeployCard; world: World; onOpen: (() => void) | null }) {
   return (
     <div className="deploy-card">
       <p className="deploy-title">
@@ -50,13 +52,19 @@ function DeployCardView({ card, world }: { card: DeployCard; world: World }) {
           <span className={`tag ${card.status === "succeeded" ? "ok" : "crit"}`}>{card.status === "succeeded" ? "Succeeded" : "Failed"}</span>
         </dd>
       </dl>
+      {onOpen && (
+        <button type="button" className="btn deploy-open" onClick={onOpen}>
+          Open in Deploys
+        </button>
+      )}
     </div>
   );
 }
 
 export function ChatApp() {
   const incident = useIncident();
-  const { read, markRead, bootAt, arrivals } = useOs();
+  const { read, markRead, bootAt, arrivals, chatPosts, postChat, openTool } = useOs();
+  const team = useTeamActions();
   const { world, scenario, content, inspect, snapshot } = incident;
   const now = useNow().getTime();
   const visible = visibleFor(incident);
@@ -67,10 +75,13 @@ export function ChatApp() {
 
   const [current, setCurrent] = useState(content.channels[0]!);
   const [mark, setMark] = useState<string | null>(() => firstUnread(content.channels[0]!));
-  const [sent, setSent] = useState<Record<string, Item[]>>({});
   const [draft, setDraft] = useState("");
   const [mine, setMine] = useState<ReadonlySet<string>>(() => new Set());
   const [threadId, setThreadId] = useState<string | null>(null);
+  /** An ephemeral line above the composer: /help, or why a command could not run. */
+  const [note, setNote] = useState<string | null>(null);
+  const replyTimers = useRef<number[]>([]);
+  useEffect(() => () => replyTimers.current.forEach((id) => window.clearTimeout(id)), []);
 
   const log = useRef<HTMLOListElement>(null);
   const shownIn = useRef<string | null>(null);
@@ -109,23 +120,75 @@ export function ChatApp() {
       const author = messageAuthor(m, scenario);
       return { id: m.id, author, name: authorName(author, world), text: fillWorld(messageText(m, scenario), world), at: atOf(m), msg: m };
     }),
-    ...(sent[current] ?? []),
+    ...chatPosts.filter((p) => p.channel === current).map((p) => ({ ...p, name: p.author === "you" ? "You" : authorName(p.author, world) })),
   ].sort((a, b) => a.at - b.at);
   const heads = groupHeads(items);
   const label = channelLabel(current, world);
   const dm = current.startsWith("dm:") ? (current.slice(3) as Person) : null;
   const info = dm ? null : content.channelInfo[current];
-  const typing = typingFor(content, snapshot.busy?.actionId ?? null).filter((t) => t.channel === current);
+  const running = [...(snapshot.busy ? [snapshot.busy.actionId] : []), ...snapshot.pending.map((p) => p.actionId)];
+  const typing = typingFor(content, running).filter((t) => t.channel === current);
   const thread = items.find((i) => i.id === threadId && i.msg?.thread);
+
+  /** A teammate question from a chip or /ask: your message goes to their DM, then they answer. */
+  const ask = (actionId: string): boolean => {
+    const def = scenario.actions.find((a) => a.id === actionId)!;
+    const why = team.ask(actionId);
+    if (why) {
+      setNote(why);
+      return false;
+    }
+    setNote(current === `dm:${def.ask!.to}` ? null : `Asked ${world.colleagues[def.ask!.to as Person]} in a direct message.`);
+    return true;
+  };
 
   const send = (e?: FormEvent) => {
     e?.preventDefault();
     const text = draft.trim();
     if (!text) return;
-    const at = Date.now();
-    setSent((s) => ({ ...s, [current]: [...(s[current] ?? []), { id: `you-${at}-${(s[current] ?? []).length}`, author: "you", name: "You", text, at }] }));
+    const cmd = parseCommand(text, { scenario, world });
+    if (cmd.kind === "help") {
+      setNote(HELP_LINES.join("\n"));
+      setDraft("");
+      return;
+    }
+    if (cmd.kind === "error") {
+      setNote(cmd.message);
+      return;
+    }
+    if (cmd.kind === "ask") {
+      if (ask(cmd.actionId)) setDraft("");
+      return;
+    }
+    if (cmd.kind === "status" || cmd.kind === "page") {
+      const why = cmd.kind === "status" ? team.postStatus(cmd.text) : team.pageSecondary();
+      if (why) {
+        setNote(why);
+        return;
+      }
+      setNote(null);
+      setDraft("");
+      return;
+    }
+    postChat(current, "you", text);
     setDraft("");
+    setNote(null);
+    // Teammates only answer what they can; free text gets an honest reply (M2.5 plan B5).
+    if (dm) {
+      const who = dm;
+      const channel = current;
+      replyTimers.current.push(window.setTimeout(() => postChat(channel, who, "Not sure what you mean. Try /help, or one of the suggestions below."), 5000));
+    }
   };
+
+  /** Open in Deploys, for a card about a service in this incident. */
+  const deployTarget = (card: DeployCard) => {
+    const svc = scenario.services.find((s) => s.label === card.service);
+    return svc ? () => openTool("deploys", svc.id) : null;
+  };
+
+  const asked = (actionId: string) => incident.timeline.some((e) => e.kind === "action_start" && e.actionId === actionId);
+  const chips = dm ? scenario.actions.filter((a) => a.ask?.to === dm && !asked(a.id)) : [];
 
   const toggleReaction = (key: string) =>
     setMine((prev) => {
@@ -236,7 +299,7 @@ export function ChatApp() {
                       )}
                       <p className="msg-text">{it.text}</p>
                       {it.msg?.code && <pre className="msg-code">{it.msg.code}</pre>}
-                      {it.msg?.card && <DeployCardView card={it.msg.card} world={world} />}
+                      {it.msg?.card && <DeployCardView card={it.msg.card} world={world} onOpen={deployTarget(it.msg.card)} />}
                       {it.msg?.reactions && (
                         <div className="reactions">
                           {it.msg.reactions.map((r) => {
@@ -277,6 +340,30 @@ export function ChatApp() {
         <p className="chat-typing" aria-live="polite">
           {typing.length > 0 ? `${authorName(typing[0]!.author, world)} is typing…` : ""}
         </p>
+        {chips.length > 0 && (
+          <div className="chat-chips" role="group" aria-label="Suggested questions">
+            {chips.map((a) => (
+              <button key={a.id} type="button" className="chat-chip" onClick={() => ask(a.id)}>
+                {a.ask!.prompt}
+              </button>
+            ))}
+          </div>
+        )}
+        {current === "incidents" && (
+          <div className="chat-chips" role="group" aria-label="Suggested actions">
+            <button type="button" className="chat-chip" onClick={() => setDraft("/status ")}>
+              Write a status update…
+            </button>
+            <button type="button" className="chat-chip" onClick={() => setDraft("/page @secondary")}>
+              Page my secondary
+            </button>
+          </div>
+        )}
+        {note && (
+          <p className="chat-note" role="status" aria-label="Chat note">
+            {note}
+          </p>
+        )}
         <form className="composer" onSubmit={send}>
           <textarea
             aria-label={`Message ${label}`}
@@ -289,12 +376,20 @@ export function ChatApp() {
                 e.preventDefault();
                 send();
               }
+              // Tab completes while there is something to add; otherwise it moves focus on (review I1).
+              if (e.key === "Tab" && !e.shiftKey && draft.startsWith("/")) {
+                const next = complete(draft, { scenario, world });
+                if (next && next !== draft) {
+                  e.preventDefault();
+                  setDraft(next);
+                }
+              }
             }}
           />
           <button type="submit" className="btn primary" disabled={!draft.trim()}>
             Send
           </button>
-          <p className="composer-hint">Enter to send · Shift + Enter for a new line</p>
+          <p className="composer-hint">Enter to send · / for commands (Tab completes) · /help</p>
         </form>
       </section>
 

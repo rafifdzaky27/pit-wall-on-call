@@ -102,8 +102,35 @@ describe("typingFor", () => {
   const content = desktopFor(slowLeak.id);
 
   it("shows who is typing while the action that sends their message runs", () => {
-    expect(typingFor(content, "global.ask_secondary")).toEqual([{ channel: "dm:secondary", author: "secondary" }]);
-    expect(typingFor(content, "checkout.rollback")).toEqual([]);
-    expect(typingFor(content, null)).toEqual([]);
+    expect(typingFor(content, ["global.ask_secondary"])).toEqual([{ channel: "dm:secondary", author: "secondary" }]);
+    expect(typingFor(content, ["checkout.rollback"])).toEqual([]);
+    expect(typingFor(content, [])).toEqual([]);
+    // Several at once: the foreground action and any teammates still answering (M2.5 plan B1).
+    expect(typingFor(content, ["checkout.rollback", "global.ask_secondary"])).toHaveLength(1);
+  });
+});
+
+describe.each(SCENARIOS.map((s) => [s.id, s] as const))("%s: tools and teammates (M2.5 plan B4, Task 2)", (_id, scenario) => {
+  const TOOLS = ["dashboards", "logs", "deploys", "db", "incident", "chat"];
+  const content = desktopFor(scenario.id);
+
+  it("gives every action a home tool", () => {
+    for (const a of scenario.actions) expect(TOOLS, a.id).toContain(a.tool);
+  });
+
+  it("has teammates to ask, each question async, in chat, with exactly one reply in that teammate's DM", () => {
+    const asks = scenario.actions.filter((a) => a.ask);
+    expect(asks.length).toBeGreaterThanOrEqual(2);
+    for (const a of asks) {
+      expect(a.async, a.id).toBe(true);
+      expect(a.tool, a.id).toBe("chat");
+      const replies = content.chat.filter((m) => m.trigger.kind === "action" && m.trigger.actionId === a.id);
+      expect(replies.map((m) => m.channel), a.id).toEqual([`dm:${a.ask!.to}`]);
+    }
+  });
+
+  it("uses a distinct topic per teammate", () => {
+    const keys = scenario.actions.filter((a) => a.ask).map((a) => `${a.ask!.to} ${a.ask!.topic}`);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

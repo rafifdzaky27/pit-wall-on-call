@@ -22,7 +22,7 @@ describe("Desktop", () => {
     expect(screen.queryByRole("region", { name: "fortune" })).toBeNull();
     expect(screen.getByRole("region", { name: "World clock" })).toBeTruthy();
     const dock = screen.getByRole("navigation", { name: "Dock" });
-    expect(dock.querySelectorAll("button")).toHaveLength(6);
+    expect(dock.querySelectorAll("button")).toHaveLength(10);
     expect(screen.getByRole("button", { name: "Chat, 11 unread" })).toBeTruthy();
   });
 

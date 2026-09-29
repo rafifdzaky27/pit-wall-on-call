@@ -13,20 +13,26 @@ test("a first-timer takes the coached training shift from the landing to the rep
   await expect(coach.getByRole("status")).toHaveText(/^The pager is ringing/);
   await page.keyboard.press("a");
   await expect(page.getByRole("region", { name: "Monitoring" })).toBeVisible();
-  await expect(coach.getByRole("status")).toHaveText(/^Select shop-api/);
-  // Show me points at the service to pick.
-  await coach.getByRole("button", { name: "Show me" }).click();
-  await expect(page.locator('[data-coach="node:api"].coach-highlight')).toHaveCount(1);
-  await page.locator('[data-coach="node:api"]').click();
-  await page.locator('[data-coach="action:api.logs"]').click();
+  await expect(coach.getByRole("status")).toHaveText(/^Open Logs/);
+  // Show me opens the tool, filtered to the service, and outlines the control (M2.5 plan B Task 5).
+  const showMe = async (target: string) => {
+    await coach.getByRole("button", { name: "Show me" }).click();
+    // The tool loads lazily and Show me keeps looking on the (frozen) clock, so step it.
+    const lit = page.locator(`[data-coach="${target}"].coach-highlight`);
+    for (let i = 0; i < 20 && (await lit.count()) === 0; i++) await page.clock.runFor(100);
+    await expect(lit).toHaveCount(1);
+    await page.locator(`[data-coach="${target}"]`).click();
+  };
+  await showMe("action:api.logs");
   await page.clock.runFor(4_000);
   await expect(coach.getByRole("status")).toHaveText(/config history/);
-  await page.locator('[data-coach="action:api.config"]').click();
+  await showMe("action:api.config");
   await page.clock.runFor(4_000);
   // Tell customers first, then fix (the coach's order since the M2.5 review).
-  await page.locator('[data-coach="action:global.status_update"]').click();
+  await expect(coach.getByRole("status")).toHaveText(/status update/);
+  await showMe("action:global.status_update");
   await page.clock.runFor(6_000);
-  await page.locator('[data-coach="action:api.config_rollback"]').click();
+  await showMe("action:api.config_rollback");
   await page.clock.runFor(16_000);
   await page.clock.runFor(16_000);
   await page.clock.runFor(3_200);

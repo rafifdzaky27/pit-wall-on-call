@@ -118,7 +118,7 @@ The desktop follows decision D17, `docs/specs/2026-09-28-pitos-desktop-design.md
 | `--radius-window` | 10px | Windows, notifications, menus and the dock (0 when maximized or snapped) |
 | `--shadow-window` | layered shadow | Focused window elevation. Unfocused windows use `--shadow-window-rest`. |
 | `--topbar-bg` / `--topbar-text` | `#0b0c0f` / `#e6e9ee` | The top bar is near-black in both themes, as in GNOME |
-| `--app-*` | one colour per app | App icon squircles: monitoring blue, browser teal, chat violet, files amber, settings slate, trash grey, phone green |
+| `--app-*` | one colour per app | App icon squircles: monitoring blue, browser teal, chat violet, files amber, settings slate, trash grey, phone green, logs steel blue, deploys rust, DB console raspberry, incident red |
 | `--avatar-1` … `--avatar-8` | muted hues | Chat avatars, picked per name |
 
 Windows use the whole screen below the top bar; the dock (a 56px bar with an 8px margin, 64px in all) floats over them and hides when covered.
@@ -271,3 +271,18 @@ Spec: `docs/specs/2026-09-28-m2.5-clear-connected-alive-design.md`.
 - **Training:** the first visit leads with the training shift. A coach card (bottom left, above the dock) names one step at a time. Each step completes on what the player actually did; Show me outlines the control to use.
 - **New shift** keeps the Stage, the camera and the café. Only the OS and its apps start over (`ShiftScope`). The camera goes back to an empty desktop, and the café's new city fades in behind a curtain.
 - **After a deploy,** a stale tab gets a System notice between shifts ("A new version is out"). A missing chunk reloads once instead of showing the crash screen.
+
+### Tools and teammates (M2.5 PR B)
+
+- **One home per action.** Every action lives in exactly one tool, the one a real SRE would open (`ActionDef.tool`; a test checks every scenario):
+  - Monitoring: alerts, the service map, metrics and dashboard checks.
+  - Logs: a search box, a service filter, and level chips (ERROR, WARN, INFO, FOUND). Saved queries are the service's log actions. A version in a log line links to Deploys.
+  - Deploys: each service's version, its deploy history (from Deploy Bot's cards), then rollback and restart.
+  - DB console: a psql pane. Actions show as the command they stand for (`ActionDef.command`), and their findings as the output.
+  - Incident: severity, status, checklist, timeline, the status page composer, and Page secondary. The status chip opens it.
+  - Chat: questions to teammates, as suggested questions and `/ask`.
+- **Links, not hunting.** The selected service in Monitoring shows "Open in Logs · Deploys · DB console · Incident". Each tool opens filtered to that service (`openTool`). Deploy cards in Chat have "Open in Deploys".
+- **Teammates answer on their own clock.** Asking never blocks the console (asynchronous actions, engine 1.1.0). While they write, the DM shows "… is typing". Free text they cannot act on gets an honest "Not sure what you mean" after 5 s.
+- **What you say is kept.** Status updates, pages and questions post into Chat from either Chat or Incident, and outlive the Chat window (`chatPosts` in the OS context).
+- **The coach follows the tools.** Show me opens the tool that holds the control, filtered to the service, then outlines it once it renders. The coach sits above the OS on the Stage, so it reaches the OS through `OsBridge`.
+- **Layout.** The four tools share one stylesheet (`os/apps/tools/tools.css`): a toolbar, a side column of actions, and a main pane. Each is its own lazy chunk of about 1–1.6 KB gzip.

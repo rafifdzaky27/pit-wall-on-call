@@ -27,11 +27,11 @@ describe("MonitoringApp", () => {
     act(() => incident().skipPrepage());
     expect(screen.getByRole("alert").textContent).toContain("Acknowledge the page");
     expect(screen.getByRole("region", { name: "Alerts" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^edge-gateway/ }));
-    expect((screen.getByRole("button", { name: /Read gateway error log/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /^checkout-api/ }));
+    expect((screen.getByRole("button", { name: /Check connection pool/ }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: /Acknowledge/ }));
     expect(incident().phase).toBe("active");
-    expect((screen.getByRole("button", { name: /Read gateway error log/ }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: /Check connection pool/ }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("after the incident, points to the postmortem", () => {

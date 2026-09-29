@@ -73,7 +73,20 @@ export interface ActionDef<S extends State> {
   /** Finding lines added to the log when the action completes. */
   reveals?(s: S): string[];
   available?(s: S): boolean;
+  /**
+   * Runs in the background (a question to a teammate): it never blocks other actions, and its
+   * effect and reveals land when its time is up (M2.5 plan B1).
+   */
+  async?: boolean;
+  /** The PitOS tool this action lives in (M2.5 plan B4). Content only; the engine never reads it. */
+  tool?: ActionTool;
+  /** A question to a teammate: who, the slash-command topic, and what the player says (M2.5 plan B3). */
+  ask?: { to: string; topic: string; prompt: string };
+  /** What the action looks like in its tool, such as the SQL a DB console runs. Content only. */
+  command?: string;
 }
+
+export type ActionTool = "dashboards" | "logs" | "deploys" | "db" | "incident" | "chat";
 
 export interface HotspotDef {
   kind: "clue" | "herring";
@@ -174,6 +187,8 @@ export interface Snapshot {
   ackTick: number | null;
   escalated: boolean;
   busy: BusyState | null;
+  /** Asynchronous actions still running, in the order they started. */
+  pending: BusyState[];
   metrics: Record<string, number>;
   health: Record<string, Health>;
   details: Record<string, string>;
