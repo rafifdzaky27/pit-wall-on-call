@@ -16,7 +16,7 @@ test.describe("the runs API contract (M2)", () => {
     const handle = `e2e_${Date.now().toString(36).slice(-7)}`;
     await page.clock.install();
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
     // The ack leaves you on the desktop; its notice points to Monitoring.

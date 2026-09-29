@@ -2,11 +2,12 @@ import { Console } from "../../../console/Console";
 import { useIncident } from "../../incident/IncidentProvider";
 import { usePrefs } from "../../PrefsProvider";
 import { useOs } from "../../shell/OsContext";
-import { useStartShift } from "../../useStartShift";
+import { useStartDaily, useStartShift } from "../../useStartShift";
 
 function CalmView() {
   const incident = useIncident();
   const startShift = useStartShift();
+  const startDaily = useStartDaily();
   const idle = incident.phase === "idle";
   return (
     <div className="app-pad mon-calm">
@@ -28,9 +29,14 @@ function CalmView() {
         ))}
       </ul>
       {idle ? (
-        <button type="button" className="btn primary btn-lg" onClick={startShift}>
-          Start shift
-        </button>
+        <div className="mon-calm-actions">
+          <button type="button" className="btn primary btn-lg" onClick={startDaily}>
+            Start daily
+          </button>
+          <button type="button" className="btn btn-lg" onClick={startShift}>
+            Practice shift
+          </button>
+        </div>
       ) : (
         <button type="button" className="btn" onClick={incident.skipPrepage}>
           Skip to the page

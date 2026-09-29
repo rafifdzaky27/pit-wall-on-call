@@ -8,7 +8,7 @@ test.describe("the café cold open", () => {
 
   test("Start shift → café → laptop → look up → the page rings on the table → A → Monitoring", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await expect(page.getByRole("img", { name: /^A café in / })).toBeVisible();
     await page.getByRole("button", { name: "Laptop", exact: true }).click();
     await expect(page.getByRole("region", { name: "Browser" })).toBeVisible();
@@ -25,7 +25,7 @@ test.describe("the café cold open", () => {
 
   test("the café's captions and the phone sit above the laptop's live screen", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     const cafeRegion = cafe(page);
     /** What is painted on top at the centre of `where`: it must belong to `owner`. */
     const onTop = (owner: string, where: string) =>
@@ -56,7 +56,7 @@ test.describe("the café cold open", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.clock.install();
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await skip(page).click();
     await page.keyboard.press("a");
     // The ack leaves you on the desktop; its notice points to Monitoring.
@@ -81,7 +81,7 @@ test.describe("the café cold open", () => {
   test("if the café cannot load, a plain backdrop keeps the shift playable", async ({ page }) => {
     await page.route(/\/assets\/CafeView-[^/]+\.js$/, (route) => route.abort());
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await expect(page.locator(".cafe-fallback")).toBeVisible();
     await skip(page).click();
     await page.keyboard.press("a");
@@ -100,7 +100,7 @@ test.describe("the café cold open", () => {
       }
     });
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await page.keyboard.press("l");
     await expect(page.getByRole("region", { name: "Browser" })).toBeVisible();
     // The banner and the three products: the only photos a shift's store shows.
@@ -124,7 +124,7 @@ test.describe("Chat never scrolls the page (F1)", () => {
 
   test("opening #infra, with its New messages marker, keeps the whole page in place", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await page.keyboard.press("l");
     // At this size the Browser covers the dock; close it (X) so the dock is in plain view.
     await expect(page.getByRole("region", { name: "Browser" })).toBeVisible();

@@ -12,7 +12,7 @@ async function fromDock(page: Page, name: RegExp | string) {
 test("a shift worked the way an SRE would: ask, post a status, roll back in Deploys, close in Incident (M2.5 plan B)", async ({ page }) => {
   await page.clock.install();
   await page.goto("/");
-  await page.getByRole("button", { name: "Start shift" }).click();
+  await page.getByRole("button", { name: "Practice shift" }).click();
   await page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" }).click();
   await page.keyboard.press("a");
   // The ack leaves you on the desktop; its notice points to Monitoring.

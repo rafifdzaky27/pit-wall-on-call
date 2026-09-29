@@ -1,5 +1,6 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { DailyProvider } from "../net/daily";
 import { SubmissionProvider } from "../net/SubmissionProvider";
 import { IncidentProvider, ShiftScope, useIncident, type IncidentApi } from "../os/incident/IncidentProvider";
 import { PrefsProvider } from "../os/PrefsProvider";
@@ -29,6 +30,7 @@ describe("New shift from the café (M2.5 follow-up: the flicker)", () => {
     const seeds = [1, 2, 3];
     render(
       <PrefsProvider>
+        <DailyProvider fetchDaily={() => new Promise(() => {})}>
         <IncidentProvider newSeed={() => seeds.shift() ?? 9} now={() => Date.now()}>
           <SubmissionProvider>
             <Capture />
@@ -41,6 +43,7 @@ describe("New shift from the café (M2.5 follow-up: the flicker)", () => {
             </Stage>
           </SubmissionProvider>
         </IncidentProvider>
+        </DailyProvider>
       </PrefsProvider>,
     );
     const incident = () => api!;
@@ -69,6 +72,7 @@ describe("New shift from the café (M2.5 follow-up: the flicker)", () => {
     const seeds = [1, 2, 3];
     render(
       <PrefsProvider>
+        <DailyProvider fetchDaily={() => new Promise(() => {})}>
         <IncidentProvider newSeed={() => seeds.shift() ?? 9} now={() => Date.now()}>
           <SubmissionProvider>
             <Capture />
@@ -81,6 +85,7 @@ describe("New shift from the café (M2.5 follow-up: the flicker)", () => {
             </Stage>
           </SubmissionProvider>
         </IncidentProvider>
+        </DailyProvider>
       </PrefsProvider>,
     );
     const incident = () => api!;

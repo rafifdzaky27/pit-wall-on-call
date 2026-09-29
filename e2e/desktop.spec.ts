@@ -6,7 +6,7 @@ test.describe("PitOS desktop", () => {
   test("desktop → start shift → page → ack → Monitoring", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("main", { name: "Desktop" })).toBeVisible();
-    await page.getByRole("button", { name: "Start shift" }).click();
+    await page.getByRole("button", { name: "Practice shift" }).click();
     await expect(page.getByRole("region", { name: "Café" })).toBeVisible();
     await page.keyboard.press("l");
     await expect(page.getByRole("region", { name: "Browser" })).toBeVisible();

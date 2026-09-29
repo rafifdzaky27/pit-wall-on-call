@@ -23,7 +23,7 @@ describe("App", () => {
 
   it("plays from the desktop to an acknowledged incident in Monitoring", async () => {
     render(<App newSeed={() => 1} />);
-    fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Practice shift" }));
     // Start shift pulls back to the café; its own controls skip ahead, and A acknowledges from anywhere.
     fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
     fireEvent.keyDown(window, { key: "a" });

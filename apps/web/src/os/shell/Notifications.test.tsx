@@ -1,3 +1,4 @@
+import { dailyFor, utcDate } from "@pitwall/scenarios";
 import { resolveWorld } from "@pitwall/world";
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +7,9 @@ import { renderOs } from "../testing";
 import { useStartShift } from "../useStartShift";
 import { useNoticeFeed } from "./noticeFeed";
 import { BANNER_MS, Notifications } from "./Notifications";
+
+const today = dailyFor(utcDate(Date.now()));
+const DAILY_TITLE = `Daily #${today.number} · ${resolveWorld(today.seed).city.name}`;
 
 const world = resolveWorld(1);
 
@@ -31,28 +35,28 @@ afterEach(() => {
 });
 
 describe("Notifications", () => {
-  it("greets with Shift ready, which hides after 8 s and stays in the list", () => {
+  it("greets with today's daily, which hides after 8 s and stays in the list", () => {
     const { os } = renderOs(<Shell />);
-    expect(screen.getByRole("heading", { name: `Shift ready · ${world.city.name}` })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: DAILY_TITLE })).toBeTruthy();
     act(() => vi.advanceTimersByTime(BANNER_MS));
-    expect(screen.queryByRole("heading", { name: `Shift ready · ${world.city.name}` })).toBeNull();
+    expect(screen.queryByRole("heading", { name: DAILY_TITLE })).toBeNull();
     expect(os().notices.find((n) => n.id === "shift")).toMatchObject({ banner: false });
   });
 
   it("holds a banner while it is hovered or focused, then hides it after the pointer leaves", () => {
     renderOs(<Shell />);
-    const banner = screen.getByRole("region", { name: `Shift ready · ${world.city.name}` });
+    const banner = screen.getByRole("region", { name: DAILY_TITLE });
     fireEvent.pointerEnter(banner);
     act(() => vi.advanceTimersByTime(BANNER_MS * 3));
-    expect(screen.getByRole("region", { name: `Shift ready · ${world.city.name}` })).toBeTruthy();
+    expect(screen.getByRole("region", { name: DAILY_TITLE })).toBeTruthy();
     fireEvent.pointerLeave(banner);
     act(() => vi.advanceTimersByTime(BANNER_MS));
-    expect(screen.queryByRole("region", { name: `Shift ready · ${world.city.name}` })).toBeNull();
+    expect(screen.queryByRole("region", { name: DAILY_TITLE })).toBeNull();
   });
 
   it("Start shift in the banner starts the shift, drops the notice and announces the pre-page", () => {
     const { incident, os } = renderOs(<Shell />);
-    fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Practice shift" }));
     expect(incident().phase).toBe("prepage");
     expect(os().notices.some((n) => n.id === "shift")).toBe(false);
     expect(screen.getByRole("heading", { name: "Shift started" })).toBeTruthy();
@@ -92,7 +96,7 @@ describe("Notifications", () => {
   it("dismissing a banner keeps it in the list", () => {
     const { os } = renderOs(<Shell />);
     fireEvent.click(screen.getByRole("button", { name: "Dismiss notification" }));
-    expect(screen.queryByRole("region", { name: `Shift ready · ${world.city.name}` })).toBeNull();
+    expect(screen.queryByRole("region", { name: DAILY_TITLE })).toBeNull();
     expect(os().notices).toHaveLength(1);
   });
 
@@ -106,7 +110,7 @@ describe("Notifications", () => {
       </>,
     );
     fireEvent.click(screen.getByRole("button", { name: "No full screen" }));
-    fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Practice shift" }));
     expect(incident().phase).toBe("prepage");
     expect(request).not.toHaveBeenCalled();
     delete (document.documentElement as { requestFullscreen?: unknown }).requestFullscreen;

@@ -11,13 +11,13 @@ test("Start shift asks for full screen", async ({ page }) => {
     };
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Start shift" }).click();
+  await page.getByRole("button", { name: "Practice shift" }).click();
   expect(await page.evaluate(() => (window as unknown as { fsCalls: number }).fsCalls)).toBe(1);
 });
 
 test("the dock hides under maximized Monitoring (opened from the ack notice) and returns at the bottom edge", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Start shift" }).click();
+  await page.getByRole("button", { name: "Practice shift" }).click();
   await page.getByRole("group", { name: "Café controls" }).getByRole("button", { name: "Skip to the page" }).click();
   await page.keyboard.press("a");
   await page.getByRole("button", { name: "Open Monitoring" }).first().click();

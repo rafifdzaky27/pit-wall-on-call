@@ -46,7 +46,7 @@ const windows = () => document.querySelectorAll(".stage-screen .window:not(.clos
 
 /** Start shift → skip → ack → select checkout → open Deploys → roll back, then `hold` seconds. */
 async function playAndFix(hold: number) {
-  fireEvent.click(screen.getAllByRole("button", { name: "Start shift" })[0]!);
+  fireEvent.click(screen.getAllByRole("button", { name: "Practice shift" })[0]!);
   // The café's hotspots are real in these flows, the duck included (M2.5 PR C review 2).
   await until(() => screen.getByRole("button", { name: "Rubber duck" }));
   fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));
@@ -88,14 +88,14 @@ describe("New shift keeps the camera and the café (M2.5 spec §11)", () => {
     expect(document.querySelector(".stage-cafe")).not.toBeNull();
     expect(document.querySelector("[data-testid=stage-screen]")!.hasAttribute("inert")).toBe(false);
     expect(windows()).toHaveLength(0);
-    expect(screen.getAllByRole("button", { name: "Start shift" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Practice shift" }).length).toBeGreaterThan(0);
   });
 
   it("after New shift, Start shift goes back out to the café", async () => {
     let seed = 0;
     render(<App newSeed={() => ++seed} />);
     await toNewShift();
-    fireEvent.click(screen.getAllByRole("button", { name: "Start shift" })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: "Practice shift" })[0]!);
     expect(document.querySelector("[data-testid=stage-screen]")!.hasAttribute("inert")).toBe(true);
     expect(document.querySelector(".stage-cafe")!.hasAttribute("inert")).toBe(false);
   });

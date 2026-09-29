@@ -1,9 +1,13 @@
+import { dailyFor, utcDate } from "@pitwall/scenarios";
 import { resolveWorld } from "@pitwall/world";
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Stage } from "../../cafe/Stage";
 import { renderOs } from "../testing";
 import { Desktop } from "./Desktop";
+
+const today = dailyFor(utcDate(Date.now()));
+const DAILY_TITLE = `Daily #${today.number} · ${resolveWorld(today.seed).city.name}`;
 
 afterEach(cleanup);
 const world = resolveWorld(1);
@@ -17,7 +21,7 @@ const openSystem = async () => {
 describe("Desktop", () => {
   it("greets with the shift notification, wallpaper, widgets and dock", () => {
     const { container } = renderOs(<Desktop />);
-    expect(screen.getByRole("heading", { name: `Shift ready · ${world.city.name}` })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: DAILY_TITLE })).toBeTruthy();
     expect(container.querySelector(`svg.wallpaper[data-city="${world.city.id}"]`)).toBeTruthy();
     expect(screen.queryByRole("region", { name: "fortune" })).toBeNull();
     expect(screen.getByRole("region", { name: "World clock" })).toBeTruthy();
@@ -61,7 +65,7 @@ describe("Desktop", () => {
 
   it("Start shift opens the Browser, and the page is a critical notification acknowledged with A", async () => {
     const { incident, os } = renderOs(<Desktop />);
-    fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Practice shift" }));
     expect(await screen.findByRole("region", { name: "Browser" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Skip to the page" }));
     expect(screen.getByRole("alertdialog", { name: "Checkout returning 5xx" })).toBeTruthy();
@@ -106,7 +110,7 @@ describe("Desktop", () => {
 
   it("notes the Browser for the checklist only when the player brings it forward during the incident", async () => {
     const { incident, os } = renderOs(<Desktop />);
-    fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Practice shift" }));
     await screen.findByRole("region", { name: "Browser" });
     act(() => incident().skipPrepage());
     act(() => incident().acknowledge());

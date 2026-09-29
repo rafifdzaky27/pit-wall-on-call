@@ -15,7 +15,7 @@ describe("MonitoringApp", () => {
     const { incident } = renderOs(<MonitoringApp />);
     expect(screen.getByText("All systems normal")).toBeTruthy();
     expect(screen.getAllByText("Healthy")).toHaveLength(4);
-    fireEvent.click(screen.getByRole("button", { name: "Start shift" }));
+    fireEvent.click(screen.getByRole("button", { name: "Practice shift" }));
     expect(incident().phase).toBe("prepage");
     fireEvent.click(screen.getByRole("button", { name: "Skip to the page" }));
     expect(incident().phase).toBe("paging");

@@ -49,6 +49,7 @@
 .mon-calm { max-width: 640px; }
 .mon-calm-head { display: grid; gap: var(--space-2); }
 .mon-calm-head .tag { justify-self: start; }
+.mon-calm-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .mon-services { display: grid; gap: var(--space-2); }
 .mon-services li { display: flex; justify-content: space-between; padding: var(--space-3); background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
 .mon-calm .btn, .mon-ended .btn { justify-self: start; }
