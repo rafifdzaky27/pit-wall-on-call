@@ -222,7 +222,7 @@ describe("BrowserApp: the leaderboard site (M2)", () => {
     vi.unstubAllGlobals();
   });
   const flush = () => act(async () => vi.advanceTimersByTimeAsync(0));
-  const tabs = () => screen.getAllByRole("tab").map((t) => t.textContent);
+  const tabs = () => within(screen.getByRole("tablist", { name: "Tabs" })).getAllByRole("tab").map((t) => t.textContent);
 
   it("has a bookmarks bar with the store and the leaderboard", () => {
     renderOs(<BrowserApp />);
@@ -235,8 +235,15 @@ describe("BrowserApp: the leaderboard site (M2)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pit Wall leaderboard" }));
     await flush();
     expect(tabs()).toEqual([`${world.brand.name} · ${world.brand.tagline}`, "Leaderboard · Pit Wall On-Call"]);
-    expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Leaderboard · Pit Wall On-Call");
+    expect(within(screen.getByRole("tablist", { name: "Tabs" })).getByRole("tab", { selected: true }).textContent).toBe("Leaderboard · Pit Wall On-Call");
     expect((screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement).value).toBe(`${window.location.origin}/leaderboard`);
+    // Today's daily first; the practice board is its second tab (M3 spec Y11).
+    const boards = screen.getByRole("tablist", { name: "Boards" });
+    expect(within(boards).getByRole("tab", { name: "Daily", selected: true })).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Daily leaderboard" })).toBeTruthy();
+    expect(fetchMock.mock.calls.at(-1)![0]).toMatch(/^\/api\/leaderboard\?date=\d{4}-\d{2}-\d{2}$/);
+    fireEvent.click(within(boards).getByRole("tab", { name: "Practice" }));
+    await flush();
     expect(screen.getByRole("table", { name: "Practice leaderboard" })).toBeTruthy();
   });
 
@@ -249,7 +256,7 @@ describe("BrowserApp: the leaderboard site (M2)", () => {
     expect(address()).toBe(`https://${world.brand.domain}/checkout`);
     fireEvent.click(screen.getByRole("button", { name: "Pit Wall leaderboard" }));
     await flush();
-    fireEvent.click(screen.getAllByRole("tab")[0]!);
+    fireEvent.click(within(screen.getByRole("tablist", { name: "Tabs" })).getAllByRole("tab")[0]!);
     expect(address()).toBe(`https://${world.brand.domain}/checkout`);
   });
 
@@ -269,9 +276,9 @@ describe("BrowserApp: the leaderboard site (M2)", () => {
     const { os } = renderOs(<BrowserApp />);
     act(() => os().openBrowserTab("leaderboard"));
     await flush();
-    expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Leaderboard · Pit Wall On-Call");
+    expect(within(screen.getByRole("tablist", { name: "Tabs" })).getByRole("tab", { selected: true }).textContent).toBe("Leaderboard · Pit Wall On-Call");
     const before = fetchMock.mock.calls.length;
-    fireEvent.click(screen.getAllByRole("tab")[0]!);
+    fireEvent.click(within(screen.getByRole("tablist", { name: "Tabs" })).getAllByRole("tab")[0]!);
     act(() => os().openBrowserTab("leaderboard"));
     await flush();
     expect(fetchMock.mock.calls.length).toBe(before + 1);

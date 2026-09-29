@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { dailyFor, utcDate } from "@pitwall/scenarios";
 import { renderOs } from "../os/testing";
 import { RESULTS_DELAY_MS } from "./ResultsCard";
 import { COLD_CLOSE_DELAY_MS, loadResults, Stage } from "./Stage";
@@ -21,14 +22,14 @@ const seconds = (n: number) => {
   for (let i = 0; i < n; i++) act(() => vi.advanceTimersByTime(1000));
 };
 
-function finished() {
+function finished({ daily = false } = {}) {
   const view = renderOs(
     <Stage>
       <p>laptop screen</p>
     </Stage>,
   );
   const { incident } = view;
-  act(() => incident().start());
+  act(() => (daily ? incident().startDaily(dailyFor(utcDate(Date.now()))) : incident().start()));
   act(() => incident().skipPrepage());
   act(() => incident().acknowledge());
   seconds(3);
@@ -70,6 +71,19 @@ describe("the shift report (M2.5 spec §6)", () => {
     await act(async () => fireEvent.click(within(card()).getByRole("button", { name: "Share" })));
     expect(writeText.mock.calls[0]![0]).toMatch(/^Pit Wall On-Call · The Slow Leak\nBudget burned: /);
     expect(within(card()).getByText("Copied to the clipboard.")).toBeTruthy();
+  });
+
+  it("a daily says which one, shows today's board, and shares as the daily (M3 spec Y11, Y12)", async () => {
+    const today = dailyFor(utcDate(Date.now()));
+    const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    finished({ daily: true });
+    await opened();
+    expect(within(card()).getByText(`Daily #${today.number} · Shift report`)).toBeTruthy();
+    await vi.waitFor(() => within(card()).getByRole("table", { name: "Daily leaderboard" }));
+    await act(async () => fireEvent.click(within(card()).getByRole("button", { name: "Share" })));
+    expect(writeText.mock.calls[0]![0].split("\n")[0]).toBe(`Pit Wall On-Call · Daily #${today.number}`);
+    expect(writeText.mock.calls[0]![0]).toMatch(/\/daily$/);
   });
 
   it("Full leaderboard shows the whole board inside the card", async () => {

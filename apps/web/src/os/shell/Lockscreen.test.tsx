@@ -22,16 +22,16 @@ describe("Lockscreen", () => {
     expect(screen.queryByRole("button", { name: "Another fact" })).toBeNull();
   });
 
-  it("on a small screen, shows the practice leaderboard under the card (M2)", async () => {
-    const board = { board: "practice", scenarioId: "db-pool-exhaustion", total: 0, entries: [], you: null };
+  it("on a small screen, shows today's daily board under the card (M3 spec Y11)", async () => {
+    const board = { board: "daily", date: "2026-10-05", number: 7, total: 0, entries: [], you: null };
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(board), { status: 200, headers: { "content-type": "application/json" } })));
     renderOs(<Lockscreen />);
-    expect(await screen.findByRole("heading", { level: 1, name: "Practice leaderboard" })).toBeTruthy();
-    expect(await screen.findByText("No shifts posted yet. Finish a shift and post it from its postmortem.")).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: /^Daily #\d+$/ })).toBeTruthy();
+    expect(await screen.findByText("Nobody has posted today's daily yet. Be the first.")).toBeTruthy();
   });
 
   it("with an Unlock button (a wide screen), shows no leaderboard", () => {
     renderOs(<Lockscreen onUnlock={() => {}} />);
-    expect(screen.queryByRole("heading", { name: "Practice leaderboard" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: /^Daily #/ })).toBeNull();
   });
 });

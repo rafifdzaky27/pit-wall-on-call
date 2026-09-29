@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { LogoMark } from "../brand/Logo";
 import { Wallpaper } from "../brand/Wallpaper";
+import { useDaily } from "../../net/daily";
 import { useIncident } from "../incident/IncidentProvider";
 import { useNow } from "../useNow";
 
@@ -9,6 +10,7 @@ const LeaderboardPage = lazy(() => import("../leaderboard/LeaderboardPage").then
 
 export function Lockscreen({ onUnlock }: { onUnlock?: () => void }) {
   const { world, scenario } = useIncident();
+  const { daily } = useDaily();
   const now = useNow();
   const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(now);
   const date = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(now);
@@ -39,7 +41,7 @@ export function Lockscreen({ onUnlock }: { onUnlock?: () => void }) {
         {!onUnlock && (
           <section className="lock-board" aria-label="Leaderboard">
             <Suspense fallback={null}>
-              <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} />
+              <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} daily={{ date: daily.date, number: daily.number }} />
             </Suspense>
           </section>
         )}
