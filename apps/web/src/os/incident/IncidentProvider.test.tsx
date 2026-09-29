@@ -101,3 +101,29 @@ describe("IncidentProvider", () => {
     expect(() => renderHook(() => useIncident())).toThrow(/IncidentProvider/);
   });
 });
+
+describe("the daily shift (M3 spec Y9)", () => {
+  it("starts the day's scenario and seed at once, and the same daily twice is two fresh shifts", async () => {
+    const { dailyFor } = await import("@pitwall/scenarios");
+    const daily = dailyFor("2026-10-05");
+    const { result } = setup();
+    expect(result.current.daily).toBeNull();
+    const first = result.current.shiftId;
+    act(() => result.current.startDaily(daily));
+    expect(result.current).toMatchObject({ phase: "prepage", seed: daily.seed, daily });
+    expect(result.current.scenario.id).toBe(daily.scenarioId);
+    expect(result.current.shiftId).toBe(first + 1);
+    act(() => result.current.skipPrepage());
+    act(() => result.current.acknowledge());
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(result.current.snapshot.tick).toBeGreaterThan(0);
+    // Again, same seed: a new session, back at the pre-page and tick 0.
+    act(() => result.current.startDaily(daily));
+    expect(result.current.shiftId).toBe(first + 2);
+    expect(result.current.phase).toBe("prepage");
+    expect(result.current.snapshot.tick).toBe(0);
+    // A practice shift after it is not a daily.
+    act(() => result.current.newShift());
+    expect(result.current.daily).toBeNull();
+  });
+});
