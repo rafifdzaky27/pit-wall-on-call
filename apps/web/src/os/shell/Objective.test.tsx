@@ -1,3 +1,4 @@
+import { Run } from "@pitwall/engine";
 import { INCIDENTS, SCENARIOS } from "@pitwall/scenarios";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -27,5 +28,11 @@ describe("Objective", () => {
         for (const word of v.spoilers) expect(text, `${v.scenario.id}: ${word}`).not.toContain(word.toLowerCase());
       }
     }
+  });
+
+  it("reads the budget left to the same tenth as the top bar reads it burned", () => {
+    const s = SCENARIOS[0]!;
+    const snapshot = { ...new Run(s, 1).snapshot(), budgetBurnedBp: 10 };
+    expect(renderToStaticMarkup(<Objective scenario={s} snapshot={snapshot} />)).toContain("99.9%</span> of the error budget left");
   });
 });
