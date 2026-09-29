@@ -1,3 +1,4 @@
+import type { ScenarioDef, State } from "@pitwall/engine";
 import type { ReactNode } from "react";
 import { Stage } from "./cafe/Stage";
 import { DailyProvider } from "./net/daily";
@@ -16,12 +17,13 @@ function CrashGuard({ children }: { children: ReactNode }) {
   return <ErrorBoundary onReset={newShift}>{children}</ErrorBoundary>;
 }
 
-export function App({ newSeed, prepageMs }: { newSeed?: () => number; prepageMs?: number }) {
+/** `practice` pins practice shifts to one scenario: a `?incident=<id>` link, or a test. */
+export function App({ newSeed, prepageMs, practice }: { newSeed?: () => number; prepageMs?: number; practice?: ScenarioDef<State> }) {
   const wide = useMediaQuery("(min-width: 1024px)");
   return (
     <PrefsProvider>
       <DailyProvider>
-        <IncidentProvider newSeed={newSeed} prepageMs={prepageMs}>
+        <IncidentProvider newSeed={newSeed} prepageMs={prepageMs} scenario={practice}>
           <SubmissionProvider>
             <CrashGuard>
               {wide ? (

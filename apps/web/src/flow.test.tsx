@@ -1,3 +1,4 @@
+import { slowLeak } from "@pitwall/scenarios";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
@@ -81,7 +82,7 @@ vi.setConfig({ testTimeout: 30_000 });
 describe("New shift keeps the camera and the café (M2.5 spec §11)", () => {
   it("lands on the desktop with no app open, and the Stage is the same element", async () => {
     let seed = 0;
-    render(<App newSeed={() => ++seed} />);
+    render(<App practice={slowLeak} newSeed={() => ++seed} />);
     const before = stage();
     await toNewShift();
     expect(stage()).toBe(before);
@@ -93,7 +94,7 @@ describe("New shift keeps the camera and the café (M2.5 spec §11)", () => {
 
   it("after New shift, Start shift goes back out to the café", async () => {
     let seed = 0;
-    render(<App newSeed={() => ++seed} />);
+    render(<App practice={slowLeak} newSeed={() => ++seed} />);
     await toNewShift();
     fireEvent.click(screen.getAllByRole("button", { name: "Practice shift" })[0]!);
     expect(document.querySelector("[data-testid=stage-screen]")!.hasAttribute("inert")).toBe(true);
@@ -103,7 +104,7 @@ describe("New shift keeps the camera and the café (M2.5 spec §11)", () => {
 
 describe("the cold close lead-in (M2.5 spec §11)", () => {
   it("shows Fix confirmed on the laptop before the camera pulls back", async () => {
-    render(<App newSeed={() => 1} />);
+    render(<App practice={slowLeak} newSeed={() => 1} />);
     await playAndFix(0);
     let seen = false;
     for (let s = 0; s < 50 && !seen; s++) {
@@ -119,7 +120,7 @@ describe("the cold close lead-in (M2.5 spec §11)", () => {
 describe("Review Focus 2 and 5 (M2.5 review I5)", () => {
   it("New shift straight from the report keeps the Stage and lands on an empty desktop", async () => {
     let seed = 0;
-    render(<App newSeed={() => ++seed} />);
+    render(<App practice={slowLeak} newSeed={() => ++seed} />);
     const before = stage();
     await playAndFix(46);
     seconds(4);
@@ -137,7 +138,7 @@ describe("Review Focus 2 and 5 (M2.5 review I5)", () => {
     const fetch = vi.fn(async (url: string) => new Response(JSON.stringify(url === "/api/runs" ? posted : { board: "practice", scenarioId: "x", total: 0, entries: [], you: null }), { status: 200, headers: { "content-type": "application/json" } }));
     vi.stubGlobal("fetch", fetch);
     let seed = 0;
-    render(<App newSeed={() => ++seed} />);
+    render(<App practice={slowLeak} newSeed={() => ++seed} />);
     // Training first: ack, roll the config back, let it hold.
     fireEvent.click(screen.getAllByRole("button", { name: "Training shift (about 3 min)" })[0]!);
     fireEvent.click(within(screen.getByRole("group", { name: "Café controls" })).getByRole("button", { name: "Skip to the page" }));

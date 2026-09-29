@@ -3,6 +3,7 @@ import { training } from "./training";
 
 export { slowLeak, training };
 export { desktopFor, getScenario, INCIDENTS, SCENARIOS } from "./registry";
+export { practiceFor } from "./practice";
 export { defineIncident, type Family, type Golden, type Incident, type IncidentVariant } from "./kit/incident";
 export * from "./desktop";
 export { DUCK, DUCK_DONE, duckAction } from "./duck";

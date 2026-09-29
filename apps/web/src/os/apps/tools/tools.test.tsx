@@ -42,7 +42,7 @@ describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
   ] as const)("%s: each action is in exactly one tool, and that tool shows it", (_name, scenario, drill) => {
     const shown = new Map<string, string[]>();
     for (const [tool, App] of APPS) {
-      const { unmount, container } = paged(<App />, { training: drill });
+      const { unmount, container } = paged(<App practice={slowLeak} />, { training: drill });
       const ids =
         tool === "dashboards"
           ? // Monitoring shows one service at a time.
