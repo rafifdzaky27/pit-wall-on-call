@@ -10,7 +10,9 @@ export function TopBar({ scenario, snapshot, onPause }: { scenario: ScenarioDef<
   return (
     <header className="topbar">
       <span className="wordmark">Pit Wall On-Call</span>
-      <span className="tag crit">{scenario.coldOpen.page.severity}</span>
+      <span className="tag crit">
+        <Term id="severity">{scenario.coldOpen.page.severity}</Term>
+      </span>
       <div className="topbar-title">
         <b>{scenario.coldOpen.page.title}</b>
         <small>{scenario.title}</small>
