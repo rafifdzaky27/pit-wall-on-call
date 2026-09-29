@@ -6,7 +6,7 @@ import { useOs } from "../../shell/OsContext";
 import { useNow } from "../../useNow";
 import { relative } from "../chat/model";
 import { visibleFor } from "../chat/unread";
-import { actionsIn, outputsOf } from "./toolActions";
+import { actionsIn, offered, outputsOf } from "./toolActions";
 import { ToolIdle } from "./ToolIdle";
 import { useToolFocus } from "./useToolFocus";
 import "./tools.css";
@@ -44,7 +44,7 @@ export function DeploysApp() {
       </div>
       <div className="tool-scroll">
         {shown.map((s) => {
-          const actions = actionsIn(scenario, "deploys", s.id);
+          const actions = offered(actionsIn(scenario, "deploys", s.id), incident.check);
           const outputs = outputsOf(scenario, incident.timeline, incident.logs, new Set(actions.map((a) => a.id)));
           const past = history(s.label);
           return (

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_DAY } from "./e2e/day";
 
 export default defineConfig({
   testDir: "e2e",
@@ -18,6 +19,7 @@ export default defineConfig({
       // The API on a fresh, migrated pitwall_e2e database (pnpm db:up locally, a service container in CI).
       command: "pnpm --filter @pitwall/api e2e:serve",
       url: "http://localhost:8787/healthz",
+      env: { E2E_DAY },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

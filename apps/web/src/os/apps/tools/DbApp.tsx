@@ -2,7 +2,7 @@ import { fillWorld } from "@pitwall/world";
 import { useLayoutEffect, useRef } from "react";
 import { ActionButton } from "../../../console/ActionButton";
 import { useIncident } from "../../incident/IncidentProvider";
-import { actionsIn, outputsOf } from "./toolActions";
+import { actionsIn, offered, outputsOf } from "./toolActions";
 import { ToolIdle } from "./ToolIdle";
 import "./tools.css";
 
@@ -11,7 +11,8 @@ export function DbApp() {
   const incident = useIncident();
   const { scenario, snapshot, world } = incident;
   const logRef = useRef<HTMLDivElement>(null);
-  const actions = actionsIn(scenario, "db");
+  const all = actionsIn(scenario, "db");
+  const actions = offered(all, incident.check);
   const outputs = outputsOf(scenario, incident.timeline, incident.logs, new Set(actions.map((a) => a.id)));
   const running = actions.find((a) => snapshot.busy?.actionId === a.id || snapshot.pending.some((p) => p.actionId === a.id));
   useLayoutEffect(() => {
@@ -20,14 +21,14 @@ export function DbApp() {
   }, [outputs.length, running?.id]);
 
   if (incident.phase === "idle" || incident.phase === "prepage") return <ToolIdle name="DB console" />;
-  if (actions.length === 0) {
+  if (all.length === 0) {
     return (
       <div className="app-pad">
         <p className="muted">No database in this incident.</p>
       </div>
     );
   }
-  const db = scenario.services.find((s) => s.id === actions[0]!.serviceId);
+  const db = scenario.services.find((s) => s.id === all[0]!.serviceId);
   const command = (a: (typeof actions)[number]) => a.command ?? `-- ${a.label}`;
 
   return (

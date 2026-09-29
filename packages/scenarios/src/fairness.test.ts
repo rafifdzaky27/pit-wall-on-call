@@ -49,6 +49,18 @@ describe.each(cases)("%s", (_id, v) => {
     for (const id of s.rootCauseActionIds) expect(toolOf(s, id), id).not.toBe("dashboards");
   });
 
+  it("never offers a fix that names the cause before the player has found it (PR 30 review I3)", () => {
+    expect(v.spoilers.length, "declare the words that name the cause").toBeGreaterThan(0);
+    const run = new Run(s, 1);
+    run.dispatch(ACK);
+    for (const id of s.rootCauseActionIds) {
+      const a = s.actions.find((x) => x.id === id)!;
+      const shown = `${a.label} ${a.command ?? ""}`.toLowerCase();
+      const names = v.spoilers.filter((w) => shown.includes(w.toLowerCase()));
+      if (names.length > 0) expect(run.check(id), `${id} says ${names.join(", ")}, so it waits for its target`).toBe("unavailable");
+    }
+  });
+
   it("never names the fix in an alert, a log line or a chat message", () => {
     const fixes = s.rootCauseActionIds.map((id) => s.actions.find((a) => a.id === id)!.label.toLowerCase());
     // Log lines from every kind of play, so lines that appear only after a fix or a mask are seen too (review 3).

@@ -6,7 +6,7 @@ import { formatClock } from "../../../game/format";
 import { useIncident } from "../../incident/IncidentProvider";
 import { useOs } from "../../shell/OsContext";
 import { visibleFor } from "../chat/unread";
-import { actionsIn } from "./toolActions";
+import { actionsIn, offered } from "./toolActions";
 import { ToolIdle } from "./ToolIdle";
 import { useToolFocus } from "./useToolFocus";
 import "./tools.css";
@@ -33,7 +33,7 @@ export function LogsApp() {
   if (incident.phase === "idle" || incident.phase === "prepage") return <ToolIdle name="Logs" />;
 
   const labels = new Map(scenario.services.map((s) => [s.id, s.label]));
-  const saved = actionsIn(scenario, "logs", current);
+  const saved = offered(actionsIn(scenario, "logs", current), incident.check);
   const q = query.trim().toLowerCase();
   const shown = logs
     .filter((l) => !current || l.serviceId === current || l.serviceId === "global")

@@ -1,5 +1,5 @@
 import type { ActionTool } from "@pitwall/engine";
-import { SCENARIOS, slowLeak, training } from "@pitwall/scenarios";
+import { getScenario, SCENARIOS, slowLeak, training } from "@pitwall/scenarios";
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -39,8 +39,11 @@ describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
   // Every incident's every variant, and training (M4 spec N4).
   it.each(SCENARIOS.map((s) => [s.id, s, s.id === training.id] as const))("%s: each action is in exactly one tool, and that tool shows it", (_name, scenario, drill) => {
     const shown = new Map<string, string[]>();
+    // A fix whose target is not found yet is not listed anywhere until it is (PR 30 review I3).
+    const hidden = new Set<string>();
     for (const [tool, App] of APPS) {
-      const { unmount, container } = paged(<App />, { training: drill, scenario });
+      const { unmount, container, incident } = paged(<App />, { training: drill, scenario });
+      for (const a of scenario.actions) if (incident().check(a.id) === "unavailable") hidden.add(a.id);
       const ids =
         tool === "dashboards"
           ? // Monitoring shows one service at a time.
@@ -56,10 +59,25 @@ describe("every action has one home (M2.5 plan B4, Review Focus 4)", () => {
       if (toolOf(a) === "chat") {
         expect(a.ask, `${a.id} is a question in Chat`).toBeDefined();
         expect(shown.get(a.id), `${a.id} only in Chat`).toBeUndefined();
+      } else if (hidden.has(a.id)) {
+        expect(shown.get(a.id), `${a.id} waits for its target`).toBeUndefined();
       } else {
         expect(shown.get(a.id), a.id).toEqual([toolOf(a)]);
       }
     }
+  });
+});
+
+describe("a fix shows once its target is found (PR 30 review I3)", () => {
+  it("the DB console lists the poison pill's move only after the message has been found", () => {
+    const pill = getScenario("poison-pill")!;
+    paged(<DbApp />, { scenario: pill });
+    seconds(5);
+    const commands = () => screen.getByRole("list").textContent ?? "";
+    expect(commands()).not.toContain("dead-letter");
+    fireEvent.click(screen.getByRole("button", { name: /Peek at the head of the queue/ }));
+    seconds(6);
+    expect(commands()).toContain("dead-letter");
   });
 });
 

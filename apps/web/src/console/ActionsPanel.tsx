@@ -8,7 +8,7 @@ import {
   type Snapshot,
   type State,
 } from "@pitwall/engine";
-import { actionsIn, TOOL_LABEL, type ToolAppId } from "../os/apps/tools/toolActions";
+import { actionsIn, offered, TOOL_LABEL, type ToolAppId } from "../os/apps/tools/toolActions";
 import { ActionButton } from "./ActionButton";
 import { HEALTH_LABEL } from "./ServiceMap";
 
@@ -34,7 +34,7 @@ interface Props {
 
 export function ActionsPanel({ scenario, service, snapshot, check, onAction, onOpen }: Props) {
   // Monitoring holds the dashboard checks; every other action lives in its tool (M2.5 plan B4).
-  const local = actionsIn(scenario, "dashboards", service.id);
+  const local = offered(actionsIn(scenario, "dashboards", service.id), check);
   const busy = snapshot.busy;
   const busyDef = busy ? scenario.actions.find((a) => a.id === busy.actionId) : undefined;
   const health = snapshot.health[service.id] ?? "ok";

@@ -22,10 +22,10 @@ await migrateDb(db.db);
 
 const plenty = { max: 10_000, windowMs: 60_000 };
 /**
- * The server's calendar stands on a fixed day whose daily is the Slow Leak, so e2e/daily.spec.ts can play
- * a known incident whichever incident the real date's daily is (M4). The clock still runs.
+ * The server's calendar stands on e2e/day.ts's day (a Slow Leak daily), so the specs play a known incident
+ * whichever incident the real date's daily is (M4). The clock still runs.
  */
-const E2E_DAY = "2026-09-30";
+const E2E_DAY = process.env.E2E_DAY ?? "2026-09-30";
 const offset = Date.parse(`${E2E_DAY}T10:00:00Z`) - Date.now();
 const app = createApp({
   version: "e2e",

@@ -1,8 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { dailyFor } from "../packages/scenarios/src/daily";
-
-/** The e2e API's calendar day (apps/api/src/e2eServe.ts): its daily is the Slow Leak this spec plays. */
-const E2E_DAY = "2026-09-30";
+import { E2E_DAY, E2E_NOW } from "./day";
 
 // Reduced motion: these flows are about the daily, not the camera (flow.spec covers motion).
 test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
@@ -28,7 +26,7 @@ test("today's daily: the first attempt ranks, the second is practice (M3)", asyn
   const today = dailyFor(E2E_DAY);
   expect(today.scenarioId).toBe("db-pool-exhaustion");
   const handle = `d_${Date.now().toString(36).slice(-7)}`;
-  await page.clock.install({ time: new Date(`${E2E_DAY}T10:00:00Z`) });
+  await page.clock.install({ time: E2E_NOW });
   await page.goto("/daily");
   // The share link lands on the desktop, and the landing leads with today's daily.
   await expect(page.getByRole("heading", { name: new RegExp(`^Daily #${today.number} · `) })).toBeVisible();

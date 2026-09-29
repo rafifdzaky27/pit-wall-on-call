@@ -10,6 +10,15 @@ export function actionsIn(scenario: ScenarioDef<State>, tool: ActionTool, servic
   return scenario.actions.filter((a) => toolOf(a) === tool && (serviceId === undefined || serviceId === null || a.serviceId === serviceId));
 }
 
+/**
+ * The actions a tool lists now: one whose target the player has not found yet is not there at all, the way
+ * you cannot drop a replication slot before you have seen its name. So a list never gives the fix away,
+ * and nothing sits disabled without a reason (PR 30 review I3).
+ */
+export function offered(actions: ActionDef<State>[], check: (actionId: string) => string | null): ActionDef<State>[] {
+  return actions.filter((a) => check(a.id) !== "unavailable");
+}
+
 /** The app each tool opens in. */
 export const TOOL_APP: Record<ActionTool, AppId> = {
   dashboards: "monitoring",
