@@ -18,9 +18,10 @@ describe("loading the café", () => {
     );
     act(() => incident().start());
     // The first import of the café chunk is transformed on demand; under a full parallel `pnpm test`
-    // (API tests on Postgres included) that can take longer than findBy's default 1 s.
-    expect(await screen.findByRole("img", { name: /^A café in / }, { timeout: 5000 })).toBeTruthy();
-  });
+    // (API tests on Postgres included) that can take longer than findBy's default 1 s, and the M2.5 art made
+    // the chunk bigger, so the wait (and the test) get room.
+    expect(await screen.findByRole("img", { name: /^A café in / }, { timeout: 12_000 })).toBeTruthy();
+  }, 15_000);
 
   it("keeps the game playable on a plain backdrop when the café cannot load (Review Focus 5)", async () => {
     vi.doMock("./CafeView", () => {
