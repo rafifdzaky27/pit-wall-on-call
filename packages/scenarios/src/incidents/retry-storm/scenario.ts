@@ -21,6 +21,8 @@ type Storm = {
   cap: number;
   /** Extra attempts the caller makes for every failed call. */
   retries: number;
+  /** The player has opened the caller's config. */
+  sawConfig: number;
   fixed: number;
   scaled: number;
   restarts: number;
@@ -42,6 +44,10 @@ export interface StormVariant {
   /** The dependency's own store, drawn behind it. */
   store: { label: string; detail: string };
   retries: number;
+  /** The postmortem number the channel shows, unique per variant. */
+  pm: number;
+  /** Words that name the cause, lower case, for the harness (PR 30 review I3). */
+  spoilers: readonly string[];
   /** Par for this variant: more retries means a steeper storm. */
   parBp: number;
   fix: { label: string; command: string; done: string; setting: string };
@@ -71,6 +77,8 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
   const dep = v.dep.label;
   const cacheHerring = v.herring === "cache";
   const depDeploy = v.herring === "dependency_deploy";
+  // With every failing call retried `retries` times, the dependency sees about 0.9 x (retries + 1) times its usual load, in tenths.
+  const load = (v.retries + 1) * 9;
 
   return defineScenario<Storm>({
     id,
@@ -99,6 +107,7 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
       base: 95_000 + rng.int(10_001),
       cap: 240_000 + rng.int(20_001),
       retries: v.retries,
+      sawConfig: 0,
       fixed: 0,
       scaled: 0,
       restarts: 0,
@@ -174,20 +183,26 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
         reveals: (s) => [`${v.caller.label} → ${dep}: ${retryShare(s) || 72}% of the calls in the last 5 min are retries (max ${v.retries} extra attempts per call, backoff 0 ms). Every failed call is sent again at once`] },
       { id: "dep.incident_log", tool: "logs", label: `Read the ${dep} event log`, serviceId: "dep", category: "investigate", durationS: 3, verdict: "useful",
         command: `service:${dep} level:(WARN OR ERROR) | timeline`,
-        reveals: () => [`${dep}: a 38 s burst of 5xx started 14 min ago (${v.store.label} failover) and ended 13 min ago. Health checks have passed since, but the queue never drained and the request rate is about 3.6x its usual`] },
+        reveals: () => [`${dep}: a 38 s burst of 5xx started 14 min ago (${v.store.label} failover) and ended 13 min ago. Health checks have passed since, but the queue never drained and the request rate is about ${Math.floor(load / 10)}.${load % 10}x its usual`] },
       { id: "dep.rate", tool: "dashboards", label: `Check ${dep} request rate`, serviceId: "dep", category: "investigate", durationS: 4, verdict: "useful",
         reveals: (s) => [`${dep}: ${Math.floor(offered(s) / 1000)} req/s in, normally ${Math.floor(s.base / 1000)}; it can serve about ${Math.floor(s.cap / 1000)}. The blip is over, the load is not`] },
       { id: "dep.health", tool: "dashboards", label: `Check ${dep} health`, serviceId: "dep", category: "investigate", durationS: 3, verdict: "wasted",
         reveals: () => [`${dep}: 100% of health checks pass, no errors from ${v.store.label}. It looks healthy while every real request waits`] },
       { id: "caller.deploys", tool: "deploys", label: "View recent deploys and config", serviceId: callerId, category: "investigate", durationS: 3, verdict: "useful",
+        effect: (s) => ({ ...s, sawConfig: 1 }),
         reveals: () => [callerId === "edge"
           ? `edge-gateway v33 by {deployer}, 5 days ago; auth call policy in config: retries ${v.retries}, backoff 0 ms, circuit breaker off. Nothing changed today`
           : `checkout-api v312 by {deployer}, 4 days ago; inventory client policy in config: retries ${v.retries}, backoff 0 ms. Nothing changed today`] },
       { id: "caller.fix", tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
         command: v.fix.command,
-        available: (s) => s.fixed === 0,
+        // Only on offer once the player has opened the caller's config and seen the policy it would change.
+        available: (s) => s.fixed === 0 && s.sawConfig === 1,
         effect: (s) => ({ ...s, fixed: 1 }),
         reveals: () => [v.fix.done] },
+      { id: "caller.timeout", tool: "deploys", label: `Raise the ${dep} client timeout to 3 s`, serviceId: callerId, category: "mitigate", durationS: 10, verdict: "wasted",
+        command: `config set ${dep.split("-")[0]}.client.timeout_ms = 3000`,
+        available: (s) => s.fixed === 0 && s.sawConfig === 1,
+        reveals: () => [`timeout raised to 3 s: calls wait longer before failing, but each failure is still retried ${v.retries} times, so the request rate on ${dep} is unchanged`] },
       { id: "dep.scale_up", tool: "deploys", label: `Scale ${dep} to 8 pods`, serviceId: "dep", category: "mitigate", durationS: 25, verdict: "wasted",
         available: (s) => s.scaled === 0,
         effect: (s) => ({ ...s, scaled: 1, cap: s.cap + 90_000, queue: Math.min(s.queue, 10_000) }),
@@ -270,12 +285,14 @@ export const STORM_VARIANTS: readonly StormVariant[] = [
   {
     key: "",
     title: "Retry Storm",
-    summary: "Checkout timed out, recovered, and timed out again. The dependency says it is healthy. Who is still hurting it?",
+    summary: "Checkout timed out, recovered, and timed out again. The dependency says it is healthy. Why is it still failing?",
     caller: { id: "checkout", label: "checkout-api" },
     dep: { label: "inventory-svc", what: "stock reservation" },
     store: { label: "stock-db", detail: "postgres · primary" },
     retries: 3,
-    parBp: 480,
+    pm: 244,
+    spoilers: ["retry", "retries", "backoff", "max_retries"],
+    parBp: 520,
     fix: {
       label: "Cut checkout-api retries to one attempt",
       command: "config set inventory.client.max_retries = 1\nconfig set inventory.client.backoff = exponential",
@@ -293,6 +310,8 @@ export const STORM_VARIANTS: readonly StormVariant[] = [
     dep: { label: "auth-svc", what: "token check" },
     store: { label: "sessions-cache", detail: "redis · 4 GB" },
     retries: 4,
+    pm: 245,
+    spoilers: ["retry", "retries", "backoff", "circuit breaker", "retry_budget"],
     parBp: 600,
     fix: {
       label: "Turn on the auth circuit breaker at the edge",

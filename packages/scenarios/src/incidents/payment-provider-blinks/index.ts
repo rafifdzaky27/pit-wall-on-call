@@ -16,10 +16,14 @@ export const paymentProviderBlinksIncident = defineIncident({
     key: v.key,
     scenario: paymentProviderBlinks(v),
     desktop: blinksDesktop(v),
+    spoilers: v.spoilers,
     golden: {
-      perfect: [at(0, inspectAction("phone.mention")), at(20, ACK), at(20, "payments.timeouts"), at(50, "global.provider_status"), at(100, "checkout.enable_fallback")],
-      masking: [at(20, ACK), at(20, "checkout.restart"), at(1500, "checkout.enable_fallback")],
-      herring: [at(20, ACK), at(20, v.herring === "deploy" ? "checkout.rollback" : "postgres.cancel_report"), at(400, "checkout.restart"), at(900, "checkout.enable_fallback")],
+      perfect:
+        v.mechanism === "exempt"
+          ? [at(0, inspectAction("phone.mention")), at(20, ACK), at(20, "payments.timeouts"), at(50, "checkout.payment_config"), at(80, "orders.value_split"), at(110, "checkout.enable_fallback")]
+          : [at(0, inspectAction("phone.mention")), at(20, ACK), at(20, "payments.timeouts"), at(50, "checkout.payment_config"), at(100, "checkout.enable_fallback")],
+      masking: [at(20, ACK), at(20, "checkout.restart"), at(1500, "checkout.payment_config"), at(1550, "checkout.enable_fallback")],
+      herring: [at(20, ACK), at(20, v.herring === "db" ? "postgres.cancel_report" : "checkout.rollback"), at(400, "checkout.restart"), at(900, "checkout.payment_config"), at(950, "checkout.enable_fallback")],
     },
   })),
 });
