@@ -69,7 +69,7 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
   { id: "retries-backoff", term: "Retries and backoff", definition: "Trying a failed call again, and waiting a little longer before each new try, so repeated tries do not add to the load." },
   { id: "cache-hit-ratio", term: "Cache hit ratio", definition: "The share of requests answered from a fast store of recent results instead of going to the slower source. Higher is better." },
   { id: "request-coalescing", term: "Request coalescing", definition: "Merging many identical requests into one, and sharing the single answer with everyone who asked." },
-  { id: "tls-certificate", term: "TLS certificate", definition: "A digital ID a server shows so browsers can trust the connection and know who they are talking to. It has an end date." },
+  { id: "tls-certificate", term: "TLS certificate", definition: "A digital ID a server shows so browsers can trust the connection and know who they are talking to." },
   { id: "config-rollback", term: "Config rollback", definition: "Putting the previous settings back in place, undoing a recent settings change without touching the code." },
   { id: "waf-rule", term: "WAF rule", definition: "A rule in a web application firewall, the filter at the front door, that decides which web requests to let through or refuse." },
   { id: "disk-volume", term: "Disk volume", definition: "A slice of storage attached to a server. It has a fixed size, and when it fills up nothing more can be saved to it." },

@@ -1,33 +1,17 @@
 import type { MetricDef, State } from "@pitwall/engine";
-import type { GlossaryId } from "../content/glossary";
+import { metricTerm } from "../content/metricTerms";
 import { formatMetric } from "../game/format";
 import { Term } from "../os/Term";
 
-/** The part of a metric label that is a glossary term (M2.5 spec §4, M4.5 N2). First match wins. */
-const TERMS: readonly [RegExp, GlossaryId][] = [
-  [/^5xx/i, "5xx"],
-  [/^p99/i, "p99"],
-  [/^Pool/, "connection-pool"],
-  [/^Consumer lag/i, "consumer-lag"],
-  [/^Replication lag/i, "replica-lag"],
-  [/^Cache hit (rate|ratio)/i, "cache-hit-ratio"],
-  [/^Hit (rate|ratio)/i, "cache-hit-ratio"],
-  [/^WAL/, "wal"],
-  [/^(Data|WAL) volume/i, "disk-volume"],
-  [/^TLS/, "tls-certificate"],
-];
-
 function Label({ text }: { text: string }) {
-  for (const [re, id] of TERMS) {
-    const m = re.exec(text);
-    if (m)
-      return (
-        <>
-          <Term id={id}>{m[0]}</Term>
-          {text.slice(m[0].length)}
-        </>
-      );
-  }
+  const found = metricTerm(text);
+  if (found)
+    return (
+      <>
+        <Term id={found.id}>{found.match}</Term>
+        {text.slice(found.match.length)}
+      </>
+    );
   return text;
 }
 

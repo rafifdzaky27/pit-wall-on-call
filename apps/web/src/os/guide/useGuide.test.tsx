@@ -99,4 +99,37 @@ describe("the next-step guide (M4.5 spec N3)", () => {
     ms(46_000);
     expect(hint(os)).toBeDefined();
   });
+
+  it("counts only game time: a pause holds the quiet spell, and no hint shows while paused (PR 31 review I1)", () => {
+    const { os, incident } = startActive();
+    ms(30_000);
+    act(() => incident().pause());
+    ms(60_000);
+    expect(hint(os)).toBeUndefined();
+    act(() => incident().resume());
+    ms(10_000);
+    expect(hint(os)).toBeUndefined();
+    ms(8_000);
+    expect(hint(os)?.body).toMatch(/Monitoring/);
+  });
+
+  it("does not count #deploys read before the page as looking at what changed", () => {
+    const r = renderOs(<Guide />);
+    act(() => r.os().signal("chat:deploys"));
+    act(() => r.incident().start());
+    act(() => r.incident().skipPrepage());
+    act(() => r.incident().acknowledge());
+    act(() => r.os().openApp("monitoring"));
+    act(() => r.os().signal("service:postgres"));
+    act(() => r.os().openApp("logs"));
+    ms(46_000);
+    expect(hint(r.os)?.body).toMatch(/Something changed/);
+  });
+
+  it("says nothing more once the player has acted", () => {
+    const { os, incident } = startActive();
+    act(() => incident().dispatch("checkout.restart"));
+    ms(120_000);
+    expect(hint(os)).toBeUndefined();
+  });
 });

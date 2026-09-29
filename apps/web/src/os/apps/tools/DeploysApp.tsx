@@ -1,7 +1,6 @@
 import type { DeployCard } from "@pitwall/scenarios";
 import { fillWorld } from "@pitwall/world";
 import { ActionButton } from "../../../console/ActionButton";
-import { Term } from "../../Term";
 import { useIncident } from "../../incident/IncidentProvider";
 import { useOs } from "../../shell/OsContext";
 import { useNow } from "../../useNow";
@@ -32,9 +31,6 @@ export function DeploysApp() {
   return (
     <div className="tool deploys-app">
       <div className="tool-bar">
-        <span className="muted">
-          <Term id="deploy-vs-config">Deploys and config changes</Term>
-        </span>
         <div className="tool-levels" role="group" aria-label="Services">
           <button type="button" className="chip" aria-pressed={current === null} onClick={() => choose(null)}>
             All services

@@ -24,7 +24,7 @@ describe("the hint texts", () => {
 
   it("names the critical service now, from scenario data", () => {
     expect(hintFor("service", "shop-api")?.body).toContain("shop-api");
-    expect(hintFor("service", null)?.body).toMatch(/Click the red service/);
+    expect(hintFor("service", null)?.body).toMatch(/Click the service in the worst state/);
     expect(hintFor("service", "larkspur", ["larkspur"])?.body).not.toContain("larkspur");
   });
 

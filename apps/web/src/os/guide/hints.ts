@@ -29,7 +29,7 @@ export function hintFor(next: Milestone, label: string | null, spoilers: readonl
         title: "Where to look",
         body: criticalLabel
           ? `The red service on the map, ${criticalLabel}, is where customers' errors come from. Click it to see its metrics and what you can do there.`
-          : "Click the red service on the map to see its metrics and what you can do there.",
+          : "Click the service in the worst state on the map (red is critical, orange degraded) to see its metrics and what you can do there.",
         open: "monitoring",
         cta: "Open Monitoring",
       };
