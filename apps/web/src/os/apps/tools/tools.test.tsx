@@ -1,4 +1,4 @@
-import type { ActionTool } from "@pitwall/engine";
+import type { ActionTool, ScenarioDef, State } from "@pitwall/engine";
 import { getScenario, SCENARIOS, slowLeak, training } from "@pitwall/scenarios";
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
@@ -19,7 +19,7 @@ afterEach(() => {
 
 const seconds = (n: number) => act(() => vi.advanceTimersByTime(n * 1000));
 
-function paged(ui: React.ReactNode, { training: drill = false, scenario = slowLeak }: { training?: boolean; scenario?: typeof slowLeak } = {}) {
+function paged(ui: React.ReactNode, { training: drill = false, scenario = slowLeak }: { training?: boolean; scenario?: ScenarioDef<State> } = {}) {
   const r = renderOs(ui, { scenario });
   act(() => (drill ? r.incident().startTraining() : r.incident().start()));
   act(() => r.incident().skipPrepage());
