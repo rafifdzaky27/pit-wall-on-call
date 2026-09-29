@@ -1,12 +1,14 @@
+import { DUCK as DUCK_ACTION } from "@pitwall/scenarios";
 import { fillWorld, resolveScene } from "@pitwall/world";
 import { useEffect, useMemo, useState } from "react";
 import { isPaged } from "../os/apps/chat/unread";
 import { audio } from "../os/audio/engine";
 import { useIncident } from "../os/incident/IncidentProvider";
+import { refusalText } from "../os/incident/refusal";
 import { usePrefs } from "../os/PrefsProvider";
 import { CLOCK_3AM, DAYS_SIGN, HUG_OPS, POSTER, RADIO } from "./art/Interior";
 import { CAT, FORCE_PUSH, NEIGHBOURS } from "./art/Patrons";
-import { LAPTOP, PHONE } from "./art/Table";
+import { DUCK, LAPTOP, PHONE } from "./art/Table";
 import { toViewport, type Rect } from "./camera";
 import { useCamera } from "./CameraContext";
 import { PhoneCloseup } from "./PhoneCloseup";
@@ -24,6 +26,8 @@ export function Hotspots() {
   const size = useViewport();
   const [caption, setCaption] = useState<string | null>(null);
   const [phoneOpen, setPhoneOpen] = useState(false);
+  /** What the duck said when pressed; kept, because pressing it changes what it would say next. */
+  const [duckSaid, setDuckSaid] = useState("");
   const clues = incident.scenario.coldOpen.hotspots;
   const days = useMemo(() => resolveScene(incident.seed).daysSince, [incident.seed]);
   const paged = isPaged(incident.phase);
@@ -49,6 +53,7 @@ export function Hotspots() {
     { id: "phone", rect: PHONE, name: "Phone" },
     ...(["table.neighbours", "wall.poster"] as const).filter((id) => clues[id]).map((id) => ({ id, rect: id === "wall.poster" ? POSTER : NEIGHBOURS, name: clues[id]!.label })),
     { id: "radio", rect: RADIO, name: prefs.radio ? "Radio, playing" : "Radio, off" },
+    { id: "duck", rect: DUCK, name: "Rubber duck" },
   ];
   const eggs: Egg[] = [
     { id: "egg.cat", rect: CAT, name: "Sleeping café cat", text: "The cat purrs. It has seen worse outages." },
@@ -69,6 +74,12 @@ export function Hotspots() {
     else if (id === "radio") {
       audio.unlock();
       update({ radio: !prefs.radio });
+    } else if (id === "duck") {
+      // The rubber duck is the duck action (M2.5 spec §9): 30 s of incident time for the next question.
+      const why = incident.phase === "active" ? refusalText(incident.check(DUCK_ACTION)) : "A rubber duck. When you are stuck, explain the problem to it.";
+      if (!why) incident.dispatch(DUCK_ACTION);
+      setDuckSaid(why ?? "You explain the problem to the duck. Its question lands in your logs in 30 s.");
+      setCaption(id);
     } else if (id.startsWith("egg.")) {
       setCaption(id);
     } else {
@@ -77,8 +88,8 @@ export function Hotspots() {
     }
   };
 
-  const clue = caption && !caption.startsWith("egg.") ? clues[caption] : null;
-  const egg = caption ? eggs.find((e) => e.id === caption) : undefined;
+  const clue = caption && !caption.startsWith("egg.") && caption !== "duck" ? clues[caption] : null;
+  const egg = caption === "duck" ? { id: "duck", rect: DUCK, name: "Rubber duck", text: duckSaid } : caption ? eggs.find((e) => e.id === caption) : undefined;
   const anchor = egg?.rect ?? (caption === "wall.poster" ? POSTER : NEIGHBOURS);
   const at = caption ? toViewport(anchor, size.w, size.h) : null;
   // Things high on the wall get their caption underneath, so it never leaves the screen.

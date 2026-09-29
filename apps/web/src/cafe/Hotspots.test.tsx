@@ -38,6 +38,7 @@ describe("café hotspots", () => {
       "The next table",
       "Poster on the wall",
       "Radio, off",
+      "Rubber duck",
       // The easter eggs come after the clues, so the clues keep their reading order (M2.5 spec §12).
       ...EGG_NAMES,
       "Skip to the page",
@@ -59,6 +60,23 @@ describe("café hotspots", () => {
     expect(incident().logs.length).toBe(before.logs);
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("the rubber duck is the duck action during an incident, and says why not otherwise (M2.5 spec §9)", () => {
+    const { incident } = setup();
+    act(() => incident().start());
+    fireEvent.click(screen.getByRole("button", { name: "Rubber duck" }));
+    expect(screen.getByRole("status").textContent).toContain("When you are stuck, explain the problem to it");
+    expect(incident().snapshot.busy).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    fireEvent.click(screen.getByRole("button", { name: "Rubber duck" }));
+    expect(incident().snapshot.busy?.actionId).toBe("duck");
+    expect(screen.getByRole("status").textContent).toContain("You explain the problem to the duck");
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.click(screen.getByRole("button", { name: "Rubber duck" }));
+    expect(screen.getByRole("status").textContent).toContain("Wait for the running action to finish.");
   });
 
   it("the days-since sign owns up once the page has fired", () => {
