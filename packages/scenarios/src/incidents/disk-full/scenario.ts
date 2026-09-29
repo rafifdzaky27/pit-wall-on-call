@@ -25,6 +25,8 @@ export type DiskState = {
   rate: number;
   /** The cause is gone: the config is back to info (logs) or the stale slot is dropped (wal). */
   fixed: number;
+  /** The player has found the cause: the config change (logs) or the stale slot (wal). The fix is offered only after. */
+  found: number;
   /** Times the space was freed by hand. */
   freed: number;
   grown: number;
@@ -111,7 +113,7 @@ function logsVolume(v: Variant): ScenarioDef<DiskState> {
       { from: "checkout", to: "postgres" },
     ],
 
-    setup: (rng) => ({ disk: 97_400 + rng.int(400), rate: 10 + rng.int(5), fixed: 0, freed: 0, grown: 0, statusPosted: 0, ducks: 0 }),
+    setup: (rng) => ({ disk: 97_400 + rng.int(400), rate: 10 + rng.int(5), fixed: 0, found: 0, freed: 0, grown: 0, statusPosted: 0, ducks: 0 }),
     dynamics: (s) => ({ ...s, disk: Math.min(FULL, s.disk + (rolledBack(s) ? 0 : s.rate)) }),
     errorRateBp,
     health: (s) => {
@@ -151,12 +153,13 @@ function logsVolume(v: Variant): ScenarioDef<DiskState> {
       { id: "checkout.disks", tool: "dashboards", label: "Check node disks", serviceId: "checkout", category: "investigate", durationS: 4, verdict: "useful",
         reveals: (s) => [`api-node-2: /var/log ${pct(s)}% used, /var/lib/docker 52%, /tmp 3%; the log write rate is 38 MB/s against 2 MB/s last week`] },
       { id: "checkout.deploys", tool: "deploys", label: "View recent deploys and config changes", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
+        effect: (s) => ({ ...s, found: 1 }),
         reveals: () => [
           "cfg-88 by {deployer}, 2 h ago: LOG_LEVEL info → debug for the cart trace (marked temporary)",
           "v155 by {deployer}, 41 min ago: bump the payments SDK; no logging changes",
         ] },
       { id: "checkout.rollback_config", tool: "deploys", label: "Roll back the config to LOG_LEVEL=info", serviceId: "checkout", category: "fix", durationS: 25, verdict: "useful",
-        available: (s) => s.fixed === 0,
+        available: (s) => s.fixed === 0 && s.found === 1,
         effect: (s) => ({ ...s, fixed: 1 }),
         reveals: () => ["config cfg-87 rolled out to 3 of 3 pods: LOG_LEVEL=info. The old debug files stay on disk until they are rotated"] },
       { id: "checkout.rotate_logs", tool: "logs", label: "Rotate and compress logs now", serviceId: "checkout", category: "mitigate", durationS: 10, verdict: "useful",
@@ -178,7 +181,7 @@ function logsVolume(v: Variant): ScenarioDef<DiskState> {
       ...sharedActions(LOGS_HINTS),
       { id: "ask.deployer.changes", tool: "chat", label: "Ask the deployer what went out today", serviceId: null, category: "investigate", durationS: 30, verdict: "useful", async: true,
         ask: { to: "deployer", topic: "changes", prompt: "hey, what went out to checkout today?" },
-        reveals: () => [`{deployer}: "only v155, the payments SDK bump. Nothing that touches logging, I'd say."`] },
+        reveals: () => [`{deployer}: "only v155, the payments SDK bump. I did turn LOG_LEVEL up to debug on checkout this morning for the cart trace, but that is a config change and it is temporary, so I did not think it counted."`] },
       { id: "ask.infra.disk", tool: "chat", label: "Ask infra about the disk alerts", serviceId: null, category: "investigate", durationS: 25, verdict: "wasted", async: true,
         ask: { to: "infra", topic: "disk", prompt: "api-node-2 disk is alerting, anything running there?" },
         reveals: () => [`{infra}: "that's the nightly backup staging, it always spikes /var. Ignore it, it clears itself."`] },
@@ -245,7 +248,7 @@ function walVolume(v: Variant): ScenarioDef<DiskState> {
     ],
 
     // WAL piles up at `rate` per tick until the stale slot is dropped; then Postgres recycles it at a checkpoint.
-    setup: (rng) => ({ disk: 97_300 + rng.int(500), rate: 9 + rng.int(5), fixed: 0, freed: 0, grown: 0, statusPosted: 0, ducks: 0 }),
+    setup: (rng) => ({ disk: 97_300 + rng.int(500), rate: 9 + rng.int(5), fixed: 0, found: 0, freed: 0, grown: 0, statusPosted: 0, ducks: 0 }),
     dynamics: (s) => (dropped(s) ? { ...s, disk: Math.max(48_000, s.disk - 300) } : { ...s, disk: Math.min(FULL, s.disk + s.rate) }),
     errorRateBp,
     health: (s) => {
@@ -304,10 +307,11 @@ function walVolume(v: Variant): ScenarioDef<DiskState> {
         reveals: (s) => [`postgres-primary: WAL volume ${pct(s)}% used, data volume 44% used; WAL grows steadily even at low write load`] },
       { id: "postgres.slots", tool: "db", label: "Inspect replication slots", serviceId: "postgres", category: "investigate", durationS: 3, verdict: "useful",
         command: "SELECT slot_name, active, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS retained FROM pg_replication_slots;",
+        effect: (s) => ({ ...s, found: 1 }),
         reveals: () => ["pg_replication_slots: replica_1 (active, 0 B retained); reporting_cdc (NOT active, retaining 44 GB of WAL since the consumer went away)"] },
       { id: "postgres.drop_slot", tool: "db", label: "Drop the stale replication slot", serviceId: "postgres", category: "fix", durationS: 10, verdict: "useful",
         command: "SELECT pg_drop_replication_slot('reporting_cdc');",
-        available: (s) => s.fixed === 0,
+        available: (s) => s.fixed === 0 && s.found === 1,
         effect: (s) => ({ ...s, fixed: 1 }),
         reveals: () => ["slot reporting_cdc dropped; the next checkpoint recycles the retained WAL"] },
       { id: "postgres.delete_wal", tool: "db", label: "Delete old WAL files by hand", serviceId: "postgres", category: "mitigate", durationS: 20, verdict: "harmful", sideEffectBp: 5000,

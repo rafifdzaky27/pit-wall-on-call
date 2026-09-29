@@ -19,15 +19,15 @@ const REQUESTS: RequestPattern[] = [
 ];
 
 /** Background chat for both variants. It adds no clue: the clues are the hotspots and the teammates' replies. */
-const BACKGROUND: ChatMessage[] = [
-  { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 3300, author: "bot", text: "SEV3 resolved: email provider delays. Duration 31 min. Postmortem PM-224." },
+const background = (pm: number): ChatMessage[] => [
+  { id: "incidents.sev3", channel: "incidents", trigger: { kind: "prepage" }, minutesAgo: 3300, author: "bot", text: `SEV3 resolved: email provider delays. Duration 31 min. Postmortem PM-${pm}.` },
   {
-    id: "incidents.pm224",
+    id: "incidents.pm",
     channel: "incidents",
     trigger: { kind: "prepage" },
     minutesAgo: 3100,
     author: "secondary",
-    text: "PM-224 is up for review. The provider was slow, we queued and retried. No action items.",
+    text: `PM-${pm} is up for review. The provider was slow, we queued and retried. No action items.`,
     reactions: [{ emoji: "👍", by: ["infra", "support"] }],
     thread: [{ author: "infra", text: "looks right to me", minutesAgo: 3000 }],
   },
@@ -65,7 +65,7 @@ export const expiredCertPaymentsDesktop: DesktopContent = {
   channels: CHANNELS,
   channelInfo: CHANNEL_INFO,
   chat: [
-    ...BACKGROUND,
+    ...background(234),
     {
       id: "deploys.v87",
       channel: "deploys",
@@ -105,7 +105,7 @@ export const expiredCertMeshDesktop: DesktopContent = {
   channels: CHANNELS,
   channelInfo: CHANNEL_INFO,
   chat: [
-    ...BACKGROUND,
+    ...background(235),
     {
       id: "deploys.stock300",
       channel: "deploys",
