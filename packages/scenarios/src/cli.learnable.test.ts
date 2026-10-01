@@ -16,8 +16,7 @@ const SEEDS = [1, 2, 3];
 /** Everything the player can read on this shift, lowercased: never an action's own cli, command or label. */
 function knowledge(scenario: ScenarioDef<State>, desktop: unknown, seed: number): string {
   const parts: string[] = [JSON.stringify(desktop), CLI_HELP.join("\n")];
-  const { actions: _actions, ...shown } = scenario;
-  parts.push(JSON.stringify(shown));
+  parts.push(JSON.stringify({ ...scenario, actions: [] }));
   const run = new Run(scenario, seed);
   run.step();
   run.dispatch(ACK);
