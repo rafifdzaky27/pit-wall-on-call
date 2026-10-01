@@ -48,6 +48,24 @@ jobs:
       - name: deploy.sh behaviour tests
         run: bash infra/test/deploy_test.sh
 
+  # Backups must be proven, not assumed (M5 L5-1): backup.sh then restore-test.sh against a
+  # throwaway database and local restic repositories, including the failure cases.
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: install restic
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq restic
+          restic version
+      - name: shellcheck
+        run: shellcheck infra/backup/backup.sh infra/backup/restore-test.sh infra/test/backup_test.sh
+      - name: start Postgres
+        run: docker compose -f infra/docker-compose.dev.yml up -d --wait
+      - name: backup, restore test, and its failure cases
+        run: bash infra/test/backup_test.sh
+
   docker:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
