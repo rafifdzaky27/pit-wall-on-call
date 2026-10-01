@@ -27,9 +27,11 @@ export interface ConsoleProps {
   onOpen?: OpenIn;
   /** The player picked a service on the map or with a number key. */
   onSelect?: (serviceId: string) => void;
+  /** Whether an action is on offer now (see ActionsPanel). */
+  offers?: (actionId: string) => boolean;
 }
 
-export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true, active = true, onOpen, onSelect }: ConsoleProps) {
+export function Console({ scenario, snapshot, logs, history, world, check, onAction, onPause, shortcuts = true, active = true, onOpen, onSelect, offers }: ConsoleProps) {
   const [selected, setSelected] = useState(scenario.services[0]!.id);
   const [filter, setFilter] = useState<string | null>(null);
 
@@ -74,7 +76,7 @@ export function Console({ scenario, snapshot, logs, history, world, check, onAct
           </div>
         </div>
         <div className="col col-right">
-          <ActionsPanel scenario={scenario} service={service} snapshot={snapshot} check={check} onAction={onAction} onOpen={onOpen} />
+          <ActionsPanel scenario={scenario} service={service} snapshot={snapshot} check={check} onAction={onAction} onOpen={onOpen} offers={offers} />
         </div>
       </div>
       <LogStream scenario={scenario} world={world} logs={logs} filter={filter} onClearFilter={() => setFilter(null)} />

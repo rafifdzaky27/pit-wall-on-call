@@ -9,7 +9,7 @@ afterEach(cleanup);
 
 const world = resolveWorld(1);
 
-function setup({ steps = 50, acked = true, inspect = [] as string[], active = true, onOpen = undefined as ConsoleProps["onOpen"] } = {}) {
+function setup({ steps = 50, acked = true, inspect = [] as string[], active = true, onOpen = undefined as ConsoleProps["onOpen"], offers = undefined as ConsoleProps["offers"] } = {}) {
   const run = new Run<State>(slowLeak, 1);
   for (const id of inspect) run.dispatch(`inspect:${id}`);
   if (acked) run.dispatch(ACK);
@@ -28,6 +28,7 @@ function setup({ steps = 50, acked = true, inspect = [] as string[], active = tr
       onPause={onPause}
       active={active}
       onOpen={onOpen}
+      offers={offers}
     />
   );
   const utils = render(view());
@@ -129,6 +130,15 @@ describe("Console", () => {
     expect(onOpen).toHaveBeenCalledWith("deploys", "checkout");
     fireEvent.click(screen.getByRole("button", { name: /^postgres/ }));
     expect(within(links).getAllByRole("button").map((b) => b.textContent)).toEqual(["Logs", "DB console", "Incident"]);
+  });
+
+  it("never links to a tool that has nothing on offer for the service yet (M5 C3)", () => {
+    const hidden = new Set(slowLeak.actions.filter((a) => a.serviceId === "postgres" && a.tool === "db").map((a) => a.id));
+    expect(hidden.size).toBeGreaterThan(0);
+    setup({ onOpen: vi.fn(), offers: (id) => !hidden.has(id) });
+    fireEvent.click(screen.getByRole("button", { name: /^postgres/ }));
+    const links = screen.getByRole("navigation", { name: "Open in" });
+    expect(within(links).getAllByRole("button").map((b) => b.textContent)).toEqual(["Logs", "Incident"]);
   });
 
   it("the pause button calls onPause", () => {
