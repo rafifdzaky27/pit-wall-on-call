@@ -61,6 +61,17 @@ describe.each(cases)("%s", (_id, v) => {
     }
   });
 
+  it("hard mode's runbook says no more than the check's button does (M6 review 2, M5)", () => {
+    // runbook prints every offered check's cli from the first second; a check's command may name what it
+    // looks at, but not a cause word its label carefully avoids.
+    const run = new Run(s, 1);
+    for (const a of s.actions.filter((x) => run.offers(x.id) && x.category === "investigate" && x.cli)) {
+      const label = `${a.label} ${a.command ?? ""}`.toLowerCase();
+      const names = v.spoilers.filter((w) => a.cli!.toLowerCase().includes(w.toLowerCase()) && !label.includes(w.toLowerCase()));
+      expect(names, `${a.id}'s runbook command says ${names.join(", ")}`).toEqual([]);
+    }
+  });
+
   it("never names the fix in an alert, a log line or a chat message", () => {
     const fixes = s.rootCauseActionIds.map((id) => s.actions.find((a) => a.id === id)!.label.toLowerCase());
     // Log lines from every kind of play, so lines that appear only after a fix or a mask are seen too (review 3).

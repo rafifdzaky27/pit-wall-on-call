@@ -31,8 +31,22 @@ function knowledge(scenario: ScenarioDef<State>, desktop: unknown, seed: number)
 
 const WORD = "a-z0-9_./-";
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-/** A key is learnable when it appears in what the player can read, as a whole word. */
-const appears = (text: string, key: string) => new RegExp(`(^|[^${WORD}])${escape(key)}($|[^${WORD}])`).test(text);
+const word = (text: string, w: string) => new RegExp(`(^|[^${WORD}])${escape(w)}($|[^${WORD}])`).test(text);
+/**
+ * A key is learnable when it appears in what the player can read, as a whole word; `a|b` needs one of
+ * them. A pair `setting=v1|v2` needs the setting, and one of its values stated near it (within the
+ * same stretch of text), so a short value like "1" cannot pass just by appearing somewhere else.
+ */
+function appears(text: string, key: string): boolean {
+  const eq = key.indexOf("=");
+  if (eq <= 0) return key.split("|").some((alt) => word(text, alt));
+  const name = key.slice(0, eq);
+  const values = key.slice(eq + 1).split("|");
+  return [...text.matchAll(new RegExp(`(^|[^${WORD}])${escape(name)}($|[^${WORD}])`, "g"))].some((m) => {
+    const after = text.slice(m.index!, m.index! + name.length + 200);
+    return values.some((v) => word(after.slice(name.length + 1), v));
+  });
+}
 
 describe.each(variants)("hard mode is learnable: $id", ({ v }) => {
   const { scenario } = v;

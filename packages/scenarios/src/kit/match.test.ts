@@ -67,3 +67,47 @@ describe("a key with a value", () => {
     expect(matchCli(tls, "kubectl set env deployment/checkout TLS_VERIFY=on", {}, services)).toBeUndefined();
   });
 });
+
+describe("second review fixes", () => {
+  const cfg: MatchableAction[] = [
+    { id: "fix", cli: `kubectl exec deployment/checkout -- config set inventory.client.max_retries = 1`, cliKeys: ["config", "set", "inventory.client.max_retries=0|1|2"] },
+    { id: "status", cli: `incidentctl status-page "Investigating"`, cliKeys: ["status-page"] },
+    { id: "page", cli: "incidentctl page secondary", cliKeys: ["page", "secondary"] },
+    { id: "skip", cli: "kafka-consumer-groups.sh --group g --reset-offsets --to-offset 5 --execute", cliKeys: ["--reset-offsets", "--to-offset", "5"] },
+  ];
+  const m = (input: string) => matchCli(cfg, input, {}, services)?.id;
+
+  it("a key=value pair matches with or without spaces around =, and any listed value", () => {
+    expect(m("kubectl exec deployment/checkout -- config set inventory.client.max_retries=0")).toBe("fix");
+    expect(m("kubectl exec deployment/checkout -- config set inventory.client.max_retries = 2")).toBe("fix");
+    expect(m("kubectl exec deployment/checkout -- config set inventory.client.max_retries = 5")).toBeUndefined();
+  });
+
+  it("refuses a line that gives a pair's setting more than one value", () => {
+    expect(m("kubectl exec deployment/checkout -- config set inventory.client.max_retries = 0 1 2")).toBeUndefined();
+    expect(m("kubectl exec deployment/checkout -- config set inventory.client.max_retries=5 inventory.client.max_retries=1")).toBeUndefined();
+  });
+
+  it("free text in an incidentctl message never counts as keys", () => {
+    expect(m(`incidentctl status-page "Investigating, will page secondary"`)).toBe("status");
+    expect(m("incidentctl page secondary")).toBe("page");
+  });
+
+  it("a dry run never counts as the change", () => {
+    expect(m("kubectl --dry-run=client exec deployment/checkout -- config set inventory.client.max_retries=1")).toBeUndefined();
+    expect(m("kubectl --dry-run exec deployment/checkout -- config set inventory.client.max_retries=1")).toBeUndefined();
+    // --dry-run=none (or the old =false) means "really do it".
+    expect(m("kubectl --dry-run=none exec deployment/checkout -- config set inventory.client.max_retries=1")).toBe("fix");
+    expect(m("kubectl --dry-run=false exec deployment/checkout -- config set inventory.client.max_retries=1")).toBe("fix");
+  });
+
+  it("accepts deploy/ and deployments/ for deployment/, and ./ before a file", () => {
+    const k: MatchableAction[] = [
+      { id: "undo", cli: "kubectl rollout undo deployment/checkout", cliKeys: ["rollout", "undo", "deployment/checkout"] },
+      { id: "apply", cli: "kubectl apply -f checkout-mtls-client.yaml", cliKeys: ["apply", "checkout-mtls-client.yaml"] },
+    ];
+    expect(matchCli(k, "kubectl rollout undo deploy/checkout-api", {}, services)?.id).toBe("undo");
+    expect(matchCli(k, "kubectl rollout undo deployments/checkout", {}, services)?.id).toBe("undo");
+    expect(matchCli(k, "kubectl apply -f ./checkout-mtls-client.yaml", {}, services)?.id).toBe("apply");
+  });
+});

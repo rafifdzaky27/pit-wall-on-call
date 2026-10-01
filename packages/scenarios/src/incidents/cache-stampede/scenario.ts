@@ -210,7 +210,7 @@ export function cacheStampede(v: CacheVariant): ScenarioDef<Stampede> {
           { id: "cache.rollback_redis", cliKeys: ["rollout", "undo", "deployment/redis-cache"], cli: "kubectl rollout undo deployment/redis-cache", tool: "deploys" as const, label: "Roll back redis-cache config to v12", serviceId: "cache", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
             reveals: () => ["redis-cache config v12 applied; nothing changed, the hit ratio is still low"] }]
         : []),
-      { id: "db.raise_conns", cliKeys: ["max_connections"], cli: `psql -h ${db} -c "ALTER SYSTEM SET max_connections = 400;"`, tool: "db", label: `Raise ${db} max connections to 400`, serviceId: "db", category: "mitigate", durationS: 20, verdict: "wasted",
+      { id: "db.raise_conns", cliKeys: ["alter", "system", "max_connections"], cli: `psql -h ${db} -c "ALTER SYSTEM SET max_connections = 400;"`, tool: "db", label: `Raise ${db} max connections to 400`, serviceId: "db", category: "mitigate", durationS: 20, verdict: "wasted",
         command: "ALTER SYSTEM SET max_connections = 400;",
         available: (s) => s.conns === 0,
         effect: (s) => ({ ...s, conns: 1 }),

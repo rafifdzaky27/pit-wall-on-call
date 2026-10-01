@@ -8,14 +8,12 @@ import { useOs } from "../../shell/OsContext";
 import { objectiveText } from "../../shell/Objective";
 import { PAGE_ACTION, STATUS_ACTION } from "../chat/commands";
 import { outputsOf } from "../tools/toolActions";
-import { complete, runLine, type TermLine } from "./commands";
+import { complete, runLine, statusText, type TermLine } from "./commands";
 import type { TermEntry } from "./session";
 import "./terminal.css";
 
 const PROMPT = "oncall@pitwall:~$";
 
-/** The words inside a command's quotes: what a status update says. */
-const quoted = (line: string) => /"([^"]+)"/.exec(line)?.[1] ?? /'([^']+)'/.exec(line)?.[1];
 
 /** Hard mode's Terminal: every action is a typed command (M6 spec H3, H9). */
 export function TerminalApp({ vocabulary }: { vocabulary?: readonly string[] } = {}) {
@@ -75,7 +73,7 @@ export function TerminalApp({ vocabulary }: { vocabulary?: readonly string[] } =
       // A status update and a page are also something you say: post them to Chat like the buttons did.
       const refused =
         result.dispatch === STATUS_ACTION
-          ? team.postStatus(quoted(typed) ?? "We are investigating elevated errors.")
+          ? team.postStatus(statusText(typed) ?? "We are investigating elevated errors.")
           : result.dispatch === PAGE_ACTION
             ? team.pageSecondary()
             : (incident.dispatch(result.dispatch), null);

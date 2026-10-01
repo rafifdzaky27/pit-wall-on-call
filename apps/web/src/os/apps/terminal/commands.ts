@@ -103,6 +103,14 @@ function refusal(reason: RejectReason): string {
   }
 }
 
+/** What a status update says: the quoted text, or the rest of the line after `status-page`. */
+export function statusText(line: string): string | undefined {
+  const quoted = /"([^"]+)"/.exec(line)?.[1] ?? /'([^']+)'/.exec(line)?.[1];
+  if (quoted) return quoted.trim();
+  const rest = /status-page\s+(.+)$/i.exec(line.trim())?.[1]?.trim();
+  return rest === "" ? undefined : rest;
+}
+
 /** Reads one typed line (M6 spec H5 to H9). The caller dispatches, acknowledges or clears as asked. */
 export function runLine(line: string, ctx: TerminalCtx): TerminalResult {
   const typed = line.trim();
@@ -110,7 +118,8 @@ export function runLine(line: string, ctx: TerminalCtx): TerminalResult {
   const word = cliFirstWord(typed);
   const vocabulary = ctx.vocabulary ?? CLI_VOCABULARY;
 
-  switch (typed.toLowerCase()) {
+  // A builtin runs on its first word, so `help kubectl` is still help (review 2, M8).
+  switch (word) {
     case "help":
       return { lines: [...CLI_HELP, ...HELP_EXTRA].map(out) };
     case "runbook": {
@@ -134,6 +143,8 @@ export function runLine(line: string, ctx: TerminalCtx): TerminalResult {
 
   const state = ctx.state?.() ?? ({} as State);
   const action = matchCli(ctx.scenario.actions, typed, state, ctx.scenario.services);
+  // A question to a teammate runs beside other work, as its button does (review 2, M1).
+  if (action?.async && ctx.offers(action.id) && ctx.check(action.id) === null) return { lines: [], dispatch: action.id };
   if (vocabulary.includes(word) || action) {
     // Busy, or the page not acknowledged: every line in the vocabulary answers the same, so the
     // reply is no oracle for whether the syntax was right (review I4).

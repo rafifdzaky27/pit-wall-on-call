@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CLI_HELP } from "@pitwall/scenarios";
-import { complete, HELP_EXTRA, runLine, type TerminalCtx } from "./commands";
+import { complete, HELP_EXTRA, runLine, statusText, type TerminalCtx } from "./commands";
 import { FIXTURE_CLI, FIXTURE_SECRETS, FIXTURE_VOCAB, fixtureScenario } from "./testFixture";
 
 function ctx(over: Partial<TerminalCtx> = {}): TerminalCtx {
@@ -239,5 +239,26 @@ describe("runLine: per-run values (cliVars)", () => {
   it("does not match the placeholder or another value", () => {
     expect(runLine(`psql -c "SELECT pg_terminate_backend({pid});"`, ctx({ scenario: withPid, state: () => state })).dispatch).toBeUndefined();
     expect(runLine(`psql -c "SELECT pg_terminate_backend(24118);"`, ctx({ scenario: withPid, state: () => state })).dispatch).toBeUndefined();
+  });
+});
+
+describe("second review: terminal minors", () => {
+  it("a builtin with arguments still runs the builtin", () => {
+    expect(text(runLine("help kubectl", ctx()))).toContain("Builtins");
+    expect(text(runLine("runbook please", ctx()))).not.toContain("command not found");
+  });
+
+  it("pages the secondary while another action runs, as the button does (it is async)", () => {
+    const scenario = { ...fixtureScenario, actions: fixtureScenario.actions.map((a) => (a.id === "global.ask_secondary" ? { ...a, async: true } : a)) } as TerminalCtx["scenario"];
+    const busy = (id: string) => (id === "global.ask_secondary" ? null : "busy");
+    expect(runLine("incidentctl page secondary", ctx({ scenario, check: busy })).dispatch).toBe("global.ask_secondary");
+    expect(runLine("kubectl rollout undo deployment/checkout", ctx({ scenario, check: busy })).dispatch).toBeUndefined();
+  });
+
+  it("reads a status message with or without quotes", () => {
+    expect(statusText(`incidentctl status-page "We're rolling back checkout"`)).toBe("We're rolling back checkout");
+    expect(statusText("incidentctl status-page 'Investigating'")).toBe("Investigating");
+    expect(statusText("incidentctl status-page Investigating checkout errors")).toBe("Investigating checkout errors");
+    expect(statusText("incidentctl status-page")).toBeUndefined();
   });
 });

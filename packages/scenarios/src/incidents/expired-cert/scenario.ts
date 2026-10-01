@@ -204,7 +204,7 @@ export function makeScenario(v: Variant): ScenarioDef<CertState> {
   const actions: ActionDef<CertState>[] = [
     { id: "edge.error_log", cli: "kubectl logs deployment/edge --since=15m", tool: "logs", label: "Read gateway error log", serviceId: "edge", category: "investigate", durationS: 3, verdict: "useful",
       reveals: () => ['nginx: every 5xx in the last 5 min is a 502 on POST /checkout, "bad gateway" returned by checkout-api:8080'] },
-    { id: "checkout.tls_errors", cli: `kubectl logs deployment/checkout --since=1h | grep -i ${mesh ? "x509" : "tls"}`, tool: "logs", label: c.errLabel, serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful", reveals: () => [c.errReveal] },
+    { id: "checkout.tls_errors", cli: `kubectl logs deployment/checkout --since=1h | grep -i error`, tool: "logs", label: c.errLabel, serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful", reveals: () => [c.errReveal] },
     { id: `${dep.id}.status`, cli: mesh ? "kubectl top pods -l app=stock" : "curl -s https://status.pay.provider.example/api/v2/status.json", tool: "dashboards", label: mesh ? "Check stock-api health" : "Check provider status", serviceId: dep.id, category: "investigate", durationS: 3, verdict: "wasted",
       reveals: () => [mesh ? "stock-api: pods ready, CPU 9%, p99 12 ms on the requests it does answer" : "payments provider: all systems operational, p99 182 ms; other merchants are unaffected"] },
     { id: "postgres.status", cli: "kubectl top pods -l app=postgres", tool: "dashboards", label: "Check postgres health", serviceId: "postgres", category: "investigate", durationS: 3, verdict: "wasted",

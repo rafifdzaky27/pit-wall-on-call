@@ -197,7 +197,7 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
         reveals: () => [callerId === "edge"
           ? `edge-gateway v33 by {deployer}, 5 days ago; auth call policy in config: ${v.policy}. Nothing changed today`
           : `checkout-api v312 by {deployer}, 4 days ago; inventory client policy in config: ${v.policy}. Nothing changed today`] },
-      { id: "caller.fix", cliKeys: ["config", "set", ...v.fix.keys], cli: `kubectl exec deployment/${callerId} -- sh -c "${v.fix.command.split("\n").join(" && ")}"`, tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
+      { id: "caller.fix", cliKeys: ["config", "set", `${v.fix.keys[0]}=${v.fix.keys[1]}`], cli: `kubectl exec deployment/${callerId} -- sh -c "${v.fix.command.split("\n").join(" && ")}"`, tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
         command: v.fix.command,
         // Only on offer once the player has opened the caller's config and seen the policy it would change.
         available: (s) => s.fixed === 0 && s.sawConfig === 1,
@@ -302,9 +302,9 @@ export const STORM_VARIANTS: readonly StormVariant[] = [
       command: "config set inventory.client.max_retries = 1\nconfig set inventory.client.backoff = exponential",
       done: "config rolled out to checkout-api: 1 extra attempt per call, exponential backoff with jitter; the load on inventory-svc is falling",
       setting: "max_retries=1, backoff=exponential",
-      keys: ["inventory.client.max_retries", "1"],
+      keys: ["inventory.client.max_retries", "0|1|2"],
     },
-    policy: "inventory.client.max_retries = 3, inventory.client.backoff = none (0 ms), inventory.client.timeout_ms = 800",
+    policy: "inventory.client.max_retries = 3 (0 to 3 extra attempts per call), inventory.client.backoff = none (0 ms), inventory.client.timeout_ms = 800",
     timeoutKey: "inventory.client.timeout_ms",
     herring: "dependency_deploy",
     symptom: { code: 504, path: "/checkout/reserve" },
