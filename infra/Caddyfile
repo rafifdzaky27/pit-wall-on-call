@@ -18,11 +18,18 @@
 		reverse_proxy api:8787
 	}
 
-	# Self-hosted analytics (compose profile "analytics"). Umami runs with BASE_PATH=/stats,
-	# so the path is not stripped. While the profile is off the upstream does not resolve;
-	# handle_errors below turns that 502 into a plain 404 (never the SPA).
-	handle /stats/* {
+	# Self-hosted analytics (compose profile "analytics"). The prebuilt Umami image ignores a
+	# runtime BASE_PATH (it is a build arg), so Umami serves at its root and Caddy strips
+	# /stats. Only the tracker script and its collect endpoint are public; the admin UI is
+	# reached over an SSH tunnel (runbook). While the profile is off the upstream does not
+	# resolve; handle_errors below turns that 502 into a plain 404 (never the SPA).
+	@tracker path /stats/script.js /stats/api/send
+	handle @tracker {
+		uri strip_prefix /stats
 		reverse_proxy umami:3000
+	}
+	handle /stats/* {
+		respond "Not found" 404
 	}
 
 	# Hashed assets: cached forever, and a missing one is a real 404 (never the SPA

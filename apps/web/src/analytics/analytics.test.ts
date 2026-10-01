@@ -40,6 +40,8 @@ describe("initAnalytics", () => {
     expect(s?.defer).toBe(true);
     expect(s?.dataset.websiteId).toBe("site-1");
     expect(s?.dataset.autoTrack).toBe("true");
+    // Caddy strips /stats before Umami, so events must post to /stats/api/send, not /api/send.
+    expect(s?.dataset.hostUrl).toBe("/stats");
   });
 });
 

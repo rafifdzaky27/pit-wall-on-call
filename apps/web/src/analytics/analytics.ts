@@ -34,6 +34,9 @@ export function initAnalytics(): void {
   script.src = SCRIPT_SRC;
   script.dataset.websiteId = websiteId;
   script.dataset.autoTrack = "true";
+  // Caddy strips /stats before Umami (its prebuilt image has no base path), so the collect
+  // endpoint must be /stats/api/send, never our own /api/*.
+  script.dataset.hostUrl = "/stats";
   document.head.appendChild(script);
 }
 

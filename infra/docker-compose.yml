@@ -56,8 +56,10 @@ services:
       # break every deploy with the profile off). deploy.sh requires them when it is on.
       DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:-}@postgres:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET:-}
-      BASE_PATH: /stats
       DISABLE_TELEMETRY: "1"
+    # The admin UI is never public: loopback only, reached with `ssh -L 3001:127.0.0.1:3001`.
+    ports:
+      - "127.0.0.1:3001:3000"
     depends_on:
       postgres:
         condition: service_healthy
