@@ -73,6 +73,20 @@ describe("the shift report (M2.5 spec §6)", () => {
     expect(within(card()).getByText("Copied to the clipboard.")).toBeTruthy();
   });
 
+  it("Share sends one share_click per click, whether or not the copy works", async () => {
+    const track = vi.fn();
+    (window as { umami?: unknown }).umami = { track };
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText: vi.fn(async () => Promise.reject(new Error("denied"))) } });
+    finished();
+    await opened();
+    track.mockClear();
+    await act(async () => fireEvent.click(within(card()).getByRole("button", { name: "Share" })));
+    expect(track.mock.calls).toEqual([["share_click", undefined]]);
+    await act(async () => fireEvent.click(within(card()).getByRole("button", { name: "Share" })));
+    expect(track).toHaveBeenCalledTimes(2);
+    delete (window as { umami?: unknown }).umami;
+  });
+
   it("a daily says which one, shows today's board, and shares as the daily (M3 spec Y11, Y12)", async () => {
     const today = dailyFor(utcDate(Date.now()));
     const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});

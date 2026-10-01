@@ -5,6 +5,7 @@ import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useOs } from "../shell/OsContext";
 import { INCIDENTS } from "@pitwall/scenarios";
+import { track } from "../../analytics/analytics";
 import { hintFor } from "./hints";
 import { due, markHinted, nextMilestone, observe, startGuide, type Facts, type GuideState, type Milestone } from "./milestones";
 
@@ -65,6 +66,7 @@ export function useGuide(): void {
     fix: did(["mitigate", "fix"]),
   };
   const key = JSON.stringify(facts);
+  const hintTracked = useRef(false);
 
   useEffect(() => {
     if (phase === "active") dispatch({ type: "observe", facts, at: gameMs });
@@ -93,6 +95,10 @@ export function useGuide(): void {
       if (!hint) return;
       const run = () => (hint.open === "monitoring" ? openApp("monitoring") : openTool(hint.open, crit[0] ?? null));
       pushNotice({ id: GUIDE_NOTICE, app: "Guide", title: hint.title, body: hint.body, actions: [{ label: hint.cta, run, primary: true }] });
+      if (!hintTracked.current) {
+        hintTracked.current = true;
+        track("hint_shown");
+      }
     }
   }, [active, state, gameMs]);
 

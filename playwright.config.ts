@@ -28,7 +28,8 @@ export default defineConfig({
       command: "pnpm --filter @pitwall/web build && pnpm --filter @pitwall/web exec vite preview --port 4173 --strictPort",
       url: "http://localhost:4173",
       // Practice shifts in this build are always the Slow Leak, which the specs play (M4: practice picks by seed).
-      env: { VITE_PIN_INCIDENT: "db-pool-exhaustion" },
+      // The fake website id switches the Umami loader on; analytics.spec stubs /stats/script.js. Other specs get a 404-ish script and ignore it.
+      env: { VITE_PIN_INCIDENT: "db-pool-exhaustion", VITE_UMAMI_WEBSITE_ID: "e2e-test" },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
