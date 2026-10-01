@@ -41,7 +41,7 @@ export const DEFAULT_PREFS: Prefs = {
   systemCursor: false,
   singleKeyShortcuts: true,
   wallpaper: "auto",
-  sticky: "Start here: open Monitoring from the dock.",
+  sticky: "Notes for your shift. They stay on this device.",
   volume: 70,
   muted: false,
   fullscreenOnStart: true,
