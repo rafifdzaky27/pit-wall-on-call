@@ -30,6 +30,8 @@ export interface Prefs {
   nextStepHints: boolean;
   /** A real (not training) shift was resolved once, so the hints stepped aside. */
   resolvedOnce: boolean;
+  /** Real (not training) shifts finished with any result; three of them end the hints (M5 C4). */
+  shiftsDone: number;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -51,6 +53,7 @@ export const DEFAULT_PREFS: Prefs = {
   trainingDone: false,
   nextStepHints: true,
   resolvedOnce: false,
+  shiftsDone: 0,
 };
 
 const KEY = "pitwall.prefs";
@@ -70,6 +73,7 @@ function sanitize(raw: unknown): Prefs {
   }
   if (typeof r.wallpaper === "string" && WALLPAPERS.includes(r.wallpaper)) prefs.wallpaper = r.wallpaper as WallpaperChoice;
   if (typeof r.sticky === "string") prefs.sticky = r.sticky.slice(0, 2000);
+  if (typeof r.shiftsDone === "number" && Number.isFinite(r.shiftsDone)) prefs.shiftsDone = Math.min(1000, Math.max(0, Math.floor(r.shiftsDone)));
   for (const level of LEVELS) {
     const value = r[level];
     if (typeof value === "number" && Number.isFinite(value)) prefs[level] = Math.round(Math.min(100, Math.max(0, value)));
