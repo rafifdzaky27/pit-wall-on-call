@@ -43,9 +43,10 @@ export function runsRoutes(ctx: RouteContext) {
     mode: row.mode,
     ranked: row.mode === "daily_ranked",
     dailyDate: row.dailyDate,
+    difficulty: row.difficulty,
     flagged: row.flagged,
     score: storedScore(row),
-    board: row.mode === "daily_ranked" && row.dailyDate ? await dailyPosition(ctx.db, row.dailyDate, row.id) : await boardPosition(ctx.db, row.scenarioId, playerId, row.id),
+    board: row.mode === "daily_ranked" && row.dailyDate ? await dailyPosition(ctx.db, row.dailyDate, row.difficulty, row.id) : await boardPosition(ctx.db, row.scenarioId, row.difficulty, playerId, row.id),
   });
 
   r.post(
@@ -112,6 +113,7 @@ export function runsRoutes(ctx: RouteContext) {
         // The first daily per player and date ranks; the unique index decides (M3 spec Y6).
         mode: body.mode === "daily" ? "daily_ranked" : "practice",
         dailyDate: body.dailyDate,
+        difficulty: body.difficulty,
         seed: body.seed,
         engineVersion: body.engineVersion,
         actions: body.actions,
