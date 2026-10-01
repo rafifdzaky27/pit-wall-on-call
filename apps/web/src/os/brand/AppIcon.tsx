@@ -75,6 +75,12 @@ const GLYPHS: Record<IconName, ReactNode> = {
       <path d="M12 10.3v3.4M12 15.9v.1" />
     </>
   ),
+  terminal: (
+    <>
+      <path d="M7 8.5l4 3.5-4 3.5" />
+      <path d="M12.5 16h4.5" />
+    </>
+  ),
   phone: (
     <>
       <rect x="8.2" y="4.5" width="7.6" height="15" rx="1.8" />

@@ -9,6 +9,7 @@ import { useOs } from "../../shell/OsContext";
 import { Objective } from "../../shell/Objective";
 import { statusLabel } from "../../shell/StatusChip";
 import { PAGE_ACTION, STATUS_ACTION } from "../chat/commands";
+import { HardNote } from "./HardNote";
 import { actionsIn, offered } from "./toolActions";
 import "./tools.css";
 
@@ -66,6 +67,7 @@ export function IncidentApp() {
     const line = describe(e, scenario);
     return line ? [{ tick: e.tick, line }] : [];
   });
+  const hard = incident.difficulty === "hard";
   const statusDone = incident.timeline.some((e) => e.kind === "action_start" && e.actionId === STATUS_ACTION);
 
   const post = (e: FormEvent) => {
@@ -88,36 +90,42 @@ export function IncidentApp() {
         </div>
         <section className="tool-card" aria-labelledby="inc-status-h">
           <h3 id="inc-status-h">Status page</h3>
-          <form className="inc-compose" onSubmit={post}>
-            <textarea
-              aria-label="Status page message"
-              placeholder="What customers see, in plain words: what is broken and that you are on it."
-              rows={3}
-              value={text}
-              disabled={statusDone}
-              onChange={(e) => setText(e.target.value)}
-            />
-            <button type="submit" className="btn primary" data-coach={`action:${STATUS_ACTION}`} disabled={incident.check(STATUS_ACTION) !== null}>
-              Post status update
-            </button>
-          </form>
-          <h3>Team</h3>
-          <ul className="tool-actions">
-            <li>
-              <button type="button" className="btn" data-coach={`action:${PAGE_ACTION}`} disabled={incident.check(PAGE_ACTION) !== null} onClick={() => setNote(team.pageSecondary())}>
-                Page secondary on-call
-              </button>
-            </li>
-            {others.map((a) => (
-              <li key={a.id}>
-                <ActionButton action={a} snapshot={snapshot} check={incident.check} onAction={incident.dispatch} />
-              </li>
-            ))}
-          </ul>
-          {note && (
-            <p className="muted" role="status">
-              {note}
-            </p>
+          {hard ? (
+            <HardNote />
+          ) : (
+            <>
+              <form className="inc-compose" onSubmit={post}>
+                <textarea
+                  aria-label="Status page message"
+                  placeholder="What customers see, in plain words: what is broken and that you are on it."
+                  rows={3}
+                  value={text}
+                  disabled={statusDone}
+                  onChange={(e) => setText(e.target.value)}
+                />
+                <button type="submit" className="btn primary" data-coach={`action:${STATUS_ACTION}`} disabled={incident.check(STATUS_ACTION) !== null}>
+                  Post status update
+                </button>
+              </form>
+              <h3>Team</h3>
+              <ul className="tool-actions">
+                <li>
+                  <button type="button" className="btn" data-coach={`action:${PAGE_ACTION}`} disabled={incident.check(PAGE_ACTION) !== null} onClick={() => setNote(team.pageSecondary())}>
+                    Page secondary on-call
+                  </button>
+                </li>
+                {others.map((a) => (
+                  <li key={a.id}>
+                    <ActionButton action={a} snapshot={snapshot} check={incident.check} onAction={incident.dispatch} />
+                  </li>
+                ))}
+              </ul>
+              {note && (
+                <p className="muted" role="status">
+                  {note}
+                </p>
+              )}
+            </>
           )}
         </section>
         <section className="tool-card" aria-labelledby="inc-check-h">

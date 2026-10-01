@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AppId } from "../apps/ids";
 import { APP_META, DOCK_APPS } from "../apps/meta";
 import { AppIcon } from "../brand/AppIcon";
+import { useIncident } from "../incident/IncidentProvider";
 import { frameOf } from "../wm/wm";
 import { dockHidden, dockRect } from "./dockGeometry";
 import { useOs } from "./OsContext";
@@ -17,6 +18,9 @@ const FALLBACK_WIDTH = 400;
 
 export function Dock({ unread, forceShow = false }: { unread: number; forceShow?: boolean }) {
   const { wm, dispatchWm, openApp, dragging } = useOs();
+  const { difficulty, phase } = useIncident();
+  // The Terminal is a hard-shift tool: it appears with the shift and goes when the shift ends (M6 spec H3).
+  const terminalShown = difficulty === "hard" && (phase === "prepage" || phase === "paging" || phase === "active");
   const ref = useRef<HTMLElement>(null);
   const [width, setWidth] = useState(0);
   const [peek, setPeek] = useState(false);
@@ -101,7 +105,7 @@ export function Dock({ unread, forceShow = false }: { unread: number; forceShow?
         }}
       >
         <ul>
-          {DOCK_APPS.map((id) => {
+          {DOCK_APPS.filter((id) => id !== "terminal" || terminalShown).map((id) => {
             const running = wm.windows.some((w) => w.appId === id && !w.closing);
             const badge = id === "chat" ? unread : 0;
             const title = APP_META[id].title;

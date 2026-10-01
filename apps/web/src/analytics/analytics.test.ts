@@ -62,9 +62,9 @@ describe("track", () => {
   it("sends the event name and only the allowed props", () => {
     const spy = vi.fn();
     (window as { umami?: unknown }).umami = { track: spy };
-    track("shift_finish", { result: "resolved", incident: "db-pool-exhaustion", mode: "daily", leak: "x" } as never);
+    track("shift_finish", { result: "resolved", incident: "db-pool-exhaustion", mode: "daily", difficulty: "hard", leak: "x" } as never);
     track("ack");
-    expect(spy).toHaveBeenNthCalledWith(1, "shift_finish", { result: "resolved", incident: "db-pool-exhaustion", mode: "daily" });
+    expect(spy).toHaveBeenNthCalledWith(1, "shift_finish", { result: "resolved", incident: "db-pool-exhaustion", mode: "daily", difficulty: "hard" });
     expect(spy).toHaveBeenNthCalledWith(2, "ack", undefined);
   });
 });

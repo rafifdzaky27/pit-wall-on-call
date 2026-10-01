@@ -2,6 +2,8 @@ import { dailyFor, slowLeak, utcDate } from "@pitwall/scenarios";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { StrictMode, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_PREFS } from "../prefs";
+import { PrefsProvider } from "../PrefsProvider";
 import { IncidentProvider, useIncident } from "./IncidentProvider";
 
 const spy = vi.fn();
@@ -38,7 +40,24 @@ describe("funnel events from the incident (M5 spec L5-4)", () => {
     act(() => result.current.start());
     act(() => result.current.start());
     tick(1);
-    expect(calls()).toEqual([["shift_start", { incident: "db-pool-exhaustion", mode: "practice" }]]);
+    expect(calls()).toEqual([["shift_start", { incident: "db-pool-exhaustion", mode: "practice", difficulty: "normal" }]]);
+  });
+
+  it("a hard shift says so in shift_start and shift_finish (M6 spec H12)", () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PrefsProvider initial={{ ...DEFAULT_PREFS, difficulty: "hard" }}>
+        <IncidentProvider scenario={slowLeak} newSeed={() => 1} prepageMs={18_000} now={() => Date.now()}>
+          {children}
+        </IncidentProvider>
+      </PrefsProvider>
+    );
+    const { result } = renderHook(() => useIncident(), { wrapper });
+    act(() => result.current.start());
+    act(() => result.current.skipPrepage());
+    act(() => result.current.acknowledge());
+    expect(calls().filter(([n]) => n === "shift_start")).toEqual([["shift_start", { incident: "db-pool-exhaustion", mode: "practice", difficulty: "hard" }]]);
+    for (let s = 0; s < 1200 && result.current.phase !== "ended"; s++) tick(1);
+    expect(calls().filter(([n]) => n === "shift_finish")).toEqual([["shift_finish", { result: "dnf", incident: "db-pool-exhaustion", mode: "practice", difficulty: "hard" }]]);
   });
 
   it("a daily starts as mode daily; training as mode training", () => {
@@ -48,7 +67,7 @@ describe("funnel events from the incident (M5 spec L5-4)", () => {
     expect(calls()[0]![1]).toMatchObject({ mode: "daily" });
     spy.mockClear();
     act(() => result.current.startTraining());
-    expect(calls()).toEqual([["shift_start", { incident: expect.any(String), mode: "training" }]]);
+    expect(calls()).toEqual([["shift_start", { incident: expect.any(String), mode: "training", difficulty: "normal" }]]);
   });
 
   it("sends ack once, when the page is acknowledged, not for a refused ack", () => {
@@ -72,7 +91,7 @@ describe("funnel events from the incident (M5 spec L5-4)", () => {
     for (let s = 0; s < 120 && result.current.phase !== "ended"; s++) tick(1);
     tick(5);
     expect(result.current.phase).toBe("ended");
-    expect(calls().filter(([n]) => n === "shift_finish")).toEqual([["shift_finish", { result: "resolved", incident: "db-pool-exhaustion", mode: "practice" }]]);
+    expect(calls().filter(([n]) => n === "shift_finish")).toEqual([["shift_finish", { result: "resolved", incident: "db-pool-exhaustion", mode: "practice", difficulty: "normal" }]]);
   });
 
   it("an unanswered page ends as dnf", () => {

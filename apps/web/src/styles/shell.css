@@ -32,6 +32,7 @@
 .app-deploys { --app-color: var(--app-deploys); }
 .app-db { --app-color: var(--app-db); }
 .app-incident { --app-color: var(--app-incident); }
+.app-terminal { --app-color: var(--app-terminal); }
 .wallpaper { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .glyph { display: block; flex: none; }
 .icon-btn { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 14px; background: transparent; color: var(--muted); }

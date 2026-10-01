@@ -12,6 +12,7 @@ const LogsApp = lazy(() => import("./tools/LogsApp").then((m) => ({ default: m.L
 const DeploysApp = lazy(() => import("./tools/DeploysApp").then((m) => ({ default: m.DeploysApp })));
 const DbApp = lazy(() => import("./tools/DbApp").then((m) => ({ default: m.DbApp })));
 const IncidentApp = lazy(() => import("./tools/IncidentApp").then((m) => ({ default: m.IncidentApp })));
+const TerminalApp = lazy(() => import("./terminal/TerminalApp").then((m) => ({ default: m.TerminalApp })));
 const HelpApp = lazy(() => import("./help/HelpApp").then((m) => ({ default: m.HelpApp })));
 
 /** Monitoring loads eagerly (it is the core); every other app is its own chunk. */
@@ -28,4 +29,5 @@ export const APP_COMPONENTS: Record<AppId, ComponentType> = {
   deploys: DeploysApp,
   db: DbApp,
   incident: IncidentApp,
+  terminal: TerminalApp,
 };

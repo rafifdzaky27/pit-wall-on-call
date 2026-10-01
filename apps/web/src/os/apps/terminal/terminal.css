@@ -1,0 +1,13 @@
+.term-app { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--sunken); color: var(--text); font-size: var(--fs-sm); line-height: 1.7; }
+.term-log { flex: 1; min-height: 0; overflow: auto; padding: var(--space-3) var(--space-3) 0; }
+.term-line { white-space: pre-wrap; overflow-wrap: anywhere; }
+.term-prompt { color: var(--accent-text); }
+.term-in { color: var(--text); }
+.term-out { color: var(--text); }
+.term-err { color: var(--crit); }
+.term-muted { color: var(--muted); }
+.term-input { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3) var(--space-3); }
+.term-input .term-prompt { flex: none; }
+.term-field { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text); font-size: inherit; caret-color: var(--accent-text); }
+.term-field:focus { outline: none; }
+.term-input:focus-within { box-shadow: inset 0 2px 0 var(--accent); }

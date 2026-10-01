@@ -16,6 +16,7 @@ button { font: inherit; color: inherit; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .wordmark { font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
 .empty { color: var(--muted); }
+.hard-note { color: var(--muted); font-size: var(--fs-sm); }
 .hint { color: var(--muted); font-size: var(--fs-xs); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
 kbd {

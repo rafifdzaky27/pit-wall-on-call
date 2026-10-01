@@ -6,6 +6,7 @@ import { formatClock } from "../../../game/format";
 import { useIncident } from "../../incident/IncidentProvider";
 import { useOs } from "../../shell/OsContext";
 import { visibleFor } from "../chat/unread";
+import { HardNote } from "./HardNote";
 import { actionsIn, offered } from "./toolActions";
 import { ToolIdle } from "./ToolIdle";
 import { useToolFocus } from "./useToolFocus";
@@ -33,6 +34,7 @@ export function LogsApp() {
   if (incident.phase === "idle" || incident.phase === "prepage") return <ToolIdle name="Logs" />;
 
   const labels = new Map(scenario.services.map((s) => [s.id, s.label]));
+  const hard = incident.difficulty === "hard";
   const saved = offered(actionsIn(scenario, "logs", current), incident.offers);
   const q = query.trim().toLowerCase();
   const shown = logs
@@ -99,7 +101,9 @@ export function LogsApp() {
       <div className="tool-body">
         <aside className="tool-side">
           <h3 className="group-h">Saved queries</h3>
-          {saved.length === 0 ? (
+          {hard ? (
+            <HardNote />
+          ) : saved.length === 0 ? (
             <p className="empty">No saved queries for {current ? labels.get(current) : "any service"}.</p>
           ) : (
             <ul className="tool-actions" role="group" aria-label="Saved queries">
