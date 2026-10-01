@@ -96,6 +96,7 @@
   --app-deploys: #b85c1e;
   --app-db: #a3485f;
   --app-incident: #c43d3d;
+  --app-terminal: #3a4452;
   --shadow-window: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.3);
   --shadow-window-rest: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.25);
 }

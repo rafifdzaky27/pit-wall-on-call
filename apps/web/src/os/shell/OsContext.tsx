@@ -3,6 +3,7 @@ import type { Author } from "@pitwall/scenarios";
 import type { AppId } from "../apps/ids";
 import type { ToolAppId } from "../apps/tools/toolActions";
 import { APP_META } from "../apps/meta";
+import { NEW_TERMINAL_SESSION, type TerminalSession } from "../apps/terminal/session";
 import { initialWm, MIN_H, wmReducer, type WmAction, type WmState } from "../wm/wm";
 
 export const TOPBAR_H = 32;
@@ -86,6 +87,9 @@ export interface OsApi {
   /** Things the player did that no window state shows ("service:<id>" selected on the map, "chat:<channel>" read). For the next-step guide. */
   signals: ReadonlySet<string>;
   signal: (id: string) => void;
+  /** The Terminal's scrollback and history for this shift (M6 spec H3). */
+  terminal: TerminalSession;
+  updateTerminal: (update: (prev: TerminalSession) => TerminalSession) => void;
 }
 
 const OsContext = createContext<OsApi | null>(null);
@@ -130,6 +134,7 @@ export function OsProvider({ children }: { children: ReactNode }) {
   const [chatPosts, setChatPosts] = useState<readonly ChatPost[]>([]);
   const [toolFocus, setToolFocus] = useState<OsApi["toolFocus"]>(null);
   const [signals, setSignals] = useState<ReadonlySet<string>>(() => new Set());
+  const [terminal, updateTerminal] = useReducer((prev: TerminalSession, update: (prev: TerminalSession) => TerminalSession) => update(prev), NEW_TERMINAL_SESSION);
 
   useEffect(() => {
     const onResize = () => dispatchWm({ type: "setArea", ...workArea() });
@@ -240,8 +245,10 @@ export function OsProvider({ children }: { children: ReactNode }) {
       openTool,
       signals,
       signal,
+      terminal,
+      updateTerminal,
     }),
-    [signals, signal, chatPosts, postChat, toolFocus, openTool, wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals, seenApps, markSeen],
+    [terminal, signals, signal, chatPosts, postChat, toolFocus, openTool, wm, openApp, read, markRead, openMenu, dragging, settingsPage, openSettings, browserTab, openBrowserTab, notices, pushNotice, hideBanner, removeNotice, markNoticesRead, clearNotices, bootAt, arrivals, recordArrivals, seenApps, markSeen],
   );
   const bridge = useContext(BridgeContext);
   useLayoutEffect(() => {

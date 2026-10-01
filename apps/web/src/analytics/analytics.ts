@@ -8,9 +8,9 @@ export type ShiftMode = "daily" | "practice" | "training";
 
 /** Each event and the only props it may carry. */
 export interface AnalyticsEvents {
-  shift_start: { incident: string; mode: ShiftMode };
+  shift_start: { incident: string; mode: ShiftMode; difficulty: "normal" | "hard" };
   ack: undefined;
-  shift_finish: { result: "resolved" | "dnf"; incident: string; mode: ShiftMode };
+  shift_finish: { result: "resolved" | "dnf"; incident: string; mode: ShiftMode; difficulty: "normal" | "hard" };
   share_click: undefined;
   hint_shown: undefined;
 }
@@ -42,9 +42,9 @@ export function initAnalytics(): void {
 
 /** Pick only the keys an event may carry, so nothing else can leak into a payload. */
 const KEYS: { [E in AnalyticsEvent]: readonly string[] } = {
-  shift_start: ["incident", "mode"],
+  shift_start: ["incident", "mode", "difficulty"],
   ack: [],
-  shift_finish: ["result", "incident", "mode"],
+  shift_finish: ["result", "incident", "mode", "difficulty"],
   share_click: [],
   hint_shown: [],
 };

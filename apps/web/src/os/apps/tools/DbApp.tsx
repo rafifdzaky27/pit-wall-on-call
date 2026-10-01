@@ -2,6 +2,7 @@ import { fillWorld } from "@pitwall/world";
 import { useLayoutEffect, useRef } from "react";
 import { ActionButton } from "../../../console/ActionButton";
 import { useIncident } from "../../incident/IncidentProvider";
+import { HardNote } from "./HardNote";
 import { actionsIn, offered, outputsOf } from "./toolActions";
 import { ToolIdle } from "./ToolIdle";
 import "./tools.css";
@@ -13,6 +14,7 @@ export function DbApp() {
   const logRef = useRef<HTMLDivElement>(null);
   const all = actionsIn(scenario, "db");
   const actions = offered(all, incident.offers);
+  const hard = incident.difficulty === "hard";
   // Every command that ran stays in the session, even once its button is gone.
   const outputs = outputsOf(scenario, incident.timeline, incident.logs, new Set(all.map((a) => a.id)));
   const running = actions.find((a) => snapshot.busy?.actionId === a.id || snapshot.pending.some((p) => p.actionId === a.id));
@@ -41,21 +43,25 @@ export function DbApp() {
       <div className="tool-body">
         <aside className="tool-side">
           <h3 className="group-h">Commands</h3>
-          <ul className="tool-actions">
-            {actions.map((a) => (
-              <li key={a.id}>
-                <ActionButton action={a} snapshot={snapshot} check={incident.check} onAction={incident.dispatch} className="db-cmd">
-                  <span className="db-cmd-text">
-                    <code className="mono">{command(a)}</code>
-                    <span className="muted">{a.label}</span>
-                  </span>
-                </ActionButton>
-              </li>
-            ))}
-          </ul>
+          {hard ? (
+            <HardNote />
+          ) : (
+            <ul className="tool-actions">
+              {actions.map((a) => (
+                <li key={a.id}>
+                  <ActionButton action={a} snapshot={snapshot} check={incident.check} onAction={incident.dispatch} className="db-cmd">
+                    <span className="db-cmd-text">
+                      <code className="mono">{command(a)}</code>
+                      <span className="muted">{a.label}</span>
+                    </span>
+                  </ActionButton>
+                </li>
+              ))}
+            </ul>
+          )}
         </aside>
         <div ref={logRef} className="db-term mono" role="log" aria-label="psql session">
-          <p className="muted">psql (17.2) · type a command on the left</p>
+          <p className="muted">{hard ? "psql (17.2) · its output shows here" : "psql (17.2) · type a command on the left"}</p>
           {outputs.map((o, i) => (
             <div key={i} className="db-entry">
               <p>

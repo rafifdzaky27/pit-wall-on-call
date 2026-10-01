@@ -176,16 +176,16 @@ const Session = memo(function Session({ onApi, shiftId, daily, onStartDaily, onS
   useEffect(() => {
     if (phase === "idle" || started.current) return;
     started.current = true;
-    track("shift_start", { incident: scenario.id, mode });
-  }, [phase, scenario.id, mode]);
+    track("shift_start", { incident: scenario.id, mode, difficulty });
+  }, [phase, scenario.id, mode, difficulty]);
 
   const onFinish = useCallback(
     (r: RunResult) => {
       setResult(r);
       setPhase("ended");
-      track("shift_finish", { result: r.outcome, incident: scenario.id, mode });
+      track("shift_finish", { result: r.outcome, incident: scenario.id, mode, difficulty });
     },
-    [scenario.id, mode],
+    [scenario.id, mode, difficulty],
   );
   const loop = useRunLoop(run, { active: phase === "paging" || phase === "active", onFinish, now });
   const { refresh } = loop;

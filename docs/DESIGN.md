@@ -309,3 +309,16 @@ Spec: `docs/specs/2026-09-29-m3-daily-incident-design.md`.
   - the posting line says "Ranked #R of T on today's daily board.", or that a later attempt counted as practice.
 - **The Browser's leaderboard site** has Daily and Practice tabs, with Daily as the default. The lock screen shows today's board.
 - **Share:** "Pit Wall On-Call · Daily #N", ending with the `/daily` link.
+
+## 14. Hard mode (M6)
+
+Spec: `docs/specs/2026-10-01-m6-hard-mode-design.md`.
+
+- **Terminal** (`os/apps/terminal/`): a dock app only during a hard shift, opened by the first ack. It uses `--sunken` for the screen, `--text`, `--muted` for hints, `--crit` for refusals and `--accent-text` for the prompt `oncall@pitwall:~$`, all in IBM Plex Mono at `--fs-sm`. The app colour is `--app-terminal` (graphite). No emoji or decorative icon: the dock glyph is a prompt chevron.
+- **Keyboard:** Enter runs, Up and Down recall the shift's history, Tab completes (only when the line has something to complete, so an empty prompt never traps focus), Ctrl+L clears, Ctrl+C cancels the line. Single-key shortcuts ignore the prompt like any text field.
+- **Accessibility:** the output is a `role="log"` region with `aria-live="polite"`; the prompt input is labelled "Terminal command". The `running… (Ns)` countdown is `aria-hidden`, so it is not read out every second.
+- **No scenario text:** completions, "did you mean" and refusals come only from the builtins, the global command vocabulary and the service map, never from this shift's commands.
+- **Where buttons were:** Monitoring, Logs, Deploys, DB console and Incident show one muted line, "Hard mode: run commands in Terminal" (`.hard-note`). Read-only views stay.
+- **Status:** the top bar chip reads "<status> · Hard" during a hard shift, and its accessible name ends ", hard mode".
+- **Settings → Gameplay → Difficulty:** a Normal / Hard radio group with a line on each; once a shift has started, a change shows "Applies from your next shift".
+- **The ack opens a window in hard mode** (the Terminal), an exception to "no window opens by itself" in section 12.
