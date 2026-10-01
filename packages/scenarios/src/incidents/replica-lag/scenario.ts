@@ -232,7 +232,7 @@ export function replicaLag(v: Variant): ScenarioDef<ReplicaLag> {
         command: v.findCommand,
         effect: (s) => ({ ...s, found: 1 }),
         reveals: (s) => [v.findReveal(s.pid)] },
-      { id: fixId, cli: `psql -h ${bf ? v.labels.replica : v.labels.primary} -c "${oneSpace(v.stopCommand)}"`, tool: "db", label: v.stopLabel, serviceId: bf ? "replica" : "primary", category: "fix", durationS: 15, verdict: "useful",
+      { id: fixId, cli: `psql -h ${bf ? v.labels.replica : v.labels.primary} -c "${oneSpace(v.stopCommand).replace(/<pid of [^>]+>/, "{pid}")}"`, cliVars: (s: ReplicaLag) => ({ pid: s.pid }), tool: "db", label: v.stopLabel, serviceId: bf ? "replica" : "primary", category: "fix", durationS: 15, verdict: "useful",
         command: v.stopCommand,
         available: (s) => s.found === 1 && s.job === 1,
         effect: (s) => ({ ...s, job: 0, quiet: 0 }),

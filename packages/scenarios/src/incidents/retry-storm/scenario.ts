@@ -193,7 +193,7 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
         reveals: () => [callerId === "edge"
           ? `edge-gateway v33 by {deployer}, 5 days ago; auth call policy in config: retries ${v.retries}, backoff 0 ms, circuit breaker off. Nothing changed today`
           : `checkout-api v312 by {deployer}, 4 days ago; inventory client policy in config: retries ${v.retries}, backoff 0 ms. Nothing changed today`] },
-      { id: "caller.fix", cli: `kubectl exec deployment/${callerId} -- ${v.fix.command.replace(/\n/g, " ")}`, tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
+      { id: "caller.fix", cli: `kubectl exec deployment/${callerId} -- sh -c "${v.fix.command.split("\n").join(" && ")}"`, tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
         command: v.fix.command,
         // Only on offer once the player has opened the caller's config and seen the policy it would change.
         available: (s) => s.fixed === 0 && s.sawConfig === 1,

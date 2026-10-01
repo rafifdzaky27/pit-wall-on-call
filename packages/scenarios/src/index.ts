@@ -3,7 +3,7 @@ import { training } from "./training";
 
 export { slowLeak, training };
 export { CLI_VOCABULARY, desktopFor, getScenario, INCIDENTS, SCENARIOS } from "./registry";
-export { cliFirstWord, cliIsBalanced, normaliseCli } from "./kit/cli";
+export { cliFirstWord, cliFor, cliIsBalanced, cliPlaceholders, normaliseCli } from "./kit/cli";
 export { practiceFor } from "./practice";
 export { defineIncident, type Family, type Golden, type Incident, type IncidentVariant } from "./kit/incident";
 export * from "./desktop";

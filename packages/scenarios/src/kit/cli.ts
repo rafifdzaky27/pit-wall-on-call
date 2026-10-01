@@ -51,3 +51,21 @@ export function cliIsBalanced(input: string): boolean {
   }
   return quote === null;
 }
+
+const PLACEHOLDER = /\{([a-zA-Z][a-zA-Z0-9]*)\}/g;
+
+/** The `{name}` placeholders in a cli, in order. */
+export function cliPlaceholders(cli: string): string[] {
+  return [...cli.matchAll(PLACEHOLDER)].map((m) => m[1]!);
+}
+
+/**
+ * An action's command for this run: its `cli` with `{name}` placeholders filled from `cliVars(state)`
+ * (a session pid, a stuck offset). Undefined when the action has no command (a teammate question).
+ */
+export function cliFor<S>(action: { cli?: string; cliVars?: (s: S) => Record<string, string | number> }, state: S): string | undefined {
+  if (action.cli === undefined) return undefined;
+  if (!action.cliVars) return action.cli;
+  const vars = action.cliVars(state);
+  return action.cli.replace(PLACEHOLDER, (whole, name: string) => (name in vars ? String(vars[name]) : whole));
+}

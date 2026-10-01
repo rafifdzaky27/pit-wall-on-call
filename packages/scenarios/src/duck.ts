@@ -12,6 +12,7 @@ export function duckAction<S extends State & { ducks: number }>(hints: readonly 
     id: DUCK,
     tool: "incident",
     label: "Explain it to the duck",
+    cli: "incidentctl rubber-duck",
     serviceId: null,
     category: "investigate",
     durationS: 30,
