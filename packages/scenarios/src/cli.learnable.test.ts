@@ -52,7 +52,7 @@ describe.each(variants)("hard mode is learnable: $id", ({ v }) => {
         const filled = (cliFor({ cli: key, cliVars: a.cliVars }, state) ?? key).toLowerCase();
         // A service named after deployment/ or app= is on the map (either name works: canonicalCli).
         const service = filled.match(/^(?:deployment\/|app=)(.+)$/)?.[1];
-        const ok = service ? services.some((s) => s.id.toLowerCase() === canonicalCli(service, services)) : appears(text, filled);
+        const ok = service ? services.some((s) => `deployment/${s.id.toLowerCase()}` === canonicalCli(`deployment/${service}`, services)) : appears(text, filled);
         if (!ok) unknown.push(`${a.id}: "${filled}"`);
       }
     }

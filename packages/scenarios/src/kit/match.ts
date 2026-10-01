@@ -96,7 +96,7 @@ export const CLI_HELP: readonly string[] = [
   '  psql [-h <host>] -c "<SQL>"         e.g. pg_terminate_backend(<pid>), pg_cancel_backend(<pid>),',
   "                                      pg_drop_replication_slot('<slot>'), UPDATE <table> SET ...",
   "  redis-cli [-h <host>] <command>     e.g. FLUSHALL, FLUSHDB, INFO",
-  "  kafka-consumer-groups.sh --group <group> --reset-offsets --to-offset <offset> --execute",
+  "  kafka-consumer-groups.sh --group <group> --reset-offsets --to-offset <offset> | --to-latest --execute",
   "  rabbitmqadmin ... --message-id <id>     rabbitmqctl purge_queue <queue>",
   "",
   "Incident process:",
