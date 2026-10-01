@@ -48,8 +48,10 @@ export function Desktop() {
     previous.current = incident.phase;
     if (before === incident.phase) return;
     if (incident.phase === "prepage") openApp("browser");
+    // The first ack of a hard shift brings the Terminal forward: that is where the work happens (M6 spec H3).
+    if (before === "paging" && incident.phase === "active" && incident.difficulty === "hard") openApp("terminal");
     if (incident.phase === "ended") openApp("postmortem");
-  }, [incident.phase, openApp]);
+  }, [incident.phase, incident.difficulty, openApp]);
 
   // The checklist counts the Browser when the player brings it forward during the incident (not when it
   // opened by itself before the page), and the postmortem once there is one to read (M2.5 spec §4).

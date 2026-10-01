@@ -76,6 +76,12 @@ export function Hotspots() {
       update({ radio: !prefs.radio });
     } else if (id === "duck") {
       // The rubber duck is the duck action (M2.5 spec §9): 30 s of incident time for the next question.
+      if (incident.difficulty === "hard") {
+        // No clickable actions in a hard shift: the duck is a command like any other (M6 review I3).
+        setDuckSaid("A rubber duck. To explain the problem to it, type incidentctl rubber-duck in the Terminal.");
+        setCaption(id);
+        return;
+      }
       const why = incident.phase === "active" ? refusalText(incident.check(DUCK_ACTION)) : "A rubber duck. When you are stuck, explain the problem to it.";
       if (!why) incident.dispatch(DUCK_ACTION);
       setDuckSaid(why ?? "You explain the problem to the duck. Its question lands in your logs in 30 s.");

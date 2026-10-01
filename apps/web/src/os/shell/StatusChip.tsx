@@ -34,12 +34,14 @@ export function statusLabel(phase: IncidentPhase, snapshot: Snapshot): { text: s
 }
 
 export function StatusChip() {
-  const { phase, snapshot } = useIncident();
+  const { phase, snapshot, difficulty } = useIncident();
   const { openApp } = useOs();
   const { text, tone } = statusLabel(phase, snapshot);
+  // Words, not colour: a hard shift says so (M6 spec H1).
+  const hard = difficulty === "hard" && phase !== "idle";
   return (
-    <button type="button" className={tone ? `oncall status-${tone}` : "oncall"} aria-label={`Incident status: ${text}`} onClick={() => openApp("incident")}>
-      {text}
+    <button type="button" className={tone ? `oncall status-${tone}` : "oncall"} aria-label={`Incident status: ${text}${hard ? ", hard mode" : ""}`} onClick={() => openApp("incident")}>
+      {hard ? `${text} · Hard` : text}
     </button>
   );
 }

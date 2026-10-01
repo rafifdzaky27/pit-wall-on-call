@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { fetchApiVersion } from "../../../api";
 import photos from "../../../content/store-photos.json";
 import { LogoMark } from "../../brand/Logo";
+import { useIncident } from "../../incident/IncidentProvider";
 import { enterFullscreen, exitFullscreen, fullscreenSupported, useFullscreen } from "../../fullscreen";
 import type { WallpaperChoice } from "../../prefs";
 import { usePrefs } from "../../PrefsProvider";
@@ -18,7 +19,7 @@ const PAGES: { id: SettingsPageId; label: string; keywords: string }[] = [
   { id: "sound", label: "Sound", keywords: "volume mute pager alert audio" },
   { id: "accessibility", label: "Accessibility", keywords: "motion animation larger text cursor shortcuts" },
   { id: "display", label: "Display", keywords: "full screen fullscreen" },
-  { id: "gameplay", label: "Gameplay", keywords: "hints guide next step help newcomer" },
+  { id: "gameplay", label: "Gameplay", keywords: "difficulty hard normal terminal commands hints guide next step help newcomer" },
   { id: "keyboard", label: "Keyboard", keywords: "shortcuts keys" },
   { id: "account", label: "Account", keywords: "handle leaderboard name player" },
   { id: "about", label: "About", keywords: "version build api license credits photos" },
@@ -50,6 +51,7 @@ function Switch({ label, checked, onChange }: { label: string; checked: boolean;
 export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?: () => Promise<string> }) {
   const { prefs, update } = usePrefs();
   const { settingsPage } = useOs();
+  const incident = useIncident();
   const full = useFullscreen();
   const [page, setPage] = useState<SettingsPageId>(settingsPage);
   const [query, setQuery] = useState("");
@@ -190,6 +192,22 @@ export function SettingsApp({ fetchVersion = fetchApiVersion }: { fetchVersion?:
               <Row title="Full screen now">
                 <Switch label="Full screen now" checked={full} onChange={(on) => void (on ? enterFullscreen() : exitFullscreen())} />
               </Row>
+            )}
+          </Group>
+        )}
+
+        {page === "gameplay" && (
+          <Group title="Difficulty">
+            <div role="radiogroup" aria-label="Difficulty">
+              <Row title="Normal" subtitle="Every action is a button in the tools: Monitoring, Logs, Deploys, DB console and Incident.">
+                <input type="radio" name="difficulty" aria-label="Normal" checked={prefs.difficulty === "normal"} onChange={() => update({ difficulty: "normal" })} />
+              </Row>
+              <Row title="Hard" subtitle="No action buttons. Run every command by typing it in the Terminal. Hard shifts have their own leaderboards.">
+                <input type="radio" name="difficulty" aria-label="Hard" checked={prefs.difficulty === "hard"} onChange={() => update({ difficulty: "hard" })} />
+              </Row>
+            </div>
+            {prefs.difficulty !== incident.difficulty && (
+              <Row title="Applies from your next shift" subtitle="The shift in progress keeps the difficulty it started with. Training is always Normal." />
             )}
           </Group>
         )}

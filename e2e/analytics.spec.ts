@@ -43,10 +43,10 @@ test("one scripted shift sends the funnel events to our own origin only (M5)", a
 
   const calls = await page.evaluate(() => (window as unknown as { __umami: unknown[] }).__umami);
   expect(calls).toEqual([
-    ["shift_start", { incident: "db-pool-exhaustion", mode: "practice" }],
+    ["shift_start", { incident: "db-pool-exhaustion", mode: "practice", difficulty: "normal" }],
     ["ack", null],
     ["hint_shown", null],
-    ["shift_finish", { result: "resolved", incident: "db-pool-exhaustion", mode: "practice" }],
+    ["shift_finish", { result: "resolved", incident: "db-pool-exhaustion", mode: "practice", difficulty: "normal" }],
     ["share_click", null],
   ]);
   expect(scriptRequests).toBe(1);

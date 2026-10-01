@@ -1,6 +1,7 @@
 import { ACK, ENGINE_VERSION, INSPECT_PREFIX, type ActionRecord } from "@pitwall/engine";
 import { getScenario, isDailyDate } from "@pitwall/scenarios";
 import { z } from "zod";
+import type { Difficulty } from "../db/schema";
 import { ApiError } from "../http/errors";
 
 export const MAX_ACTIONS = 200;
@@ -21,6 +22,8 @@ const Body = z.object({
     .array(z.object({ tick: z.number().int().min(0), actionId: z.string().max(100) }))
     .min(1)
     .max(MAX_ACTIONS),
+  /** M6 spec H10: absent means normal, for clients from before hard mode. */
+  difficulty: z.enum(["normal", "hard"]).optional(),
   dryRun: z.boolean().optional(),
 });
 
@@ -32,6 +35,7 @@ export interface RunBody {
   engineVersion: string;
   runKey: string;
   actions: ActionRecord[];
+  difficulty: Difficulty;
   dryRun: boolean;
 }
 
@@ -77,6 +81,7 @@ export function parseRunBody(json: unknown): RunBody {
     engineVersion: body.engineVersion,
     runKey: body.runKey,
     actions: body.actions.map(({ tick, actionId }) => ({ tick, actionId })),
+    difficulty: body.difficulty ?? "normal",
     dryRun: body.dryRun ?? false,
   };
 }

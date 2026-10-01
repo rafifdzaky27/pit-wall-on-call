@@ -9,6 +9,7 @@ import {
   type State,
 } from "@pitwall/engine";
 import { actionsIn, offered, TOOL_LABEL, type ToolAppId } from "../os/apps/tools/toolActions";
+import { HardNote } from "../os/apps/tools/HardNote";
 import { ActionButton } from "./ActionButton";
 import { HEALTH_LABEL } from "./ServiceMap";
 
@@ -32,9 +33,11 @@ interface Props {
   onOpen?: OpenIn;
   /** Whether an action is on offer now; a tool with none for this service gets no Open in link. Everything, when omitted. */
   offers?: (actionId: string) => boolean;
+  /** Hard mode: dashboard checks are typed in the Terminal, not clicked (M6 spec H2). */
+  hard?: boolean;
 }
 
-export function ActionsPanel({ scenario, service, snapshot, check, onAction, onOpen, offers = () => true }: Props) {
+export function ActionsPanel({ scenario, service, snapshot, check, onAction, onOpen, offers = () => true, hard = false }: Props) {
   // Monitoring holds the dashboard checks; every other action lives in its tool (M2.5 plan B4).
   const local = actionsIn(scenario, "dashboards", service.id);
   const busy = snapshot.busy;
@@ -60,8 +63,10 @@ export function ActionsPanel({ scenario, service, snapshot, check, onAction, onO
             Running: {busyDef.label} · {Math.ceil((busy.endTick - snapshot.tick) / TICKS_PER_SECOND)} s left
           </p>
         )}
-        {local.length === 0 && <p className="empty">No dashboard checks for this service.</p>}
+        {hard && <HardNote />}
+        {!hard && local.length === 0 && <p className="empty">No dashboard checks for this service.</p>}
         {ORDER.map((category) => {
+          if (hard) return null;
           const items = local.filter((a) => a.category === category);
           if (items.length === 0) return null;
           return (

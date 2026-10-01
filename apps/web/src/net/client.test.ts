@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, fetchLeaderboard, NetworkError, postRun, registerPlayer } from "./client";
+import { ApiError, fetchDailyBoard, fetchLeaderboard, NetworkError, postRun, registerPlayer } from "./client";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -23,6 +23,21 @@ describe("API client", () => {
     const [url, init] = fetch.mock.calls[0]!;
     expect(url).toBe("/api/leaderboard?scenario=db-pool-exhaustion");
     expect((init.headers as Record<string, string>).authorization).toBe("Bearer pw_token");
+  });
+
+  it("asks for the hard boards with difficulty=hard and leaves the default URL alone for normal (M6 H10)", async () => {
+    const fetch = vi.fn<(url: string, init: RequestInit) => Promise<Response>>(async () => json(200, { entries: [] }));
+    vi.stubGlobal("fetch", fetch);
+    await fetchLeaderboard("db-pool-exhaustion", undefined, "hard");
+    await fetchDailyBoard("2026-10-05", undefined, "hard");
+    await fetchLeaderboard("db-pool-exhaustion", undefined, "normal");
+    await fetchDailyBoard("2026-10-05", undefined, "normal");
+    expect(fetch.mock.calls.map((c) => c[0])).toEqual([
+      "/api/leaderboard?scenario=db-pool-exhaustion&difficulty=hard",
+      "/api/leaderboard?date=2026-10-05&difficulty=hard",
+      "/api/leaderboard?scenario=db-pool-exhaustion",
+      "/api/leaderboard?date=2026-10-05",
+    ]);
   });
 
   it("turns an error body into an ApiError with its code, request ID and Retry-After", async () => {

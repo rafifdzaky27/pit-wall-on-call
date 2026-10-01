@@ -90,7 +90,7 @@ export const migration: Variant = {
   stopReveal: (pid) => `pid ${pid} terminated; replay resumed and the replica is working through the backlog of WAL`,
   failoverTail: "the analytics tool reconnects to the new replica and leaves an idle transaction open again within the hour",
   backfill: {
-    listReveal: (pid) => `pg_stat_activity on orders-primary: pid ${pid + 3011}, application migrator, open 47 min: the orders_v2 backfill is rewriting 190M rows in one transaction, at about four times the normal WAL rate. That is busy, but a replica can replay it, and it does not explain a replay that has stopped`,
+    listReveal: (pid) => `pg_stat_activity on orders-primary: pid ${pid + 3011}, application migrator, open 47 min: the orders_v2 backfill is rewriting 190M rows in one transaction, at about four times the normal WAL rate. That is busy, but a replica can replay it, and it does not explain a replay that has stopped. The job is driven by the backfill.pause('orders_v2') and backfill.resume('orders_v2') procedures`,
     pauseLabel: "Pause the orders_v2 backfill",
     pauseCommand: "CALL backfill.pause('orders_v2');",
     pauseReveal: "backfill paused: primary CPU and WAL volume are back to normal, but orders-replica-2 is still frozen at the same replay position",

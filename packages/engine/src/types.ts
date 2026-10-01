@@ -84,6 +84,21 @@ export interface ActionDef<S extends State> {
   ask?: { to: string; topic: string; prompt: string };
   /** What the action looks like in its tool, such as the SQL a DB console runs. Content only. */
   command?: string;
+  /**
+   * The command a player types in hard mode's Terminal to run this action (M6 spec H4). Content only.
+   * `{name}` placeholders are filled from `cliVars` with the run's state, for values that differ per run
+   * (a session pid, a stuck offset) and that the player reads from an earlier finding.
+   */
+  cli?: string;
+  /** Values for the `{name}` placeholders in `cli`. Content only. */
+  cliVars?(s: S): Record<string, string | number>;
+  /**
+   * For a fix or mitigation: the words a typed command must contain to count as this action, beyond
+   * its command word (M6 review C1). Each one must be learnable in the game (a finding, a log line, the
+   * map, chat, or help), so the player types what they found, not the exact reference text. `{name}`
+   * placeholders are filled like `cli`. Without keys, the whole `cli` must match.
+   */
+  cliKeys?: string[];
 }
 
 export type ActionTool = "dashboards" | "logs" | "deploys" | "db" | "incident" | "chat";

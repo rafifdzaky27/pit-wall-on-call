@@ -160,6 +160,19 @@ describe("a chat you can use (M2.5 spec §7)", () => {
     expect(screen.queryByRole("button", { name: "hey, what went out in checkout today?" })).toBeNull();
   });
 
+  it("in a hard shift the DM offers no one-click questions, only the typed /ask", () => {
+    const view = renderOs(<ChatApp />, { prefs: { difficulty: "hard" } });
+    act(() => view.incident().start());
+    act(() => view.incident().skipPrepage());
+    act(() => view.incident().acknowledge());
+    dm("deployer");
+    expect(screen.queryByRole("button", { name: "hey, what went out in checkout today?" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Suggested questions" })).toBeNull();
+    expect(screen.getByText(new RegExp(`type /ask @${world.colleagues.deployer.toLowerCase()} <topic>`, "i"))).toBeTruthy();
+    type(`/ask @${world.colleagues.deployer.toLowerCase()} changes`);
+    expect(view.incident().timeline.some((e) => e.kind === "action_start" && e.actionId === "ask.deployer.changes")).toBe(true);
+  });
+
   it("/ask works from any channel, and says where the question went", () => {
     const { incident } = paged();
     type(`/ask @${world.colleagues.support.toLowerCase()} impact`);

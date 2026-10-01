@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { formatBp, formatClock } from "../../game/format";
 import { fetchDailyBoard, fetchLeaderboard, type Board, type BoardEntry, type DailyBoard } from "../../net/client";
 import { usePlayer } from "../../net/player";
+import type { Difficulty } from "../prefs";
 import "./leaderboard.css";
 
 type Load = { kind: "loading" } | { kind: "error" } | { kind: "ok"; board: Board | DailyBoard };
@@ -34,6 +35,7 @@ export function LeaderboardPage({
   limit,
   bare = false,
   daily,
+  difficulty = "normal",
 }: {
   scenarioId: string;
   scenarioTitle: string;
@@ -44,6 +46,8 @@ export function LeaderboardPage({
   bare?: boolean;
   /** The day's daily board instead of the practice board. */
   daily?: { date: string; number: number };
+  /** Which difficulty's board (M6 spec H11). */
+  difficulty?: Difficulty;
 }) {
   const player = usePlayer();
   const token = player?.token;
@@ -53,14 +57,14 @@ export function LeaderboardPage({
   useEffect(() => {
     let live = true;
     setLoad({ kind: "loading" });
-    (daily ? fetchDailyBoard(daily.date, token) : fetchLeaderboard(scenarioId, token)).then(
+    (daily ? fetchDailyBoard(daily.date, token, difficulty) : fetchLeaderboard(scenarioId, token, difficulty)).then(
       (board) => live && setLoad({ kind: "ok", board }),
       () => live && setLoad({ kind: "error" }),
     );
     return () => {
       live = false;
     };
-  }, [scenarioId, daily?.date, token, version, attempt]);
+  }, [scenarioId, daily?.date, difficulty, token, version, attempt]);
 
   let body;
   if (load.kind === "loading") {
@@ -75,7 +79,18 @@ export function LeaderboardPage({
       </div>
     );
   } else if (load.board.entries.length === 0) {
-    body = <p>{daily ? "Nobody has posted today's daily yet. Be the first." : "No shifts posted yet. Finish a shift and post it from its postmortem."}</p>;
+    const hard = difficulty === "hard";
+    body = (
+      <p>
+        {daily
+          ? hard
+            ? "Nobody has posted today's daily on hard yet. Be the first."
+            : "Nobody has posted today's daily yet. Be the first."
+          : hard
+            ? "No hard shifts posted yet. Finish one on hard and post it from its postmortem."
+            : "No shifts posted yet. Finish a shift and post it from its postmortem."}
+      </p>
+    );
   } else {
     const { you, total } = load.board;
     const entries = limit === undefined ? load.board.entries : load.board.entries.slice(0, limit);
@@ -83,7 +98,7 @@ export function LeaderboardPage({
     body = (
       <>
         <div className="lb-table-wrap">
-          <table className="lb-table" aria-label={daily ? "Daily leaderboard" : "Practice leaderboard"}>
+          <table className="lb-table" aria-label={`${daily ? "Daily" : "Practice"} leaderboard${difficulty === "hard" ? " (hard)" : ""}`}>
             <thead>
               <tr>
                 <th scope="col">Rank</th>
@@ -122,7 +137,7 @@ export function LeaderboardPage({
     <article className="lb-page">
       <header className="lb-head">
         <p className="lb-site">Pit Wall On-Call</p>
-        <h1>{daily ? `Daily #${daily.number}` : "Practice leaderboard"}</h1>
+        <h1>{`${daily ? `Daily #${daily.number}` : "Practice leaderboard"}${difficulty === "hard" ? " · Hard" : ""}`}</h1>
         <p className="lb-sub">{daily ? `${daily.date} · first attempt per player` : `${scenarioTitle} · best shift per player · all time`}</p>
       </header>
       {body}

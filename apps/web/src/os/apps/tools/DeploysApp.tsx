@@ -6,6 +6,7 @@ import { useOs } from "../../shell/OsContext";
 import { useNow } from "../../useNow";
 import { relative } from "../chat/model";
 import { visibleFor } from "../chat/unread";
+import { HardNote } from "./HardNote";
 import { actionsIn, offered, outputsOf } from "./toolActions";
 import { ToolIdle } from "./ToolIdle";
 import { useToolFocus } from "./useToolFocus";
@@ -26,6 +27,7 @@ export function DeploysApp() {
     .sort((a, b) => (a.minutesAgo ?? 0) - (b.minutesAgo ?? 0));
   const history = (label: string) => cards.filter((m) => m.card.service === label);
   const services = scenario.services.filter((s) => actionsIn(scenario, "deploys", s.id).length > 0 || history(s.label).length > 0);
+  const hard = incident.difficulty === "hard";
   const shown = current ? services.filter((s) => s.id === current) : services;
 
   return (
@@ -68,7 +70,8 @@ export function DeploysApp() {
                   ))}
                 </ol>
               )}
-              {actions.length > 0 && (
+              {hard && every.length > 0 && <HardNote />}
+              {!hard && actions.length > 0 && (
                 <ul className="tool-actions tool-row">
                   {actions.map((a) => (
                     <li key={a.id}>

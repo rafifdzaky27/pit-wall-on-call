@@ -167,66 +167,66 @@ export function cacheStampede(v: CacheVariant): ScenarioDef<Stampede> {
     ],
 
     actions: [
-      { id: "redis.stats", tool: "db", label: "Check redis keyspace stats", serviceId: "cache", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "redis.stats", cli: "redis-cli info stats keyspace", tool: "db", label: "Check redis keyspace stats", serviceId: "cache", category: "investigate", durationS: 3, verdict: "useful",
         command: "redis-cli info stats keyspace",
         effect: (s) => ({ ...s, seen: 1 }),
         reveals: (s) => [prefix
           ? `redis-cache: hit ratio ${Math.floor(s.hit / 100)}% (was 96% yesterday), 41k keys and growing slowly, all under prefix cat:v3; 1.9M keys under cat:v2 are still there and untouched; uptime 41 days, evicted 0`
           : `redis-cache: hit ratio ${Math.floor(s.hit / 100)}% (was 96% yesterday), 38k keys (2.1M yesterday), evicted 0; uptime 21 minutes`] },
-      { id: "api.logs", tool: "logs", label: `Search ${api} for cache misses`, serviceId: "api", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "api.logs", cli: `kubectl logs deployment/${api} --since=1h | grep -i miss`, tool: "logs", label: `Search ${api} for cache misses`, serviceId: "api", category: "investigate", durationS: 3, verdict: "useful",
         effect: (s) => ({ ...s, seen: 1 }),
         reveals: () => [prefix
-          ? `${api}: nearly every request logs a cache miss and goes to ${db}; the keys are all cat:v3:..., a prefix that does not appear in older logs`
-          : `${api}: nearly every request logs a cache miss and goes to ${db}, for keys that were hot an hour ago`] },
-      { id: "api.deploys", tool: "deploys", label: `View ${api} deploys`, serviceId: "api", category: "investigate", durationS: 3, verdict: prefix ? "useful" : "wasted",
+          ? `${api}: nearly every request logs a cache miss and goes to ${db}; the keys are all cat:v3:..., a prefix that does not appear in older logs; REQUEST_COALESCING is unset, so every waiting request makes its own read`
+          : `${api}: nearly every request logs a cache miss and goes to ${db}, for keys that were hot an hour ago; REQUEST_COALESCING is unset, so every waiting request makes its own read`] },
+      { id: "api.deploys", cli: `kubectl rollout history deployment/${api}`, tool: "deploys", label: `View ${api} deploys`, serviceId: "api", category: "investigate", durationS: 3, verdict: prefix ? "useful" : "wasted",
         reveals: () => [prefix
           ? "catalog-api v311 by {deployer}, 24 min ago: \"Cache key prefix v2 to v3 for the schema change\". It ships with the new prefix; v310 ran 3 days without issues."
           : "pricing-api v155 by {secondary}, 3 h ago: \"Fix rounding on tax-inclusive prices\". p99 did not move at deploy time."] },
-      { id: "redis.maintenance", tool: "deploys", label: "View redis maintenance log", serviceId: "cache", category: "investigate", durationS: 3, verdict: prefix ? "wasted" : "useful",
+      { id: "redis.maintenance", cli: "kubectl describe deployment/redis-cache", tool: "deploys", label: "View redis maintenance log", serviceId: "cache", category: "investigate", durationS: 3, verdict: prefix ? "wasted" : "useful",
         reveals: () => [prefix
           ? "redis-cache: last restart 41 days ago, no maintenance window today"
           : "redis-cache: restarted by {infra} 21 min ago for the memory upgrade; persistence is off, so it came back with an empty dataset"],
         // Finding the restart is finding the cold cache, so request coalescing is on offer after it too.
         effect: (s) => (prefix ? s : { ...s, seen: 1 }) },
-      { id: "db.connections", tool: "dashboards", label: `Check ${db} connections`, serviceId: "db", category: "investigate", durationS: 4, verdict: "wasted",
+      { id: "db.connections", cli: `promtool query instant http://prometheus:9090 'pg_stat_activity_count{instance="${db}"}'`, tool: "dashboards", label: `Check ${db} connections`, serviceId: "db", category: "investigate", durationS: 4, verdict: "wasted",
         reveals: () => [`${db}: 196 of 200 connections active, CPU 100%; every active query is the same primary-key lookup, about a millisecond each when it runs`] },
-      { id: "db.slow_log", tool: "logs", label: `Read the ${db} slow query log`, serviceId: "db", category: "investigate", durationS: 3, verdict: "wasted",
+      { id: "db.slow_log", cli: `kubectl logs deployment/${db} --since=1h | grep -i duration`, tool: "logs", label: `Read the ${db} slow query log`, serviceId: "db", category: "investigate", durationS: 3, verdict: "wasted",
         reveals: () => [`${db}: no bad plan and no long transaction; the queries are fast on their own, there are just far too many of them at once`] },
-      { id: "traffic.compare", tool: "dashboards", label: "Compare traffic with last week", serviceId: "front", category: "investigate", durationS: 4, verdict: "wasted",
+      { id: "traffic.compare", cli: "promtool query instant http://prometheus:9090 'sum(rate(http_requests_total{service=\"storefront\"}[5m])) / sum(rate(http_requests_total{service=\"storefront\"}[5m] offset 1w))'", tool: "dashboards", label: "Compare traffic with last week", serviceId: "front", category: "investigate", durationS: 4, verdict: "wasted",
         reveals: () => ["requests 6% above the same hour last week; the database is sized for twice that"] },
       ...(prefix
-        ? [{ id: "cache.rollback", tool: "deploys" as const, label: "Roll back catalog-api to v310", serviceId: "api", category: "fix" as const, durationS: 15, verdict: "useful" as const,
+        ? [{ id: "cache.rollback", cliKeys: ["rollout", "undo", "deployment/catalog-api"], cli: "kubectl rollout undo deployment/catalog-api", tool: "deploys" as const, label: "Roll back catalog-api to v310", serviceId: "api", category: "fix" as const, durationS: 15, verdict: "useful" as const,
             available: (s: Stampede) => s.fixed === 0,
             effect: (s: Stampede): Stampede => ({ ...s, fixed: 1, hit: 9000 }),
             reveals: () => ["v310 live on every pod; requests read the old cat:v2 keys again and the hit ratio is back above 90%"] }]
         : []),
-      { id: "cache.coalesce", tool: "deploys", label: `Enable request coalescing on ${api}`, serviceId: "api", category: "fix", durationS: 15, verdict: "useful",
+      { id: "cache.coalesce", cliKeys: ["set", "env", `deployment/${api}`, "REQUEST_COALESCING"], cli: `kubectl set env deployment/${api} REQUEST_COALESCING=true`, tool: "deploys", label: `Enable request coalescing on ${api}`, serviceId: "api", category: "fix", durationS: 15, verdict: "useful",
         available: (s) => s.coal === 0 && s.seen === 1,
         effect: (s) => ({ ...s, coal: 1, fixed: 1 }),
         reveals: () => [`${api}: one database read per missing key, the other waiting requests share it; ${db} load falling while the cache refills`] },
       ...(prefix
-        ? [{ id: "cache.rollback_front", tool: "deploys" as const, label: "Roll back storefront config to v88", serviceId: "front", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
+        ? [{ id: "cache.rollback_front", cliKeys: ["rollout", "undo", "deployment/storefront"], cli: "kubectl rollout undo deployment/storefront", tool: "deploys" as const, label: "Roll back storefront config to v88", serviceId: "front", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
             reveals: () => ["storefront config v88 applied; product pages still fail, the database is still saturated"] },
-          { id: "cache.rollback_redis", tool: "deploys" as const, label: "Roll back redis-cache config to v12", serviceId: "cache", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
+          { id: "cache.rollback_redis", cliKeys: ["rollout", "undo", "deployment/redis-cache"], cli: "kubectl rollout undo deployment/redis-cache", tool: "deploys" as const, label: "Roll back redis-cache config to v12", serviceId: "cache", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
             reveals: () => ["redis-cache config v12 applied; nothing changed, the hit ratio is still low"] }]
         : []),
-      { id: "db.raise_conns", tool: "db", label: `Raise ${db} max connections to 400`, serviceId: "db", category: "mitigate", durationS: 20, verdict: "wasted",
+      { id: "db.raise_conns", cliKeys: ["alter", "system", "max_connections"], cli: `psql -h ${db} -c "ALTER SYSTEM SET max_connections = 400;"`, tool: "db", label: `Raise ${db} max connections to 400`, serviceId: "db", category: "mitigate", durationS: 20, verdict: "wasted",
         command: "ALTER SYSTEM SET max_connections = 400;",
         available: (s) => s.conns === 0,
         effect: (s) => ({ ...s, conns: 1 }),
         reveals: () => [`${db}: max_connections 400, more queries in flight, CPU below 100% for now`] },
-      { id: "db.failover", tool: "db", label: `Fail over ${db} to the replica`, serviceId: "db", category: "mitigate", durationS: 25, verdict: "wasted", sideEffectBp: 1000,
+      { id: "db.failover", cliKeys: ["failover"], cli: `patronictl failover --candidate ${db}-replica-1 --force`, tool: "db", label: `Fail over ${db} to the replica`, serviceId: "db", category: "mitigate", durationS: 25, verdict: "wasted", sideEffectBp: 1000,
         available: (s) => s.failover === 0,
         effect: (s) => ({ ...s, failover: 1 }),
         reveals: () => [`${db}: replica promoted, a few seconds of failed writes, capacity higher for now`] },
-      { id: "redis.restart", tool: "deploys", label: "Restart redis-cache", serviceId: "cache", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 3000,
+      { id: "redis.restart", cliKeys: ["rollout", "restart", "deployment/redis-cache"], cli: "kubectl rollout restart deployment/redis-cache", tool: "deploys", label: "Restart redis-cache", serviceId: "cache", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 3000,
         effect: (s) => ({ ...s, hit: 300, ttl: TTL, restarts: s.restarts + 1 }),
         reveals: () => ["redis-cache: restarted, dataset empty again, hit ratio back at 3%"] },
-      { id: "global.status_update", tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
+      { id: "global.status_update", cliKeys: ["status-page"], cli: `incidentctl status-page "Investigating errors on ${surface} requests"`, tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
         available: (s) => s.statusPosted === 0,
         effect: (s) => ({ ...s, statusPosted: 1 }),
         reveals: () => [`status page: "Investigating errors on ${surface} requests"`] },
-      duckAction<Stampede>(HINTS),
+      { ...duckAction<Stampede>(HINTS), cli: "incidentctl rubber-duck" },
       { id: "ask.deployer.changes", tool: "chat", label: "Ask the deployer what went out today", serviceId: null, category: "investigate", durationS: 30, verdict: "useful", async: true,
         ask: { to: "deployer", topic: "changes", prompt: "hey, did anything go out today?" },
         reveals: () => [prefix
@@ -240,7 +240,7 @@ export function cacheStampede(v: CacheVariant): ScenarioDef<Stampede> {
         reveals: () => [prefix
           ? `{support}: "product pages come back with 'Service Unavailable' or take forever. It started about 25 minutes ago."`
           : `{support}: "the price line shows 'Service Unavailable' and checkout fails. It started about 20 minutes ago."`] },
-      { id: "global.ask_secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
+      { id: "global.ask_secondary", cliKeys: ["page", "secondary"], cli: "incidentctl page secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
         reveals: () => [`{secondary} (secondary): "The database is the victim, I think. Why did it suddenly get so many more reads than the traffic explains?"`] },
     ],
     rootCauseActionIds: prefix ? ["cache.rollback", "cache.coalesce"] : ["cache.coalesce"],

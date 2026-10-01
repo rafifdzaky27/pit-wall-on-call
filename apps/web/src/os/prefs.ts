@@ -2,6 +2,8 @@ import type { CityId } from "@pitwall/world";
 
 export type Theme = "dark" | "light";
 export type WallpaperChoice = "auto" | CityId;
+/** M6 spec H1: read when a shift starts, fixed for that shift. */
+export type Difficulty = "normal" | "hard";
 
 export interface Prefs {
   theme: Theme;
@@ -32,6 +34,7 @@ export interface Prefs {
   resolvedOnce: boolean;
   /** Real (not training) shifts finished with any result; three of them end the hints (M5 C4). */
   shiftsDone: number;
+  difficulty: Difficulty;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -54,6 +57,7 @@ export const DEFAULT_PREFS: Prefs = {
   nextStepHints: true,
   resolvedOnce: false,
   shiftsDone: 0,
+  difficulty: "normal",
 };
 
 const KEY = "pitwall.prefs";
@@ -72,6 +76,7 @@ function sanitize(raw: unknown): Prefs {
     if (typeof value === "boolean") prefs[flag] = value;
   }
   if (typeof r.wallpaper === "string" && WALLPAPERS.includes(r.wallpaper)) prefs.wallpaper = r.wallpaper as WallpaperChoice;
+  if (r.difficulty === "normal" || r.difficulty === "hard") prefs.difficulty = r.difficulty;
   if (typeof r.sticky === "string") prefs.sticky = r.sticky.slice(0, 2000);
   if (typeof r.shiftsDone === "number" && Number.isFinite(r.shiftsDone)) prefs.shiftsDone = Math.min(1000, Math.max(0, Math.floor(r.shiftsDone)));
   for (const level of LEVELS) {

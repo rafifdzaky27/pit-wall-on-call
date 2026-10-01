@@ -203,6 +203,11 @@ export class Run<S extends State> {
     }
   }
 
+  /** A copy of the scenario state, for presentation only (M6: hard-mode commands name per-run values). */
+  state(): S {
+    return { ...this.s };
+  }
+
   snapshot(): Snapshot {
     const details: Record<string, string> = {};
     for (const svc of this.scenario.services) details[svc.id] = svc.detail(this.s);

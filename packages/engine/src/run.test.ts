@@ -339,3 +339,16 @@ describe("engine version", () => {
     expect(ENGINE_VERSION).toBe("1.1.0");
   });
 });
+
+describe("state() (M6 spec H5: hard-mode commands can name per-run values)", () => {
+  it("reads the current scenario state without changing the run", () => {
+    const run = newRun(7);
+    const before = run.snapshot();
+    const state = run.state() as Record<string, number>;
+    expect(typeof state).toBe("object");
+    // A copy: changing it cannot change the run.
+    for (const key of Object.keys(state)) state[key] = -1;
+    expect(run.snapshot()).toEqual(before);
+    expect(Object.values(run.state())).not.toContain(-1);
+  });
+});

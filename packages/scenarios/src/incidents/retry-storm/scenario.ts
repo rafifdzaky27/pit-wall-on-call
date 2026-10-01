@@ -50,7 +50,11 @@ export interface StormVariant {
   spoilers: readonly string[];
   /** Par for this variant: more retries means a steeper storm. */
   parBp: number;
-  fix: { label: string; command: string; done: string; setting: string };
+  fix: { label: string; command: string; done: string; setting: string; keys: readonly string[] };
+  /** The caller's policy for the dependency as `kubectl describe` shows it: every config key the fix and its decoys use. */
+  policy: string;
+  /** The caller's timeout key for the dependency, one of the keys in `policy`. */
+  timeoutKey: string;
   /** A recent deploy of the dependency (variant a) or a loud cache (variant b). */
   herring: "dependency_deploy" | "cache";
   symptom: { code: 503 | 504; path: string };
@@ -176,60 +180,60 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
     ],
 
     actions: [
-      { id: "edge.error_log", tool: "logs", label: "Read gateway error log", serviceId: "edge", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "edge.error_log", cli: "kubectl logs deployment/edge --since=15m", tool: "logs", label: "Read gateway error log", serviceId: "edge", category: "investigate", durationS: 3, verdict: "useful",
         reveals: () => [`nginx: every 5xx in the last 5 min is a ${v.symptom.code} on POST ${v.symptom.path}; the timeouts come from ${callerId === "edge" ? dep : "checkout-api"}`] },
-      { id: "caller.retry_logs", tool: "logs", label: `Search ${v.caller.label} retries`, serviceId: callerId, category: "investigate", durationS: 3, verdict: "useful",
+      { id: "caller.retry_logs", cli: `logcli query 'service:${v.caller.label} "${dep}" retry | stats count by attempt'`, tool: "logs", label: `Search ${v.caller.label} retries`, serviceId: callerId, category: "investigate", durationS: 3, verdict: "useful",
         command: `service:${v.caller.label} "${dep}" retry | stats count by attempt`,
         reveals: (s) => [`${v.caller.label} → ${dep}: ${retryShare(s) || 72}% of the calls in the last 5 min are retries (max ${v.retries} extra attempts per call, backoff 0 ms). Every failed call is sent again at once`] },
-      { id: "dep.incident_log", tool: "logs", label: `Read the ${dep} event log`, serviceId: "dep", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "dep.incident_log", cli: `logcli query 'service:${dep} level:(WARN OR ERROR) | timeline'`, tool: "logs", label: `Read the ${dep} event log`, serviceId: "dep", category: "investigate", durationS: 3, verdict: "useful",
         command: `service:${dep} level:(WARN OR ERROR) | timeline`,
         reveals: () => [`${dep}: a 38 s burst of 5xx started 14 min ago (${v.store.label} failover) and ended 13 min ago. Health checks have passed since, but the queue never drained and the request rate is about ${Math.floor(load / 10)}.${load % 10}x its usual`] },
-      { id: "dep.rate", tool: "dashboards", label: `Check ${dep} request rate`, serviceId: "dep", category: "investigate", durationS: 4, verdict: "useful",
+      { id: "dep.rate", cli: `promtool query instant http://prometheus:9090 'sum(rate(http_requests_total{service="${dep}"}[1m]))'`, tool: "dashboards", label: `Check ${dep} request rate`, serviceId: "dep", category: "investigate", durationS: 4, verdict: "useful",
         reveals: (s) => [`${dep}: ${Math.floor(offered(s) / 1000)} req/s in, normally ${Math.floor(s.base / 1000)}; it can serve about ${Math.floor(s.cap / 1000)}. The blip is over, the load is not`] },
-      { id: "dep.health", tool: "dashboards", label: `Check ${dep} health`, serviceId: "dep", category: "investigate", durationS: 3, verdict: "wasted",
+      { id: "dep.health", cli: `curl -s http://${dep}:8080/healthz`, tool: "dashboards", label: `Check ${dep} health`, serviceId: "dep", category: "investigate", durationS: 3, verdict: "wasted",
         reveals: () => [`${dep}: 100% of health checks pass, no errors from ${v.store.label}. It looks healthy while every real request waits`] },
-      { id: "caller.deploys", tool: "deploys", label: "View recent deploys and config", serviceId: callerId, category: "investigate", durationS: 3, verdict: "useful",
+      { id: "caller.deploys", cli: `kubectl describe deployment/${callerId}`, tool: "deploys", label: "View recent deploys and config", serviceId: callerId, category: "investigate", durationS: 3, verdict: "useful",
         effect: (s) => ({ ...s, sawConfig: 1 }),
         reveals: () => [callerId === "edge"
-          ? `edge-gateway v33 by {deployer}, 5 days ago; auth call policy in config: retries ${v.retries}, backoff 0 ms, circuit breaker off. Nothing changed today`
-          : `checkout-api v312 by {deployer}, 4 days ago; inventory client policy in config: retries ${v.retries}, backoff 0 ms. Nothing changed today`] },
-      { id: "caller.fix", tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
+          ? `edge-gateway v33 by {deployer}, 5 days ago; auth call policy in config: ${v.policy}. Nothing changed today`
+          : `checkout-api v312 by {deployer}, 4 days ago; inventory client policy in config: ${v.policy}. Nothing changed today`] },
+      { id: "caller.fix", cliKeys: ["config", "set", `${v.fix.keys[0]}=${v.fix.keys[1]}`], cli: `kubectl exec deployment/${callerId} -- sh -c "${v.fix.command.split("\n").join(" && ")}"`, tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
         command: v.fix.command,
         // Only on offer once the player has opened the caller's config and seen the policy it would change.
         available: (s) => s.fixed === 0 && s.sawConfig === 1,
         effect: (s) => ({ ...s, fixed: 1 }),
         reveals: () => [v.fix.done] },
-      { id: "caller.timeout", tool: "deploys", label: `Raise the ${dep} client timeout to 3 s`, serviceId: callerId, category: "mitigate", durationS: 10, verdict: "wasted",
-        command: `config set ${dep.split("-")[0]}.client.timeout_ms = 3000`,
+      { id: "caller.timeout", cliKeys: ["config", "set", v.timeoutKey], cli: `kubectl exec deployment/${callerId} -- config set ${v.timeoutKey} = 3000`, tool: "deploys", label: `Raise the ${dep} client timeout to 3 s`, serviceId: callerId, category: "mitigate", durationS: 10, verdict: "wasted",
+        command: `config set ${v.timeoutKey} = 3000`,
         available: (s) => s.fixed === 0 && s.sawConfig === 1,
         reveals: () => [`timeout raised to 3 s: calls wait longer before failing, but each failure is still retried ${v.retries} times, so the request rate on ${dep} is unchanged`] },
-      { id: "dep.scale_up", tool: "deploys", label: `Scale ${dep} to 8 pods`, serviceId: "dep", category: "mitigate", durationS: 25, verdict: "wasted",
+      { id: "dep.scale_up", cliKeys: ["scale", "deployment/dep"], cli: `kubectl scale deployment/${dep} --replicas=8`, tool: "deploys", label: `Scale ${dep} to 8 pods`, serviceId: "dep", category: "mitigate", durationS: 25, verdict: "wasted",
         available: (s) => s.scaled === 0,
         effect: (s) => ({ ...s, scaled: 1, cap: s.cap + 90_000, queue: Math.min(s.queue, 10_000) }),
         reveals: () => [`${dep} scaled 4 → 8 pods: the queue drained and 5xx dropped`] },
-      { id: "dep.restart", tool: "deploys", label: `Restart ${dep} pods`, serviceId: "dep", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4500,
+      { id: "dep.restart", cliKeys: ["rollout", "restart", "deployment/dep"], cli: `kubectl rollout restart deployment/${dep}`, tool: "deploys", label: `Restart ${dep} pods`, serviceId: "dep", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4500,
         effect: (s) => ({ ...s, queue: MAX, restarts: s.restarts + 1 }),
         reveals: () => [`${dep} rolling restart done: 4 of 4 pods ready. Every caller reconnected and retried at once; the queue filled instantly`] },
       ...(depDeploy
-        ? [{ id: "dep.rollback", tool: "deploys" as const, label: `Roll back ${dep} to v57`, serviceId: "dep", category: "mitigate" as const, durationS: 30, verdict: "wasted" as const,
+        ? [{ id: "dep.rollback", cliKeys: ["rollout", "undo", "deployment/dep"], cli: `kubectl rollout undo deployment/${dep}`, tool: "deploys" as const, label: `Roll back ${dep} to v57`, serviceId: "dep", category: "mitigate" as const, durationS: 30, verdict: "wasted" as const,
             available: (s: Storm) => s.rolledBack === 0,
             effect: (s: Storm) => ({ ...s, rolledBack: 1 }),
             reveals: () => [`${dep} rolled back to v57: 4 of 4 pods ready; request rate unchanged`] }]
-        : [{ id: "store.flush", tool: "db" as const, label: "Flush the session cache", serviceId: "store", category: "mitigate" as const, durationS: 10, verdict: "harmful" as const, sideEffectBp: 1500,
+        : [{ id: "store.flush", cliKeys: ["flushdb"], cli: "redis-cli -h sessions-cache FLUSHDB", tool: "db" as const, label: "Flush the session cache", serviceId: "store", category: "mitigate" as const, durationS: 10, verdict: "harmful" as const, sideEffectBp: 1500,
             command: "redis-cli -h sessions-cache FLUSHDB",
             available: (s: Storm) => s.flushed === 0,
             effect: (s: Storm) => ({ ...s, flushed: 1, queue: Math.min(MAX, s.queue + 15_000) }),
             reveals: () => ["cache flushed: memory 82% → 3%. Every token check now goes to the auth database; latency is up, not down"] }]),
-      { id: "store.queries", tool: "db", label: cacheHerring ? "Check the session cache" : "Inspect running queries", serviceId: "store", category: "investigate", durationS: 3, verdict: "wasted",
+      { id: "store.queries", cli: cacheHerring ? "redis-cli -h sessions-cache INFO memory" : `psql -c "SELECT pid, application_name, state, now() - query_start AS runtime FROM pg_stat_activity WHERE state <> 'idle' ORDER BY runtime DESC;"`, tool: "db", label: cacheHerring ? "Check the session cache" : "Inspect running queries", serviceId: "store", category: "investigate", durationS: 3, verdict: "wasted",
         command: cacheHerring ? "redis-cli -h sessions-cache INFO memory" : "SELECT pid, application_name, state, now() - query_start AS runtime FROM pg_stat_activity WHERE state <> 'idle' ORDER BY runtime DESC;",
         reveals: () => cacheHerring
           ? ["used_memory 82%, evicted_keys 61 per s, all normal for this cache; hit rate 96%. It is not blocking anything"]
           : ["pg_stat_activity: 4 active queries, longest 0.2 s, no lock waits; every query the service sends finishes in under 20 ms"] },
-      { id: "global.status_update", tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
+      { id: "global.status_update", cliKeys: ["status-page"], cli: `incidentctl status-page "Investigating errors at ${callerId === "edge" ? "sign-in" : "checkout"}"`, tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
         available: (s) => s.statusPosted === 0,
         effect: (s) => ({ ...s, statusPosted: 1 }),
         reveals: () => [`status page: "Investigating errors at ${callerId === "edge" ? "sign-in" : "checkout"}"`] },
-      duckAction<Storm>(HINTS),
+      { ...duckAction<Storm>(HINTS), cli: "incidentctl rubber-duck" },
       { id: "ask.deployer.changes", tool: "chat", label: "Ask the deployer what went out today", serviceId: null, category: "investigate", durationS: 30, verdict: "useful", async: true,
         ask: { to: "deployer", topic: "changes", prompt: "hey, what went out today?" },
         reveals: () => [`{deployer}: "nothing on my side today."`] },
@@ -239,7 +243,7 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
       { id: "ask.support.impact", tool: "chat", label: "Ask support what customers see", serviceId: null, category: "investigate", durationS: 20, verdict: "useful", async: true,
         ask: { to: "support", topic: "impact", prompt: "what are customers seeing, and did it ever recover?" },
         reveals: () => [`{support}: "it hiccuped, then got better for a minute, then it all timed out again."`] },
-      { id: "global.ask_secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
+      { id: "global.ask_secondary", cliKeys: ["page", "secondary"], cli: "incidentctl page secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
         reveals: () => [`{secondary} (secondary): "${dep} says it is healthy. Then why is everything still timing out?"`] },
     ],
     rootCauseActionIds: ["caller.fix"],
@@ -298,7 +302,10 @@ export const STORM_VARIANTS: readonly StormVariant[] = [
       command: "config set inventory.client.max_retries = 1\nconfig set inventory.client.backoff = exponential",
       done: "config rolled out to checkout-api: 1 extra attempt per call, exponential backoff with jitter; the load on inventory-svc is falling",
       setting: "max_retries=1, backoff=exponential",
+      keys: ["inventory.client.max_retries", "0|1|2"],
     },
+    policy: "inventory.client.max_retries = 3 (0 to 3 extra attempts per call), inventory.client.backoff = none (0 ms), inventory.client.timeout_ms = 800",
+    timeoutKey: "inventory.client.timeout_ms",
     herring: "dependency_deploy",
     symptom: { code: 504, path: "/checkout/reserve" },
   },
@@ -318,7 +325,10 @@ export const STORM_VARIANTS: readonly StormVariant[] = [
       command: "config set edge.auth.circuit_breaker = enabled\nconfig set edge.auth.retry_budget = 10%",
       done: "config rolled out to edge-gateway: the circuit breaker opens on failures and retries are capped at 10% of traffic; the load on auth-svc is falling",
       setting: "circuit_breaker=enabled, retry_budget=10%",
+      keys: ["edge.auth.circuit_breaker", "enabled"],
     },
+    policy: "edge.auth.max_retries = 4, edge.auth.backoff = none (0 ms), edge.auth.timeout_ms = 800, edge.auth.circuit_breaker = disabled (enabled opens it after repeated failures), edge.auth.retry_budget = unlimited (a percentage caps retries)",
+    timeoutKey: "edge.auth.timeout_ms",
     herring: "cache",
     symptom: { code: 503, path: "/login" },
   },

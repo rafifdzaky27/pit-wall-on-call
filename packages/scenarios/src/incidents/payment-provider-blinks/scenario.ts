@@ -56,6 +56,8 @@ export interface BlinksVariant {
   configLine: string;
   /** The fix's command, as the Deploys config panel shows it. */
   fixCommand: string;
+  /** The config key and value the fix's command must contain (hard mode), both shown in `configLine`. */
+  fixKeys: readonly [key: string, value: string];
   /** The recent innocent deploy (not used when the herring is the database). */
   deploy: { change: string; slack: string; history: string; dm: string; rollbackLabel: string; rollbackDone: string };
   symptom: { code: 503 | 504; path: string };
@@ -79,6 +81,8 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
   const innocentDeploy = v.herring !== "db";
   const exempt = v.mechanism === "exempt";
   const isCard = v.method === "card";
+  /** The timeout key the player finds in the config: the card provider's or the wallet's. */
+  const timeoutKey = isCard ? "payments.timeout_ms" : "wallet.timeout_ms";
 
   return defineScenario<Blinks>({
     id,
@@ -177,34 +181,34 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
     ],
 
     actions: [
-      { id: "payments.timeouts", tool: "logs", label: `Search ${v.provider} timeouts`, serviceId: "payments", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "payments.timeouts", cli: `logcli query 'service:checkout-api "${v.provider}" timeout | stats count by upstream'`, tool: "logs", label: `Search ${v.provider} timeouts`, serviceId: "payments", category: "investigate", durationS: 3, verdict: "useful",
         command: `service:checkout-api "${v.provider}" timeout | stats count by upstream`,
         reveals: () => [
           `checkout-api → ${v.provider} (${v.region}): 42 of 44 authorise calls in the last 5 min timed out after 8 s; every other upstream answers in under 120 ms`,
         ] },
-      { id: "edge.error_log", tool: "logs", label: "Read gateway error log", serviceId: "edge", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "edge.error_log", cli: "kubectl logs deployment/edge --since=15m", tool: "logs", label: "Read gateway error log", serviceId: "edge", category: "investigate", durationS: 3, verdict: "useful",
         reveals: () => [`nginx: every 5xx in the last 5 min is a ${v.symptom.code} on POST ${v.symptom.path}; GET requests are all fine`] },
-      { id: "checkout.threads", tool: "dashboards", label: "Check worker threads", serviceId: "checkout", category: "investigate", durationS: 4, verdict: "useful",
+      { id: "checkout.threads", cli: "promtool query instant http://prometheus:9090 'checkout_worker_threads_waiting'", tool: "dashboards", label: "Check worker threads", serviceId: "checkout", category: "investigate", durationS: 4, verdict: "useful",
         reveals: (s) => [`checkout-api: ${inUse(s)} of 100 worker threads are waiting on an outbound call; the rest are idle. All ${inUse(s)} are inside the payment client`] },
-      { id: "payments.latency", tool: "dashboards", label: `Check ${v.provider} latency`, serviceId: "payments", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "payments.latency", cli: `promtool query instant http://prometheus:9090 'histogram_quantile(0.99, rate(payments_${exempt ? "challenge" : "authorise"}_duration_seconds_bucket[5m]))'`, tool: "dashboards", label: `Check ${v.provider} latency`, serviceId: "payments", category: "investigate", durationS: 3, verdict: "useful",
         reveals: () => [exempt
           ? `${v.provider} ${v.region}: challenge p99 7.8 s (normally 210 ms), 72% timeouts. Every card order waits on the check before it can be paid`
           : `${v.provider} ${v.region}: authorise p99 7.8 s (normally 210 ms), 72% timeouts. ${v.fallbackName} is idle at 0 req/s`] },
-      { id: "checkout.deploys", tool: "deploys", label: "View recent deploys", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "checkout.deploys", cli: "kubectl rollout history deployment/checkout", tool: "deploys", label: "View recent deploys", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
         reveals: () => innocentDeploy
           ? [v.deploy.history]
           : [`v207 by {deployer}, 9 h ago: "receipts email template"; it has run clean since. No config changes today`] },
-      { id: "checkout.payment_config", tool: "deploys", label: exempt ? "View card check config" : "View payment config", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
+      { id: "checkout.payment_config", cli: "kubectl describe deployment/checkout", tool: "deploys", label: exempt ? "View card check config" : "View payment config", serviceId: "checkout", category: "investigate", durationS: 3, verdict: "useful",
         effect: (s) => ({ ...s, sawConfig: 1 }),
         reveals: () => [v.configLine] },
-      { id: "checkout.rollback", tool: "deploys", label: innocentDeploy ? v.deploy.rollbackLabel : "Roll back to v206", serviceId: "checkout", category: "mitigate", durationS: 30, verdict: "wasted",
+      { id: "checkout.rollback", cliKeys: ["rollout","undo","deployment/checkout"], cli: "kubectl rollout undo deployment/checkout", tool: "deploys", label: innocentDeploy ? v.deploy.rollbackLabel : "Roll back to v206", serviceId: "checkout", category: "mitigate", durationS: 30, verdict: "wasted",
         available: (s) => s.rolledBack === 0,
         effect: (s) => ({ ...s, rolledBack: 1 }),
         reveals: () => [innocentDeploy ? v.deploy.rollbackDone : "rollback to v206 complete: 6 of 6 pods ready; threads waiting unchanged"] },
-      { id: "checkout.restart", tool: "deploys", label: "Restart pods", serviceId: "checkout", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4000,
+      { id: "checkout.restart", cliKeys: ["rollout","restart","deployment/checkout"], cli: "kubectl rollout restart deployment/checkout", tool: "deploys", label: "Restart pods", serviceId: "checkout", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4000,
         effect: (s) => ({ ...s, blocked: 12_000, restarts: s.restarts + 1 }),
         reveals: () => ["rolling restart done: 6 of 6 pods ready, threads reset"] },
-      { id: "checkout.enable_fallback", tool: "deploys", label: v.fallbackLabel, serviceId: "checkout", category: "fix", durationS: 20, verdict: "useful",
+      { id: "checkout.enable_fallback", cliKeys: ["config", "set", `${v.fixKeys[0]}=${v.fixKeys[1]}`], cli: `kubectl exec deployment/checkout -- ${v.fixCommand}`, tool: "deploys", label: v.fallbackLabel, serviceId: "checkout", category: "fix", durationS: 20, verdict: "useful",
         command: v.fixCommand,
         // The config change is only on offer once the player has opened the config that says it exists.
         available: (s) => s.fallback === 0 && s.sawConfig === 1,
@@ -212,46 +216,46 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
         reveals: () => [v.fallbackDone] },
       ...(exempt
         ? [
-            { id: "checkout.hold_orders", tool: "deploys" as const, label: "Hold card orders until the check answers", serviceId: "checkout", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
+            { id: "checkout.hold_orders", cliKeys: ["config","set","checkout.threeds.hold_on_timeout","true"], cli: "kubectl exec deployment/checkout -- config set checkout.threeds.hold_on_timeout = true", tool: "deploys" as const, label: "Hold card orders until the check answers", serviceId: "checkout", category: "mitigate" as const, durationS: 15, verdict: "wasted" as const,
               command: "config set checkout.threeds.hold_on_timeout = true",
               available: (s: Blinks) => s.fallback === 0 && s.sawConfig === 1 && s.held === 0,
               effect: (s: Blinks) => ({ ...s, held: 1, blocked: Math.min(s.blocked, 20_000) }),
               reveals: () => [`card orders now show "payment pending" while they wait: 188 orders held, none confirmed. Threads freed for now, but every held order still waits on ${v.provider} for its answer`] },
-            { id: "checkout.skip_check", tool: "deploys" as const, label: "Turn the card check off", serviceId: "checkout", category: "mitigate" as const, durationS: 10, verdict: "harmful" as const, sideEffectBp: 3000,
+            { id: "checkout.skip_check", cliKeys: ["config","set","checkout.threeds.enabled","false"], cli: "kubectl exec deployment/checkout -- config set checkout.threeds.enabled = false", tool: "deploys" as const, label: "Turn the card check off", serviceId: "checkout", category: "mitigate" as const, durationS: 10, verdict: "harmful" as const, sideEffectBp: 3000,
               command: "config set checkout.threeds.enabled = false",
               available: (s: Blinks) => s.fallback === 0 && s.sawConfig === 1,
               effect: (s: Blinks) => ({ ...s, fallback: 1, skipped: 1 }),
               reveals: () => ["card check off for every order: threads are draining, but all card orders now go through with no issuer check, including the large ones. Chargebacks are on us"] },
           ]
         : [
-            { id: "checkout.raise_timeout", tool: "deploys" as const, label: "Raise the payment timeout to 15 s", serviceId: "checkout", category: "mitigate" as const, durationS: 10, verdict: "wasted" as const,
-              command: "config set payments.timeout_ms = 15000",
+            { id: "checkout.raise_timeout", cliKeys: ["config", "set", timeoutKey], cli: `kubectl exec deployment/checkout -- config set ${timeoutKey} = 15000`, tool: "deploys" as const, label: "Raise the payment timeout to 15 s", serviceId: "checkout", category: "mitigate" as const, durationS: 10, verdict: "wasted" as const,
+              command: `config set ${timeoutKey} = 15000`,
               available: (s: Blinks) => s.fallback === 0 && s.sawConfig === 1 && s.raised === 0,
               effect: (s: Blinks) => ({ ...s, raised: 1, rate: s.rate * 2 }),
               reveals: () => ["timeout raised to 15 s: each stuck thread now waits almost twice as long before giving up, and the pool is filling faster"] },
           ]),
       ...(exempt
-        ? [{ id: "orders.value_split", tool: "db" as const, label: "See what the waiting orders are worth", serviceId: "postgres", category: "investigate" as const, durationS: 3, verdict: "useful" as const,
+        ? [{ id: "orders.value_split", cli: `psql -c "SELECT width_bucket(total, ARRAY[30, 100, 500]) AS band, count(*) FROM orders WHERE status = 'pending_auth' GROUP BY 1 ORDER BY 1;"`, tool: "db" as const, label: "See what the waiting orders are worth", serviceId: "postgres", category: "investigate" as const, durationS: 3, verdict: "useful" as const,
             command: "SELECT width_bucket(total, ARRAY[30, 100, 500]) AS band, count(*) FROM orders WHERE status = 'pending_auth' GROUP BY 1 ORDER BY 1;",
             reveals: () => ["orders waiting on the card check: 212, of which 187 are under 30 (median 14), 21 are 30 to 500 and 4 are over 500"] }]
         : []),
-      { id: "postgres.activity", tool: "db", label: "Inspect running queries", serviceId: "postgres", category: "investigate", durationS: 3, verdict: "wasted",
+      { id: "postgres.activity", cli: `psql -c "SELECT pid, application_name, state, now() - query_start AS runtime FROM pg_stat_activity WHERE state <> 'idle' ORDER BY runtime DESC;"`, tool: "db", label: "Inspect running queries", serviceId: "postgres", category: "investigate", durationS: 3, verdict: "wasted",
         command: "SELECT pid, application_name, state, now() - query_start AS runtime FROM pg_stat_activity WHERE state <> 'idle' ORDER BY runtime DESC;",
         reveals: () => noisyDb
           ? ["pg_stat_activity: one reporting query (analytics_ro) has run 4 min; no lock waits. checkout-api's queries all finish in under 20 ms"]
           : ["pg_stat_activity: 3 active queries, longest 0.3 s, no lock waits; checkout-api's queries finish in under 20 ms"] },
       ...(noisyDb
-        ? [{ id: "postgres.cancel_report", tool: "db" as const, label: "Cancel the reporting query", serviceId: "postgres", category: "mitigate" as const, durationS: 10, verdict: "wasted" as const,
+        ? [{ id: "postgres.cancel_report", cliKeys: ["pg_cancel_backend","analytics_ro"], cli: `psql -c "SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE application_name = 'analytics_ro';"`, tool: "db" as const, label: "Cancel the reporting query", serviceId: "postgres", category: "mitigate" as const, durationS: 10, verdict: "wasted" as const,
             command: "SELECT pg_cancel_backend(pid) FROM pg_stat_activity WHERE application_name = 'analytics_ro';",
             reveals: () => ["reporting query cancelled; postgres CPU 71% → 24%. Threads waiting on checkout-api unchanged"] }]
         : []),
-      { id: "global.provider_status", tool: "incident", label: `Open ${v.provider} status page`, serviceId: null, category: "investigate", durationS: 4, verdict: v.statusPage.honest ? "useful" : "wasted",
+      { id: "global.provider_status", cli: `curl -s https://status.${v.providerLabel}.example/api/v2/status.json`, tool: "incident", label: `Open ${v.provider} status page`, serviceId: null, category: "investigate", durationS: 4, verdict: v.statusPage.honest ? "useful" : "wasted",
         reveals: () => [v.statusPage.text] },
-      { id: "global.status_update", tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
+      { id: "global.status_update", cliKeys: ["status-page"], cli: `incidentctl status-page "Investigating problems paying by ${v.method === "card" ? "card" : "e-wallet"} at checkout"`, tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
         available: (s) => s.statusPosted === 0,
         effect: (s) => ({ ...s, statusPosted: 1 }),
         reveals: () => [`status page: "Investigating problems paying by ${v.method === "card" ? "card" : "e-wallet"} at checkout"`] },
-      duckAction<Blinks>(HINTS),
+      { ...duckAction<Blinks>(HINTS), cli: "incidentctl rubber-duck" },
       { id: "ask.deployer.changes", tool: "chat", label: "Ask the deployer what went out today", serviceId: null, category: "investigate", durationS: 30, verdict: "useful", async: true,
         ask: { to: "deployer", topic: "changes", prompt: "hey, what went out in checkout today?" },
         reveals: () => [innocentDeploy ? `{deployer}: "${v.deploy.dm}"` : `{deployer}: "v207, the receipts email template. Nothing near the payment call."`] },
@@ -261,7 +265,7 @@ export function paymentProviderBlinks(v: BlinksVariant): ScenarioDef<State> {
       { id: "ask.support.impact", tool: "chat", label: "Ask support what customers see", serviceId: null, category: "investigate", durationS: 20, verdict: "useful", async: true,
         ask: { to: "support", topic: "impact", prompt: "what are customers seeing, and who is hit?" },
         reveals: () => [isCard ? `{support}: "the page loads fine and the pay button spins, then a timeout. Card only; we have not seen wallet failures."` : `{support}: "only people paying by e-wallet. Card and bank transfer both go through."`] },
-      { id: "global.ask_secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
+      { id: "global.ask_secondary", cliKeys: ["page","secondary"], cli: "incidentctl page secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
         reveals: () => [`{secondary} (secondary): "only the payment step is failing. What does checkout do when the provider is slow?"`] },
     ],
     rootCauseActionIds: ["checkout.enable_fallback"],
@@ -338,8 +342,9 @@ export const BLINKS_VARIANTS: readonly BlinksVariant[] = [
     mechanism: "reroute",
     spoilers: ["larkspur", "secondary provider", "route_on_timeout", "re-route", "route card"],
     pm: 241,
-    configLine: "checkout-api payment config: payments.provider = kestrel-pay, payments.timeout_ms = 8000, payments.route_on_timeout = off. A secondary card provider (Larkspur) is configured and idle",
+    configLine: "checkout-api payment config: payments.provider = kestrel-pay, payments.timeout_ms = 8000, payments.route_on_timeout = off (off | secondary). A secondary card provider (Larkspur) is configured and idle",
     fixCommand: "config set payments.route_on_timeout = secondary",
+    fixKeys: ["payments.route_on_timeout", "secondary|larkspur"],
     deploy: RECEIPTS_DEPLOY,
     symptom: { code: 504, path: "/checkout/pay" },
     region: "eu-west",
@@ -361,8 +366,9 @@ export const BLINKS_VARIANTS: readonly BlinksVariant[] = [
     mechanism: "reroute",
     spoilers: ["deferred", "capture", "wallet.deferred_capture", "capture later"],
     pm: 242,
-    configLine: "checkout-api payment config: wallet.provider = mangosteen-wallet, wallet.timeout_ms = 8000, wallet.deferred_capture = false. A capture queue is configured and idle",
+    configLine: "checkout-api payment config: wallet.provider = mangosteen-wallet, wallet.timeout_ms = 8000, wallet.deferred_capture = false (true accepts the order now and captures it later). A capture queue is configured and idle",
     fixCommand: "config set wallet.deferred_capture = true",
+    fixKeys: ["wallet.deferred_capture", "true"],
     deploy: RECEIPTS_DEPLOY,
     symptom: { code: 503, path: "/checkout/wallet" },
     region: "ap-southeast",
@@ -384,8 +390,9 @@ export const BLINKS_VARIANTS: readonly BlinksVariant[] = [
     mechanism: "exempt",
     spoilers: ["3ds", "threeds", "card check", "exempt", "halyard"],
     pm: 243,
-    configLine: "checkout-api card check config: threeds.provider = halyard-3ds, threeds.challenge_timeout_ms = 8000, threeds.exempt_below = 0 (no exemptions), threeds.hold_on_timeout = false, threeds.enabled = true",
-    fixCommand: "config set checkout.threeds.exempt_below = 3000",
+    configLine: "checkout-api card check config: checkout.threeds.provider = halyard-3ds, checkout.threeds.challenge_timeout_ms = 8000, checkout.threeds.exempt_below = 0 (order total in currency units; 0 means no exemptions), checkout.threeds.hold_on_timeout = false, checkout.threeds.enabled = true",
+    fixCommand: "config set checkout.threeds.exempt_below = 30",
+    fixKeys: ["checkout.threeds.exempt_below", "30"],
     deploy: {
       change: "Challenge rules for big baskets (#2131)",
       slack: "the challenge rules for big baskets went out at lunch (v207), nothing else changed",

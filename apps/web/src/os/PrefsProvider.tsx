@@ -26,3 +26,8 @@ export function usePrefs(): PrefsValue {
   if (!value) throw new Error("usePrefs must be used inside <PrefsProvider>");
   return value;
 }
+
+/** The prefs, or null outside a provider: for code that also runs in isolated tests (the incident session). */
+export function useOptionalPrefs(): PrefsValue | null {
+  return useContext(PrefsContext);
+}

@@ -22,11 +22,12 @@ const seconds = (n: number) => {
   for (let i = 0; i < n; i++) act(() => vi.advanceTimersByTime(1000));
 };
 
-function finished({ daily = false } = {}) {
+function finished({ daily = false, difficulty = "normal" as "normal" | "hard" } = {}) {
   const view = renderOs(
     <Stage>
       <p>laptop screen</p>
     </Stage>,
+    { prefs: { difficulty } },
   );
   const { incident } = view;
   act(() => (daily ? incident().startDaily(dailyFor(utcDate(Date.now()))) : incident().start()));
@@ -98,6 +99,18 @@ describe("the shift report (M2.5 spec §6)", () => {
     await act(async () => fireEvent.click(within(card()).getByRole("button", { name: "Share" })));
     expect(writeText.mock.calls[0]![0].split("\n")[0]).toBe(`Pit Wall On-Call · Daily #${today.number}`);
     expect(writeText.mock.calls[0]![0]).toMatch(/\/daily$/);
+  });
+
+  it("a hard shift says Hard, shares as Hard, and shows the hard board (M6 spec H11)", async () => {
+    const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    finished({ difficulty: "hard" });
+    await opened();
+    expect(within(card()).getByText("The Slow Leak · Hard · Shift report")).toBeTruthy();
+    await vi.waitFor(() => within(card()).getByRole("table", { name: "Practice leaderboard (hard)" }));
+    expect((vi.mocked(fetch).mock.calls.at(-1) as unknown as [string])[0]).toBe("/api/leaderboard?scenario=db-pool-exhaustion&difficulty=hard");
+    await act(async () => fireEvent.click(within(card()).getByRole("button", { name: "Share" })));
+    expect(writeText.mock.calls[0]![0].split("\n")[0]).toBe("Pit Wall On-Call · The Slow Leak · Hard");
   });
 
   it("Full leaderboard shows the whole board inside the card", async () => {
