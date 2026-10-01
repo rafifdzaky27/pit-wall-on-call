@@ -112,14 +112,15 @@ describe("second review fixes", () => {
   });
 });
 
+/** A test-only clock (this package has no DOM or Node types, and its game code never reads time). */
+const clock = (globalThis as unknown as { performance: { now(): number } }).performance;
+
 describe("long hostile input (CodeQL js/polynomial-redos)", () => {
   it("normalises 50k spaces, tabs and semicolons quickly", () => {
     const junk = `psql -c "${" \t".repeat(25_000)}x${" ;".repeat(25_000)}`;
-    // eslint-disable-next-line no-restricted-globals -- times hostile input in a test; not game time
-    const started = performance.now();
+    const started = clock.now();
     canonicalCli(junk + " a" + " ".repeat(50_000) + "b", services);
     canonicalCli(`kubectl ${"\t".repeat(50_000)}x`, services);
-    // eslint-disable-next-line no-restricted-globals -- times hostile input in a test; not game time
-    expect(performance.now() - started).toBeLessThan(200);
+    expect(clock.now() - started).toBeLessThan(200);
   });
 });
