@@ -141,6 +141,20 @@ describe("Console", () => {
     expect(within(links).getAllByRole("button").map((b) => b.textContent)).toEqual(["Logs", "Incident"]);
   });
 
+  it("reaches the alert-level glossary once, from the legend, not once per Crit or Warn tag (M5 C5)", async () => {
+    setup({ steps: 600 });
+    fireEvent.click(screen.getByRole("button", { name: /^checkout-api/ }));
+    const tags = [...document.querySelectorAll(".tag.crit, .tag.warn")].filter((t) => /^(Crit|Warn)$/.test(t.textContent ?? ""));
+    expect(tags.length).toBeGreaterThan(1);
+    for (const tag of tags) expect(tag.querySelector("[tabindex]")).toBeNull();
+    const stops = [...document.querySelectorAll<HTMLElement>(".term")].filter((t) => t.getAttribute("aria-describedby") && t.tabIndex === 0);
+    const levels = stops.filter((t) => t.textContent === "Alert levels");
+    expect(levels).toHaveLength(1);
+    expect(within(screen.getByRole("list", { name: "Legend" }).parentElement!).getByText("Alert levels")).toBe(levels[0]);
+    fireEvent.focus(levels[0]!);
+    expect((await screen.findByRole("tooltip")).textContent).toContain("Critical means");
+  });
+
   it("the pause button calls onPause", () => {
     const { onPause } = setup();
     fireEvent.click(screen.getByRole("button", { name: /Pause/ }));

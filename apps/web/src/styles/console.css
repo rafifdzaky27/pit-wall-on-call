@@ -87,6 +87,7 @@
 }
 .map-ph { flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
 .map-legend { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0 auto 0 0; padding: 0; font-size: var(--fs-xs); text-transform: none; letter-spacing: 0; }
+.map-legend-term { font-size: var(--fs-xs); text-transform: none; letter-spacing: 0; color: var(--muted); }
 .map-legend li { display: flex; align-items: baseline; gap: var(--space-1); }
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; align-self: center; background: var(--muted); }
 .legend-dot.ok { background: var(--ok); }

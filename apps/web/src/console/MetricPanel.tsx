@@ -41,7 +41,7 @@ export function MetricPanel({ metric, value, history }: { metric: MetricDef<Stat
         <h3>
           <Label text={metric.label} />
         </h3>
-        {level !== "ok" && <span className={`tag ${level}`}><Term id="alert-level">{level === "crit" ? "Crit" : "Warn"}</Term></span>}
+        {level !== "ok" && <span className={`tag ${level}`}>{level === "crit" ? "Crit" : "Warn"}</span>}
       </div>
       <div className="pb">
         <div className={`metric-value mono ${level}`}>

@@ -1,4 +1,5 @@
 import type { Health, ScenarioDef, State } from "@pitwall/engine";
+import { Term } from "../os/Term";
 
 export const HEALTH_LABEL: Record<Health, string> = { ok: "Healthy", warn: "Degraded", crit: "Critical" };
 
@@ -28,6 +29,10 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
       {/* One header row holds the legend and the count, so the map keeps its height on short screens (layout.spec). */}
       <div className="ph map-ph">
         <h2 id="map-h">Service map</h2>
+        {/* The one place the Crit and Warn tags are explained, so they add no tab stops of their own (M5 C5). */}
+        <span className="map-legend-term">
+          <Term id="alert-level">Alert levels</Term>
+        </span>
         <ul className="map-legend" aria-label="Legend">
           {LEGEND.map((l) => (
             <li key={l.level}>
