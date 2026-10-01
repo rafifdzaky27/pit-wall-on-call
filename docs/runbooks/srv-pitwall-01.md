@@ -581,7 +581,7 @@ rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ"
 ```
 The second argument is `{"scope":"drive.file"}` in base64: rclone will only ever see files it created itself, never the rest of your Drive.
 **ACTION:** open the printed `http://127.0.0.1:53682/auth?...` link in Windows, sign in with the Google account that should hold the backups, allow access. WSL forwards localhost, so the redirect reaches rclone.
-**EXPECTED:** the terminal prints `Paste the following into your remote machine --->`, a JSON blob starting `{"access_token":` and containing `"refresh_token"`, then `<---End paste`.
+**EXPECTED:** the terminal prints `Paste the following into your remote machine --->`, then the token, then `<---End paste`. Newer rclone prints the token as a base64 blob starting `eyJ`; older versions print JSON starting `{"access_token":`. The role accepts both.
 **STOP:** do not paste that JSON into chat or a file. It is a credential to your Drive. Copy it once for the next step.
 **ERROR:** `bind: address already in use` means another rclone is waiting; close it and run again.
 
@@ -632,7 +632,8 @@ ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo systemctl start pitw
 ```powershell
 ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo -u pitwall-deploy bash -c 'set -a; . /etc/pitwall-backup/env; restic snapshots --compact; restic -r `$RESTIC_OFFSITE_REPOSITORY snapshots --compact'"
 ```
-**EXPECTED:** the same snapshot IDs listed twice, once local and once on GDrive. In Drive, a `pitwall-backups` folder now exists.
+**EXPECTED:** one snapshot tagged `pitwall` in each table with the **same time**. The IDs differ, because `restic copy` gives the copy a new ID in the target repository. In Drive, a `pitwall-backups` folder now exists.
+Lines with `RATE_LIMIT_EXCEEDED` or `500 Internal Server Error` followed by `operation successful after N retries` are noise from rclone's shared Google app ID; see "Own Google OAuth client" below.
 ```powershell
 ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo systemctl start pitwall-restore-test.service; sudo journalctl -u pitwall-restore-test.service -n 30 --no-pager; sudo systemctl list-timers 'pitwall-*' --no-pager"
 ```
@@ -722,6 +723,22 @@ The free plan allows one rule. It sits in front of the API's own limits (60 runs
   Cloudflare's block page returns 429.
 - Security → Events lists the block.
 **ROLLBACK:** toggle the rule off.
+
+### Own Google OAuth client for rclone (recommended follow-up)
+
+rclone's built-in Google app ID is shared by thousands of users, so Drive answers with `RATE_LIMIT_EXCEEDED` and rclone has to retry (seen on the first backup, 2026-10-01). It works, but a bad day can fail a nightly run.
+
+**Do this once, in the browser, at Google Cloud Console** (free):
+1. Create a project, `pitwall-backup`.
+2. Enable the Google Drive API.
+3. Set up the OAuth consent screen: External, add yourself as a test user, then **publish** it. Unpublished test apps get refresh tokens that expire after 7 days.
+4. Create an OAuth client ID of type **Desktop app**.
+
+Then redo M5-1 with the new client:
+```bash
+rclone authorize "drive" "<client_id>" "<client_secret>"
+```
+Replace the token in the vault, then run `ansible-playbook ... --tags backup`. The rclone config must then carry `client_id` and `client_secret` too. **Tell Claude before you do this**, because the role needs two more vault values.
 
 ### M5-8: Prometheus and Grafana (later, at the playbook's Observability project)
 
