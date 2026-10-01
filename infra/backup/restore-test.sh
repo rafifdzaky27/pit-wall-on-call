@@ -39,7 +39,7 @@ prod() {
 }
 
 scratch="pitwall-restore-$(od -An -N6 -tx1 /dev/urandom | tr -d ' \n')"
-# shellcheck disable=SC2329 # invoked by the EXIT trap
+# shellcheck disable=SC2317,SC2329 # invoked by the EXIT trap (SC2317 on older shellcheck)
 cleanup() {
   docker rm -f "$scratch" >/dev/null 2>&1 || true
 }
