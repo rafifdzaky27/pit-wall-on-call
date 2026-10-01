@@ -50,7 +50,11 @@ export interface StormVariant {
   spoilers: readonly string[];
   /** Par for this variant: more retries means a steeper storm. */
   parBp: number;
-  fix: { label: string; command: string; done: string; setting: string };
+  fix: { label: string; command: string; done: string; setting: string; keys: readonly string[] };
+  /** The caller's policy for the dependency as `kubectl describe` shows it: every config key the fix and its decoys use. */
+  policy: string;
+  /** The caller's timeout key for the dependency, one of the keys in `policy`. */
+  timeoutKey: string;
   /** A recent deploy of the dependency (variant a) or a loud cache (variant b). */
   herring: "dependency_deploy" | "cache";
   symptom: { code: 503 | 504; path: string };
@@ -191,31 +195,31 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
       { id: "caller.deploys", cli: `kubectl describe deployment/${callerId}`, tool: "deploys", label: "View recent deploys and config", serviceId: callerId, category: "investigate", durationS: 3, verdict: "useful",
         effect: (s) => ({ ...s, sawConfig: 1 }),
         reveals: () => [callerId === "edge"
-          ? `edge-gateway v33 by {deployer}, 5 days ago; auth call policy in config: retries ${v.retries}, backoff 0 ms, circuit breaker off. Nothing changed today`
-          : `checkout-api v312 by {deployer}, 4 days ago; inventory client policy in config: retries ${v.retries}, backoff 0 ms. Nothing changed today`] },
-      { id: "caller.fix", cli: `kubectl exec deployment/${callerId} -- sh -c "${v.fix.command.split("\n").join(" && ")}"`, tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
+          ? `edge-gateway v33 by {deployer}, 5 days ago; auth call policy in config: ${v.policy}. Nothing changed today`
+          : `checkout-api v312 by {deployer}, 4 days ago; inventory client policy in config: ${v.policy}. Nothing changed today`] },
+      { id: "caller.fix", cliKeys: ["config", "set", ...v.fix.keys], cli: `kubectl exec deployment/${callerId} -- sh -c "${v.fix.command.split("\n").join(" && ")}"`, tool: "deploys", label: v.fix.label, serviceId: callerId, category: "fix", durationS: 15, verdict: "useful",
         command: v.fix.command,
         // Only on offer once the player has opened the caller's config and seen the policy it would change.
         available: (s) => s.fixed === 0 && s.sawConfig === 1,
         effect: (s) => ({ ...s, fixed: 1 }),
         reveals: () => [v.fix.done] },
-      { id: "caller.timeout", cli: `kubectl exec deployment/${callerId} -- config set ${dep.split("-")[0]}.client.timeout_ms = 3000`, tool: "deploys", label: `Raise the ${dep} client timeout to 3 s`, serviceId: callerId, category: "mitigate", durationS: 10, verdict: "wasted",
-        command: `config set ${dep.split("-")[0]}.client.timeout_ms = 3000`,
+      { id: "caller.timeout", cliKeys: ["config", "set", v.timeoutKey], cli: `kubectl exec deployment/${callerId} -- config set ${v.timeoutKey} = 3000`, tool: "deploys", label: `Raise the ${dep} client timeout to 3 s`, serviceId: callerId, category: "mitigate", durationS: 10, verdict: "wasted",
+        command: `config set ${v.timeoutKey} = 3000`,
         available: (s) => s.fixed === 0 && s.sawConfig === 1,
         reveals: () => [`timeout raised to 3 s: calls wait longer before failing, but each failure is still retried ${v.retries} times, so the request rate on ${dep} is unchanged`] },
-      { id: "dep.scale_up", cli: `kubectl scale deployment/${dep} --replicas=8`, tool: "deploys", label: `Scale ${dep} to 8 pods`, serviceId: "dep", category: "mitigate", durationS: 25, verdict: "wasted",
+      { id: "dep.scale_up", cliKeys: ["scale", "deployment/dep"], cli: `kubectl scale deployment/${dep} --replicas=8`, tool: "deploys", label: `Scale ${dep} to 8 pods`, serviceId: "dep", category: "mitigate", durationS: 25, verdict: "wasted",
         available: (s) => s.scaled === 0,
         effect: (s) => ({ ...s, scaled: 1, cap: s.cap + 90_000, queue: Math.min(s.queue, 10_000) }),
         reveals: () => [`${dep} scaled 4 → 8 pods: the queue drained and 5xx dropped`] },
-      { id: "dep.restart", cli: `kubectl rollout restart deployment/${dep}`, tool: "deploys", label: `Restart ${dep} pods`, serviceId: "dep", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4500,
+      { id: "dep.restart", cliKeys: ["rollout", "restart", "deployment/dep"], cli: `kubectl rollout restart deployment/${dep}`, tool: "deploys", label: `Restart ${dep} pods`, serviceId: "dep", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4500,
         effect: (s) => ({ ...s, queue: MAX, restarts: s.restarts + 1 }),
         reveals: () => [`${dep} rolling restart done: 4 of 4 pods ready. Every caller reconnected and retried at once; the queue filled instantly`] },
       ...(depDeploy
-        ? [{ id: "dep.rollback", cli: `kubectl rollout undo deployment/${dep}`, tool: "deploys" as const, label: `Roll back ${dep} to v57`, serviceId: "dep", category: "mitigate" as const, durationS: 30, verdict: "wasted" as const,
+        ? [{ id: "dep.rollback", cliKeys: ["rollout", "undo", "deployment/dep"], cli: `kubectl rollout undo deployment/${dep}`, tool: "deploys" as const, label: `Roll back ${dep} to v57`, serviceId: "dep", category: "mitigate" as const, durationS: 30, verdict: "wasted" as const,
             available: (s: Storm) => s.rolledBack === 0,
             effect: (s: Storm) => ({ ...s, rolledBack: 1 }),
             reveals: () => [`${dep} rolled back to v57: 4 of 4 pods ready; request rate unchanged`] }]
-        : [{ id: "store.flush", cli: "redis-cli -h sessions-cache FLUSHDB", tool: "db" as const, label: "Flush the session cache", serviceId: "store", category: "mitigate" as const, durationS: 10, verdict: "harmful" as const, sideEffectBp: 1500,
+        : [{ id: "store.flush", cliKeys: ["flushdb"], cli: "redis-cli -h sessions-cache FLUSHDB", tool: "db" as const, label: "Flush the session cache", serviceId: "store", category: "mitigate" as const, durationS: 10, verdict: "harmful" as const, sideEffectBp: 1500,
             command: "redis-cli -h sessions-cache FLUSHDB",
             available: (s: Storm) => s.flushed === 0,
             effect: (s: Storm) => ({ ...s, flushed: 1, queue: Math.min(MAX, s.queue + 15_000) }),
@@ -225,7 +229,7 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
         reveals: () => cacheHerring
           ? ["used_memory 82%, evicted_keys 61 per s, all normal for this cache; hit rate 96%. It is not blocking anything"]
           : ["pg_stat_activity: 4 active queries, longest 0.2 s, no lock waits; every query the service sends finishes in under 20 ms"] },
-      { id: "global.status_update", cli: `incidentctl status-page "Investigating errors at ${callerId === "edge" ? "sign-in" : "checkout"}"`, tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
+      { id: "global.status_update", cliKeys: ["status-page"], cli: `incidentctl status-page "Investigating errors at ${callerId === "edge" ? "sign-in" : "checkout"}"`, tool: "incident", label: "Post status update", serviceId: null, category: "communicate", durationS: 5, verdict: "useful",
         available: (s) => s.statusPosted === 0,
         effect: (s) => ({ ...s, statusPosted: 1 }),
         reveals: () => [`status page: "Investigating errors at ${callerId === "edge" ? "sign-in" : "checkout"}"`] },
@@ -239,7 +243,7 @@ export function retryStorm(v: StormVariant): ScenarioDef<State> {
       { id: "ask.support.impact", tool: "chat", label: "Ask support what customers see", serviceId: null, category: "investigate", durationS: 20, verdict: "useful", async: true,
         ask: { to: "support", topic: "impact", prompt: "what are customers seeing, and did it ever recover?" },
         reveals: () => [`{support}: "it hiccuped, then got better for a minute, then it all timed out again."`] },
-      { id: "global.ask_secondary", cli: "incidentctl page secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
+      { id: "global.ask_secondary", cliKeys: ["page", "secondary"], cli: "incidentctl page secondary", tool: "incident", label: "Ask secondary on-call", serviceId: null, category: "communicate", durationS: 10, verdict: "useful", async: true,
         reveals: () => [`{secondary} (secondary): "${dep} says it is healthy. Then why is everything still timing out?"`] },
     ],
     rootCauseActionIds: ["caller.fix"],
@@ -298,7 +302,10 @@ export const STORM_VARIANTS: readonly StormVariant[] = [
       command: "config set inventory.client.max_retries = 1\nconfig set inventory.client.backoff = exponential",
       done: "config rolled out to checkout-api: 1 extra attempt per call, exponential backoff with jitter; the load on inventory-svc is falling",
       setting: "max_retries=1, backoff=exponential",
+      keys: ["inventory.client.max_retries", "1"],
     },
+    policy: "inventory.client.max_retries = 3, inventory.client.backoff = none (0 ms), inventory.client.timeout_ms = 800",
+    timeoutKey: "inventory.client.timeout_ms",
     herring: "dependency_deploy",
     symptom: { code: 504, path: "/checkout/reserve" },
   },
@@ -318,7 +325,10 @@ export const STORM_VARIANTS: readonly StormVariant[] = [
       command: "config set edge.auth.circuit_breaker = enabled\nconfig set edge.auth.retry_budget = 10%",
       done: "config rolled out to edge-gateway: the circuit breaker opens on failures and retries are capped at 10% of traffic; the load on auth-svc is falling",
       setting: "circuit_breaker=enabled, retry_budget=10%",
+      keys: ["edge.auth.circuit_breaker", "enabled"],
     },
+    policy: "edge.auth.max_retries = 4, edge.auth.backoff = none (0 ms), edge.auth.timeout_ms = 800, edge.auth.circuit_breaker = disabled (enabled opens it after repeated failures), edge.auth.retry_budget = unlimited (a percentage caps retries)",
+    timeoutKey: "edge.auth.timeout_ms",
     herring: "cache",
     symptom: { code: 503, path: "/login" },
   },
