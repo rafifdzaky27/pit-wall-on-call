@@ -94,6 +94,13 @@ describe("the postmortem's Leaderboard section", () => {
     expect(text()).toContain("Ranked #12 of 340 on today's daily board.");
   });
 
+  it("a hard run says which board it landed on (M6 spec H11)", async () => {
+    savePlayer(PLAYER);
+    serve(() => json(201, { ...posted({ rank: 2, total: 9, best: true }), difficulty: "hard", mode: "daily_ranked", ranked: true, dailyDate: "2026-10-05" }));
+    await finished();
+    expect(text()).toContain("Ranked #2 of 9 on today's daily board (hard).");
+  });
+
   it("a second daily says it was practice (M3 spec Y6)", async () => {
     savePlayer(PLAYER);
     serve(() => json(201, { ...posted({ rank: 8, total: 340, best: false }), mode: "practice", ranked: false, dailyDate: "2026-10-05" }));

@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import { bigint, boolean, check, date, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
+export type Difficulty = "normal" | "hard";
+
 /** Anonymous players (spec §9). Only the token's SHA-256 is stored. */
 export const players = pgTable("players", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -22,6 +24,8 @@ export const runs = pgTable(
     scenarioId: text("scenario_id").notNull(),
     mode: text("mode").notNull(),
     dailyDate: date("daily_date"),
+    /** Normal or hard (M6 spec H10). Old rows and old clients are normal. */
+    difficulty: text("difficulty").$type<Difficulty>().notNull().default("normal"),
     seed: bigint("seed", { mode: "number" }).notNull(),
     engineVersion: text("engine_version").notNull(),
     actions: jsonb("actions").notNull(),
@@ -35,12 +39,13 @@ export const runs = pgTable(
   (t) => [
     check("runs_mode_check", sql`${t.mode} in ('daily_ranked', 'practice')`),
     uniqueIndex("runs_player_client_run_key").on(t.playerId, t.clientRunId),
-    uniqueIndex("one_ranked_daily_per_player").on(t.playerId, t.dailyDate).where(sql`${t.mode} = 'daily_ranked'`),
+    check("runs_difficulty_check", sql`${t.difficulty} in ('normal', 'hard')`),
+    uniqueIndex("one_ranked_daily_per_player").on(t.playerId, t.dailyDate, t.difficulty).where(sql`${t.mode} = 'daily_ranked'`),
     index("leaderboard_idx")
-      .on(t.dailyDate, t.resolved.desc(), t.budgetBurnedBp, t.mitigatedAtTick)
+      .on(t.dailyDate, t.difficulty, t.resolved.desc(), t.budgetBurnedBp, t.mitigatedAtTick)
       .where(sql`${t.mode} = 'daily_ranked' and ${t.flagged} = false`),
     index("practice_board_idx")
-      .on(t.scenarioId, t.playerId, t.resolved.desc(), t.budgetBurnedBp, t.mitigatedAtTick, t.createdAt)
+      .on(t.scenarioId, t.difficulty, t.playerId, t.resolved.desc(), t.budgetBurnedBp, t.mitigatedAtTick, t.createdAt)
       .where(sql`${t.mode} = 'practice' and ${t.flagged} = false`),
   ],
 );

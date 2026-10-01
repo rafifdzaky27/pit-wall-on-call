@@ -65,6 +65,26 @@ describe("retention SQL", () => {
     ]);
   });
 
+  it("finish-rate-by-incident-and-difficulty.sql splits each incident into normal and hard", async () => {
+    const [a] = await t.sql<{ id: string }[]>`select id from players where handle = 'A'`;
+    const hard = (resolved: boolean, flagged = false) =>
+      t.sql`
+        insert into runs (player_id, client_run_id, scenario_id, mode, difficulty, seed, engine_version, actions, budget_burned_bp, mitigated_at_tick, end_tick, resolved, flagged, created_at)
+        values (${a!.id}, ${crypto.randomUUID()}, ${DISK}, 'practice', 'hard', 1, '1.0.0', '[]'::jsonb, 100, ${resolved ? 300 : null}, 4800, ${resolved}, ${flagged}, '2026-10-20T10:00:00Z')`;
+    await hard(true);
+    await hard(false);
+    await hard(true, true);
+    try {
+      expect(await run("finish-rate-by-incident-and-difficulty.sql")).toEqual([
+        { scenario_id: DB_POOL, difficulty: "normal", runs: "5", finished: "3", dnf: "2", finish_pct: "60.0", dnf_pct: "40.0" },
+        { scenario_id: DISK, difficulty: "hard", runs: "2", finished: "1", dnf: "1", finish_pct: "50.0", dnf_pct: "50.0" },
+        { scenario_id: DISK, difficulty: "normal", runs: "5", finished: "2", dnf: "3", finish_pct: "40.0", dnf_pct: "60.0" },
+      ]);
+    } finally {
+      await t.sql`delete from runs where difficulty = 'hard'`;
+    }
+  });
+
   it("daily-players.sql counts distinct players, runs and first-time players per UTC day", async () => {
     expect(await run("daily-players.sql")).toEqual([
       { day: "2026-09-28", players: "3", runs: "4", new_players: "3" },
@@ -76,7 +96,7 @@ describe("retention SQL", () => {
 
   it("every file in apps/api/sql is covered above and is a read-only query", () => {
     const files = readdirSync(SQL_DIR).filter((f) => f.endsWith(".sql"));
-    expect(files.sort()).toEqual(["d1-d7-retention.sql", "daily-players.sql", "finish-rate-by-incident.sql"]);
+    expect(files.sort()).toEqual(["d1-d7-retention.sql", "daily-players.sql", "finish-rate-by-incident-and-difficulty.sql", "finish-rate-by-incident.sql"]);
     for (const f of files) {
       const code = readFileSync(join(SQL_DIR, f), "utf8")
         .split("\n")
