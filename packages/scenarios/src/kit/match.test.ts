@@ -1,0 +1,61 @@
+import { describe, expect, it } from "vitest";
+import { canonicalCli, matchCli, type MatchableAction } from "./match";
+
+const services = [
+  { id: "checkout", label: "checkout-api" },
+  { id: "postgres", label: "postgres" },
+];
+const actions: MatchableAction[] = [
+  { id: "pg.slots", cli: `psql -c "SELECT slot_name, active FROM pg_replication_slots;"` },
+  { id: "pg.drop", cli: `psql -c "SELECT pg_drop_replication_slot('reporting_cdc');"`, cliKeys: ["pg_drop_replication_slot", "reporting_cdc"] },
+  { id: "pg.drop_other", cli: `psql -c "SELECT pg_drop_replication_slot('analytics');"`, cliKeys: ["pg_drop_replication_slot", "analytics"] },
+  { id: "co.undo", cli: "kubectl rollout undo deployment/checkout", cliKeys: ["rollout", "undo", "deployment/checkout"] },
+  { id: "co.restart", cli: "kubectl rollout restart deployment/checkout", cliKeys: ["rollout", "restart", "deployment/checkout"] },
+  { id: "pg.kill", cli: `psql -c "SELECT pg_terminate_backend({pid});"`, cliVars: () => ({ pid: 24117 }), cliKeys: ["pg_terminate_backend", "{pid}"] },
+];
+const match = (input: string) => matchCli(actions, input, {}, services)?.id;
+
+describe("canonicalCli", () => {
+  it("maps a service label to its id after deployment/ and app=", () => {
+    expect(canonicalCli("kubectl rollout undo deployment/checkout-api", services)).toBe("kubectl rollout undo deployment/checkout");
+    expect(canonicalCli("kubectl top pods -l app=Checkout-API", services)).toBe("kubectl top pods -l app=checkout");
+  });
+});
+
+describe("matchCli (M6 review C1)", () => {
+  it("matches an action without keys only on its whole command", () => {
+    expect(match(`psql -c "select slot_name, active from pg_replication_slots"`)).toBe("pg.slots");
+    expect(match(`psql -c "select * from pg_replication_slots"`)).toBeUndefined();
+  });
+
+  it("matches a keyed action on its command word and every key, whatever else is typed", () => {
+    expect(match(`psql -c "select pg_drop_replication_slot('reporting_cdc')"`)).toBe("pg.drop");
+    expect(match(`psql -h postgres -c 'SELECT pg_drop_replication_slot( "reporting_cdc" );'`)).toBe("pg.drop");
+    expect(match(`psql -c "select pg_drop_replication_slot('analytics')"`)).toBe("pg.drop_other");
+  });
+
+  it("needs every key, as a whole word", () => {
+    expect(match(`psql -c "select pg_drop_replication_slot('reporting')"`)).toBeUndefined();
+    expect(match(`psql -c "select pg_drop_replication_slot('reporting_cdc_old')"`)).toBeUndefined();
+    expect(match("kubectl rollout undo deployment/checkout2")).toBeUndefined();
+  });
+
+  it("needs the same command word", () => {
+    expect(match(`redis-cli pg_drop_replication_slot reporting_cdc`)).toBeUndefined();
+  });
+
+  it("accepts the service's label and extra flags", () => {
+    expect(match("kubectl rollout undo deployment/checkout-api -n shop")).toBe("co.undo");
+    expect(match("kubectl -n shop rollout restart deployment/checkout")).toBe("co.restart");
+  });
+
+  it("fills per-run keys from the state", () => {
+    expect(match(`psql -c "select pg_terminate_backend(24117)"`)).toBe("pg.kill");
+    expect(match(`psql -c "select pg_terminate_backend(24118)"`)).toBeUndefined();
+  });
+
+  it("refuses an input that would match two keyed actions equally", () => {
+    const both = matchCli(actions, `psql -c "select pg_drop_replication_slot('reporting_cdc'), pg_drop_replication_slot('analytics')"`, {}, services);
+    expect(both).toBeUndefined();
+  });
+});

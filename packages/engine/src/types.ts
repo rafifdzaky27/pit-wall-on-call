@@ -92,6 +92,13 @@ export interface ActionDef<S extends State> {
   cli?: string;
   /** Values for the `{name}` placeholders in `cli`. Content only. */
   cliVars?(s: S): Record<string, string | number>;
+  /**
+   * For a fix or mitigation: the words a typed command must contain to count as this action, beyond
+   * its command word (M6 review C1). Each one must be learnable in the game (a finding, a log line, the
+   * map, chat, or help), so the player types what they found, not the exact reference text. `{name}`
+   * placeholders are filled like `cli`. Without keys, the whole `cli` must match.
+   */
+  cliKeys?: string[];
 }
 
 export type ActionTool = "dashboards" | "logs" | "deploys" | "db" | "incident" | "chat";
