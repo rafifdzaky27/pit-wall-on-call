@@ -16,6 +16,8 @@ import { desktopFor, getScenario, practiceFor, training, type Daily, type Deskto
 import { resolveWorld, type World } from "@pitwall/world";
 import { createContext, Fragment, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { track, type ShiftMode } from "../../analytics/analytics";
+import { useOptionalPrefs } from "../PrefsProvider";
+import type { Difficulty } from "../prefs";
 import { useRunLoop } from "../../game/useRunLoop";
 
 /** Cold-open spec §3: about 18 s of free pre-page before the pager fires. */
@@ -30,6 +32,8 @@ export interface IncidentApi {
   shiftId: number;
   /** The daily this shift is, or null for practice and training. */
   daily: Daily | null;
+  /** Normal or hard (M6 spec H1): the pref until the shift starts, then fixed. Training is always normal. */
+  difficulty: Difficulty;
   world: World;
   scenario: ScenarioDef<State>;
   content: DesktopContent;
@@ -160,6 +164,12 @@ const Session = memo(function Session({ onApi, shiftId, daily, onStartDaily, onS
   const content = useMemo(() => desktopFor(scenario.id), [scenario]);
 
   const mode: ShiftMode = scenario.training === true ? "training" : daily ? "daily" : "practice";
+  const prefDifficulty = useOptionalPrefs()?.prefs.difficulty ?? "normal";
+  const chosen: Difficulty = scenario.training === true ? "normal" : prefDifficulty;
+  // Fixed the moment the shift leaves idle; a Settings change mid-shift applies from the next one.
+  const [locked, setLocked] = useState<Difficulty | null>(phase === "idle" ? null : chosen);
+  if (phase !== "idle" && locked === null) setLocked(chosen);
+  const difficulty = locked ?? chosen;
   // Funnel events fire from transitions, once per shift; the refs keep StrictMode's second effect pass quiet.
   const started = useRef(false);
   const acked = useRef(false);
@@ -210,6 +220,7 @@ const Session = memo(function Session({ onApi, shiftId, daily, onStartDaily, onS
       seed,
       shiftId,
       daily,
+      difficulty,
       world,
       scenario,
       content,
@@ -244,7 +255,7 @@ const Session = memo(function Session({ onApi, shiftId, daily, onStartDaily, onS
       startTraining: onStartTraining,
       startDaily: onStartDaily,
     }),
-    [shiftId, daily, onStartDaily, phase, seed, world, scenario, content, loop, run, result, dispatch, onNewShift, onStartTraining],
+    [shiftId, daily, difficulty, onStartDaily, phase, seed, world, scenario, content, loop, run, result, dispatch, onNewShift, onStartTraining],
   );
 
   // Before paint, so the tree above never shows a frame of the previous shift's state.

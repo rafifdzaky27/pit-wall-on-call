@@ -84,6 +84,8 @@ export interface ActionDef<S extends State> {
   ask?: { to: string; topic: string; prompt: string };
   /** What the action looks like in its tool, such as the SQL a DB console runs. Content only. */
   command?: string;
+  /** The command a player types in hard mode's Terminal to run this action (M6 spec H4). Content only. */
+  cli?: string;
 }
 
 export type ActionTool = "dashboards" | "logs" | "deploys" | "db" | "incident" | "chat";

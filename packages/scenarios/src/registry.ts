@@ -10,6 +10,7 @@ import { regexCpuIncident } from "./incidents/regex-cpu";
 import { replicaLagIncident } from "./incidents/replica-lag";
 import { retryStormIncident } from "./incidents/retry-storm";
 import { slowLeakIncident } from "./slow-leak.incident";
+import { cliFirstWord } from "./kit/cli";
 import { training } from "./training";
 import { trainingDesktop } from "./training.desktop";
 
@@ -39,3 +40,11 @@ export function desktopFor(scenarioId: string): DesktopContent {
   if (!content) throw new Error(`no desktop content for scenario ${scenarioId}`);
   return content;
 }
+
+/**
+ * Every command word any incident's `cli` starts with, sorted (M6 spec H6, H8). It is the same set
+ * whatever the shift, so Tab completion and "did you mean" never hint at this incident's commands.
+ */
+export const CLI_VOCABULARY: readonly string[] = [
+  ...new Set(INCIDENTS.flatMap((i) => i.variants.flatMap((v) => v.scenario.actions.flatMap((a) => (a.cli ? [cliFirstWord(a.cli)] : []))))),
+].sort();
