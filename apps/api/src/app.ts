@@ -74,6 +74,9 @@ export function createApp(deps: AppDeps) {
   // Ops endpoints: reachable inside the compose network only (Caddy proxies /api/* alone).
   app.get("/healthz", (c) => c.json({ status: "ok" }));
 
+  // Public liveness for the external uptime monitor (M5 L5-2): the process answers, no database touched.
+  app.get("/api/healthz", (c) => c.json({ status: "ok" }));
+
   app.get("/readyz", async (c) => {
     try {
       await withTimeout(pingDb(), readinessTimeoutMs);
