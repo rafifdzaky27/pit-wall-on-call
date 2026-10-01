@@ -15,6 +15,7 @@ import {
 import { desktopFor, getScenario, practiceFor, training, type Daily, type DesktopContent } from "@pitwall/scenarios";
 import { resolveWorld, type World } from "@pitwall/world";
 import { createContext, Fragment, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { track, type ShiftMode } from "../../analytics/analytics";
 import { useRunLoop } from "../../game/useRunLoop";
 
 /** Cold-open spec §3: about 18 s of free pre-page before the pager fires. */
@@ -158,10 +159,24 @@ const Session = memo(function Session({ onApi, shiftId, daily, onStartDaily, onS
   const world = useMemo(() => resolveWorld(seed), [seed]);
   const content = useMemo(() => desktopFor(scenario.id), [scenario]);
 
-  const onFinish = useCallback((r: RunResult) => {
-    setResult(r);
-    setPhase("ended");
-  }, []);
+  const mode: ShiftMode = scenario.training === true ? "training" : daily ? "daily" : "practice";
+  // Funnel events fire from transitions, once per shift; the refs keep StrictMode's second effect pass quiet.
+  const started = useRef(false);
+  const acked = useRef(false);
+  useEffect(() => {
+    if (phase === "idle" || started.current) return;
+    started.current = true;
+    track("shift_start", { incident: scenario.id, mode });
+  }, [phase, scenario.id, mode]);
+
+  const onFinish = useCallback(
+    (r: RunResult) => {
+      setResult(r);
+      setPhase("ended");
+      track("shift_finish", { result: r.outcome, incident: scenario.id, mode });
+    },
+    [scenario.id, mode],
+  );
   const loop = useRunLoop(run, { active: phase === "paging" || phase === "active", onFinish, now });
   const { refresh } = loop;
   // The tick each status was first entered, kept for the whole shift: a teammate's message that
@@ -214,6 +229,10 @@ const Session = memo(function Session({ onApi, shiftId, daily, onStartDaily, onS
         if (phase !== "paging" || loop.paused) return;
         dispatch(ACK);
         setPhase("active");
+        if (!acked.current) {
+          acked.current = true;
+          track("ack");
+        }
       },
       dispatch,
       inspect: (hotspotId) => {
