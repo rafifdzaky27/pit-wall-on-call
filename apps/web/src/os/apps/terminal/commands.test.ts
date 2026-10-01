@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { complete, runLine, type TerminalCtx } from "./commands";
+import { CLI_HELP } from "@pitwall/scenarios";
+import { complete, HELP_EXTRA, runLine, type TerminalCtx } from "./commands";
 import { FIXTURE_CLI, FIXTURE_SECRETS, FIXTURE_VOCAB, fixtureScenario } from "./testFixture";
 
 function ctx(over: Partial<TerminalCtx> = {}): TerminalCtx {
@@ -26,7 +27,7 @@ describe("runLine: matching an action (M6 spec H5)", () => {
   it("a match that is not offered answers like the tool would, and dispatches nothing", () => {
     const r = runLine("kubectl rollout undo deployment/checkout", ctx({ offers: (id) => id !== "checkout.rollback" }));
     expect(r.dispatch).toBeUndefined();
-    expect(text(r)).toMatch(/^Error from server \(NotFound\)/);
+    expect(text(r)).toBe("Error from server: the request could not be completed\nNot sure of the syntax? Type help.");
     const p = runLine("psql -c \"SELECT pg_drop_replication_slot('reporting_cdc');\"", ctx({ offers: () => false }));
     expect(p.dispatch).toBeUndefined();
     expect(text(p)).toMatch(/^ERROR: .*does not exist/);
@@ -37,11 +38,13 @@ describe("runLine: matching an action (M6 spec H5)", () => {
 
   it("a line that matches nothing reads the same as one that is not offered yet", () => {
     const notOffered = runLine("kubectl rollout undo deployment/checkout", ctx({ offers: () => false }));
-    const nothing = runLine("kubectl rollout undo deployment/checkout --dry-run", ctx());
+    const nothing = runLine("kubectl rollout undo deployment/ghost", ctx());
     expect(nothing.dispatch).toBeUndefined();
-    expect(text(nothing).split("\n")[0]).toMatch(/^Error from server \(NotFound\)/);
+    expect(text(nothing)).toBe(text(notOffered));
+    expect(text(nothing)).not.toContain("not found");
     expect(notOffered.lines.map((l) => l.kind)).toEqual(nothing.lines.map((l) => l.kind));
-    expect(notOffered.lines.length).toBe(nothing.lines.length);
+    // A real service on the map is never named as missing (review I2).
+    expect(text(runLine("kubectl rollout undo deployment/checkout --bogus", ctx({ offers: () => false })))).not.toMatch(/deployments\.apps|"checkout"/);
   });
 
   it("says another operation is in progress while the engine is busy, and dispatches nothing", () => {
@@ -50,10 +53,40 @@ describe("runLine: matching an action (M6 spec H5)", () => {
     expect(text(r)).toBe("another operation is in progress");
   });
 
+  it("while busy or before the ack, a wrong command in the vocabulary answers like a valid one (review I4)", () => {
+    const busy = ctx({ check: () => "busy" });
+    expect(text(runLine("kubectl nonsense --foo", busy))).toBe(text(runLine("kubectl rollout undo deployment/checkout", busy)));
+    expect(text(runLine("kubectl nonsense --foo", busy))).toBe("another operation is in progress");
+    const paging = ctx({ phase: "paging", check: () => "not_acknowledged" });
+    expect(text(runLine("kubectl nonsense --foo", paging))).toBe(text(runLine("kubectl rollout undo deployment/checkout", paging)));
+    expect(text(runLine("kubectl nonsense --foo", paging))).toMatch(/ack/);
+    // a word outside the vocabulary is still command not found
+    expect(text(runLine("ls", busy))).toBe("ls: command not found");
+  });
+
   it("tells you to acknowledge first when the page is not acknowledged", () => {
     const r = runLine("kubectl rollout undo deployment/checkout", ctx({ phase: "paging", check: () => "not_acknowledged" }));
     expect(r.dispatch).toBeUndefined();
     expect(text(r)).toMatch(/ack/);
+  });
+
+  it("a keyed fix matches with extra flags, a host, a service label or other quoting", () => {
+    const d = (line: string) => runLine(line, ctx()).dispatch;
+    expect(d("kubectl rollout undo deployment/checkout --dry-run=false -n prod")).toBe("checkout.rollback");
+    expect(d("kubectl -n prod rollout undo deployment/checkout")).toBe("checkout.rollback");
+    expect(d("kubectl rollout undo deployment/Checkout API")).toBe("checkout.rollback");
+    expect(d(`psql -h db1 -c "SELECT pg_drop_replication_slot('reporting_cdc')"`)).toBe("postgres.connections");
+    expect(d(`psql -c 'select pg_drop_replication_slot("reporting_cdc")'`)).toBe("postgres.connections");
+  });
+
+  it("a keyed fix with a missing key does not match", () => {
+    expect(runLine("kubectl rollout undo deployment/payments", ctx()).dispatch).toBeUndefined();
+    expect(runLine("kubectl rollout restart", ctx()).dispatch).toBeUndefined();
+    expect(runLine(`psql -c "SELECT pg_drop_replication_slot('other')"`, ctx()).dispatch).toBeUndefined();
+  });
+
+  it("an ambiguous input matches nothing", () => {
+    expect(runLine("kubectl rollout undo restart deployment/checkout", ctx()).dispatch).toBeUndefined();
   });
 
   it("never matches a teammate question (no cli)", () => {
@@ -109,6 +142,24 @@ describe("runLine: unknown input (M6 spec H6)", () => {
 });
 
 describe("runLine: builtins (M6 spec H7)", () => {
+  it("help prints the shared CLI_HELP", () => {
+    expect(runLine("help", ctx()).lines.map((l) => l.text)).toEqual([...CLI_HELP, ...HELP_EXTRA]);
+  });
+
+  it("runbook lists the offered investigations by their resolved command, never fixes or unoffered checks", () => {
+    const r = text(runLine("runbook", ctx({ offers: (id) => id !== "checkout.deploys" })));
+    expect(r).toContain("kubectl logs deployment/edge --since=15m");
+    expect(r).toContain("kubectl top pods -l app=checkout");
+    expect(r).not.toContain("rollout history");
+    for (const fix of ["undo", "restart", "zz_secret_flag", "status-page", "page secondary"]) expect(r).not.toContain(fix);
+    expect(text(runLine("runbook", ctx({ offers: () => false })))).toMatch(/nothing/i);
+  });
+
+  it("runbook fills per-run values", () => {
+    const sc = { ...fixtureScenario, actions: [{ id: "x.check", label: "x", serviceId: null, category: "investigate", durationS: 5, verdict: "useful", cli: "psql -c \"select {pid}\"", cliVars: () => ({ pid: 42 }) }] } as unknown as TerminalCtx["scenario"];
+    expect(text(runLine("runbook", ctx({ scenario: sc, state: () => ({}) as never })))).toContain('psql -c "select 42"');
+  });
+
   it("help is the same cheat sheet for every incident and names no scenario command", () => {
     const a = text(runLine("help", ctx()));
     expect(a).toMatch(/<service>/);

@@ -63,6 +63,7 @@ function DeployCardView({ card, world, onOpen }: { card: DeployCard; world: Worl
 
 export function ChatApp() {
   const incident = useIncident();
+  const hard = incident.difficulty === "hard";
   const { read, markRead, bootAt, arrivals, chatPosts, postChat, openTool, signal } = useOs();
   const team = useTeamActions();
   const { world, scenario, content, inspect, snapshot } = incident;
@@ -343,7 +344,10 @@ export function ChatApp() {
         <p className="chat-typing" aria-live="polite">
           {typing.length > 0 ? `${authorName(typing[0]!.author, world)} is typing…` : ""}
         </p>
-        {chips.length > 0 && (
+        {chips.length > 0 && hard && dm && (
+          <p className="chat-note">Hard mode: type /ask @{world.colleagues[dm].toLowerCase()} &lt;topic&gt; to ask a question.</p>
+        )}
+        {chips.length > 0 && !hard && (
           <div className="chat-chips" role="group" aria-label="Suggested questions">
             {chips.map((a) => (
               <button key={a.id} type="button" className="chat-chip" onClick={() => ask(a.id)}>

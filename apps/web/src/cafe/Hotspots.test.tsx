@@ -79,6 +79,21 @@ describe("café hotspots", () => {
     expect(screen.getByRole("status").textContent).toContain("Wait for the running action to finish.");
   });
 
+  it("in a hard shift the duck is not a button press: it points at the Terminal and runs nothing", () => {
+    const view = renderOs(
+      <CameraContext.Provider value={{ view: "cafe", started: true, closing: false, lookUp: vi.fn(), enterLaptop: vi.fn() }}>
+        <Hotspots />
+      </CameraContext.Provider>,
+      { prefs: { difficulty: "hard" } },
+    );
+    act(() => view.incident().start());
+    act(() => view.incident().skipPrepage());
+    act(() => view.incident().acknowledge());
+    fireEvent.click(screen.getByRole("button", { name: "Rubber duck" }));
+    expect(screen.getByRole("status").textContent).toContain("incidentctl rubber-duck");
+    expect(view.incident().snapshot.busy).toBeNull();
+  });
+
   it("the days-since sign owns up once the page has fired", () => {
     const { incident } = setup();
     act(() => incident().start());

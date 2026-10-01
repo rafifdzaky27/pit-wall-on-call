@@ -19,7 +19,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const HARD_LINE = "Hard mode: run commands in Terminal";
+const HARD_LINE = "Hard mode: run commands in Terminal. Type runbook for the checks you can run.";
 const buttons = (c: HTMLElement) => c.querySelectorAll("[data-coach^='action:']");
 
 function paged(ui: React.ReactNode, difficulty: "normal" | "hard") {
