@@ -72,7 +72,7 @@ async function sendQueued(skip: string | null, markPlayed: DailyApi["markPlayed"
  * outlives shifts and starts over with each; unsent runs wait in a queue across reloads (M3 spec Y10).
  */
 export function SubmissionProvider({ children }: { children: ReactNode }) {
-  const { result, shiftId, scenario, daily } = useIncident();
+  const { result, shiftId, scenario, daily, difficulty } = useIncident();
   const { markPlayed } = useDaily();
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
   // This provider outlives each shift (M2.5 plan A4): a new shift starts it over, and a post still in
@@ -117,6 +117,7 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
         engineVersion: ENGINE_VERSION,
         runKey: key,
         actions: result.actions,
+        difficulty,
       };
       for (let attempt = 0; ; attempt++) {
         try {
@@ -174,7 +175,7 @@ export function SubmissionProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [result, shiftId, daily],
+    [result, shiftId, daily, difficulty],
   );
 
   // Runs an earlier page could not send go out on load and whenever the browser is back online.

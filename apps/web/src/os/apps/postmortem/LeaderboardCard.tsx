@@ -112,16 +112,18 @@ export function LeaderboardCard({ onView, bare = false }: { onView?: () => void;
   } else if (state.kind === "posting") {
     body = <p role="status">Posting your score…</p>;
   } else if (state.kind === "posted") {
-    const { board, flagged, ranked, dailyDate } = state.run;
+    const { board, flagged, ranked, dailyDate, difficulty } = state.run;
+    // Boards are per difficulty (M6 spec H10): a hard run says so.
+    const hard = difficulty === "hard" ? " (hard)" : "";
     const line = flagged
       ? "Posted and held for review. Fixes this fast are checked by hand."
       : ranked
-        ? `Ranked #${board.rank} of ${board.total} on today's daily board.`
+        ? `Ranked #${board.rank} of ${board.total} on today's daily board${hard}.`
         : dailyDate
           ? "Practice: your ranked attempt at today's daily came earlier. This one counts on the practice board."
           : board.best
-        ? `New best: #${board.rank} of ${board.total} on the practice leaderboard.`
-        : `Posted. Your best is still #${board.rank} of ${board.total}.`;
+        ? `New best: #${board.rank} of ${board.total} on the practice leaderboard${hard}.`
+        : `Posted. Your best is still #${board.rank} of ${board.total}${hard}.`;
     body = (
       <>
         <p role="status">{line}</p>

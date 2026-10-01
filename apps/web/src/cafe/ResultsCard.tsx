@@ -53,7 +53,7 @@ export function ResultsCard() {
 
   const share = async () => {
     track("share_click");
-    const text = shareText(scenario, result, window.location.origin, daily);
+    const text = shareText(scenario, result, window.location.origin, daily, incident.difficulty);
     try {
       await navigator.clipboard.writeText(text);
       setCopied("yes");
@@ -67,11 +67,11 @@ export function ResultsCard() {
       <div className="results-card" role="dialog" aria-label="Shift report" aria-modal="true" tabIndex={-1} ref={card}>
         {view === "board" ? (
           <div className="results-body">
-            <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} daily={daily} version={leaderboardVersion} />
+            <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} daily={daily} difficulty={incident.difficulty} version={leaderboardVersion} />
           </div>
         ) : (
           <div className="results-body">
-            <p className="eyebrow">{daily ? `Daily #${daily.number}` : scenario.title} · Shift report</p>
+            <p className="eyebrow">{daily ? `Daily #${daily.number}` : scenario.title}{incident.difficulty === "hard" ? " · Hard" : ""} · Shift report</p>
             <h2 className="results-title">{resolved ? (drill ? "Training complete" : `Resolved in ${formatClock(result.endTick)}`) : "Out of time"}</h2>
             {drill && (
               <p>
@@ -103,7 +103,7 @@ export function ResultsCard() {
             {!drill && (
               <section className="results-board" aria-label="Leaderboard">
                 <LeaderboardCard bare />
-                <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} daily={daily} version={leaderboardVersion} limit={5} bare />
+                <LeaderboardPage scenarioId={scenario.id} scenarioTitle={scenario.title} daily={daily} difficulty={incident.difficulty} version={leaderboardVersion} limit={5} bare />
               </section>
             )}
             {copied && <p role="status">{copied === "yes" ? "Copied to the clipboard." : "Couldn't copy. Select the text in the postmortem instead."}</p>}

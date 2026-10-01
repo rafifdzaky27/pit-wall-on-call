@@ -37,3 +37,14 @@ describe("sharing a daily (M3 spec Y12)", () => {
     expect(text.split("\n").at(-1)).toBe("https://pitwall.example/daily");
   });
 });
+
+describe("sharing a hard shift (M6 spec H11)", () => {
+  it("says Hard on the title line, for practice and for a daily", () => {
+    expect(shareText(slowLeak, perfect, "https://pitwall.example", undefined, "hard").split("\n")[0]).toBe("Pit Wall On-Call · The Slow Leak · Hard");
+    expect(shareText(slowLeak, perfect, "https://pitwall.example", { number: 7 }, "hard").split("\n")[0]).toBe("Pit Wall On-Call · Daily #7 · Hard");
+  });
+
+  it("normal is unchanged", () => {
+    expect(shareText(slowLeak, perfect, "https://pitwall.example", undefined, "normal")).toBe(shareText(slowLeak, perfect, "https://pitwall.example"));
+  });
+});

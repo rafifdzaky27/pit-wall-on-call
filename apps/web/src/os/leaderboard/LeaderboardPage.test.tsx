@@ -111,3 +111,27 @@ describe("the daily board (M3 spec Y7, Y11)", () => {
     expect(await screen.findByText("Nobody has posted today's daily yet. Be the first.")).toBeTruthy();
   });
 });
+
+describe("the hard boards (M6 spec H11)", () => {
+  it("fetches the hard practice board, names it, and has its own empty state", async () => {
+    const fetch = serve(board([]));
+    render(<LeaderboardPage scenarioId="db-pool-exhaustion" scenarioTitle="The Slow Leak" difficulty="hard" />);
+    expect(await screen.findByText("No hard shifts posted yet. Finish one on hard and post it from its postmortem.")).toBeTruthy();
+    expect((fetch.mock.calls[0] as unknown as [string])[0]).toBe("/api/leaderboard?scenario=db-pool-exhaustion&difficulty=hard");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Practice leaderboard · Hard");
+  });
+
+  it("fetches the hard daily board and says nobody has played the hard daily", async () => {
+    const fetch = serve({ ...board([]), board: "daily", date: "2026-10-05", number: 7 } as unknown as Board);
+    render(<LeaderboardPage scenarioId="db-pool-exhaustion" scenarioTitle="The Slow Leak" daily={{ date: "2026-10-05", number: 7 }} difficulty="hard" />);
+    expect(await screen.findByText("Nobody has posted today's daily on hard yet. Be the first.")).toBeTruthy();
+    expect((fetch.mock.calls[0] as unknown as [string])[0]).toBe("/api/leaderboard?date=2026-10-05&difficulty=hard");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Daily #7 · Hard");
+  });
+
+  it("names the hard table", async () => {
+    serve(board([entry(1)]));
+    render(<LeaderboardPage scenarioId="db-pool-exhaustion" scenarioTitle="The Slow Leak" difficulty="hard" />);
+    expect(await screen.findByRole("table", { name: "Practice leaderboard (hard)" })).toBeTruthy();
+  });
+});

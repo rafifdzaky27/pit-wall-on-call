@@ -1,5 +1,6 @@
 import type { ActionRecord } from "@pitwall/engine";
 import type { Daily } from "@pitwall/scenarios";
+import type { Difficulty } from "../os/prefs";
 
 /** A response from the API that is not a success (M2 spec §3). */
 export class ApiError extends Error {
@@ -43,6 +44,7 @@ export interface PostedRun {
   /** This run is the player's ranked daily (M3 spec Y6). */
   ranked?: boolean;
   dailyDate?: string | null;
+  difficulty?: Difficulty;
   flagged: boolean;
   score: Score;
   board: { rank: number | null; total: number; best: boolean };
@@ -56,6 +58,8 @@ export interface RunPost {
   engineVersion: string;
   runKey: string;
   actions: ActionRecord[];
+  /** Normal or hard (M6 spec H10). A run queued before hard mode has none, which the server reads as normal. */
+  difficulty?: Difficulty;
 }
 
 export interface BoardEntry {
@@ -105,8 +109,11 @@ async function request<T>(method: string, path: string, { body, token }: { body?
 export const registerPlayer = (handle: string) => request<PlayerView & { token: string }>("POST", "/api/players", { body: { handle } });
 export const renamePlayer = (token: string, handle: string) => request<PlayerView>("PATCH", "/api/players/me", { body: { handle }, token });
 export const postRun = (token: string, run: RunPost) => request<PostedRun>("POST", "/api/runs", { body: run, token });
-export const fetchLeaderboard = (scenarioId: string, token?: string) =>
-  request<Board>("GET", `/api/leaderboard?scenario=${encodeURIComponent(scenarioId)}`, { token });
+/** Normal is the API's default, so only hard adds a parameter (M6 spec H10). */
+const hardParam = (difficulty: Difficulty) => (difficulty === "hard" ? "&difficulty=hard" : "");
+
+export const fetchLeaderboard = (scenarioId: string, token?: string, difficulty: Difficulty = "normal") =>
+  request<Board>("GET", `/api/leaderboard?scenario=${encodeURIComponent(scenarioId)}${hardParam(difficulty)}`, { token });
 
 /** The day's board (M3 spec Y7). */
 export interface DailyBoard {
@@ -119,4 +126,5 @@ export interface DailyBoard {
 }
 
 export const fetchDaily = () => request<Daily & { engineVersion: string }>("GET", "/api/daily");
-export const fetchDailyBoard = (date: string, token?: string) => request<DailyBoard>("GET", `/api/leaderboard?date=${encodeURIComponent(date)}`, { token });
+export const fetchDailyBoard = (date: string, token?: string, difficulty: Difficulty = "normal") =>
+  request<DailyBoard>("GET", `/api/leaderboard?date=${encodeURIComponent(date)}${hardParam(difficulty)}`, { token });

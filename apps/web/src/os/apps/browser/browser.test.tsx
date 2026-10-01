@@ -248,6 +248,28 @@ describe("BrowserApp: the leaderboard site (M2)", () => {
     expect(screen.getByRole("table", { name: "Practice leaderboard" })).toBeTruthy();
   });
 
+  it("a Normal / Hard switch picks the board, and the choice is remembered (M6 spec H11)", async () => {
+    localStorage.clear();
+    const first = renderOs(<BrowserApp />);
+    fireEvent.click(screen.getByRole("button", { name: "Pit Wall leaderboard" }));
+    await flush();
+    const diff = screen.getByRole("group", { name: "Difficulty" });
+    expect(within(diff).getByRole("button", { name: "Normal", pressed: true })).toBeTruthy();
+    fireEvent.click(within(diff).getByRole("button", { name: "Hard" }));
+    await flush();
+    expect(within(diff).getByRole("button", { name: "Hard", pressed: true })).toBeTruthy();
+    expect(fetchMock.mock.calls.at(-1)![0]).toMatch(/^\/api\/leaderboard\?date=\d{4}-\d{2}-\d{2}&difficulty=hard$/);
+    fireEvent.click(within(screen.getByRole("group", { name: "Boards" })).getByRole("button", { name: "Practice" }));
+    await flush();
+    expect(fetchMock.mock.calls.at(-1)![0]).toBe("/api/leaderboard?scenario=db-pool-exhaustion&difficulty=hard");
+    first.unmount();
+    renderOs(<BrowserApp />);
+    fireEvent.click(screen.getByRole("button", { name: "Pit Wall leaderboard" }));
+    await flush();
+    expect(within(screen.getByRole("group", { name: "Difficulty" })).getByRole("button", { name: "Hard", pressed: true })).toBeTruthy();
+    localStorage.clear();
+  });
+
   it("switching back to the store keeps where it was", async () => {
     renderOs(<BrowserApp />);
     fireEvent.click(screen.getByRole("button", { name: `${copy.cart}, 2` }));

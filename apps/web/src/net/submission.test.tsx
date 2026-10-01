@@ -244,6 +244,40 @@ describe("the daily and the queue (M3 spec Y6, Y10)", () => {
   });
 });
 
+describe("difficulty on every run (M6 spec H10)", () => {
+  it("posts normal explicitly by default", async () => {
+    savePlayer(PLAYER);
+    serve(() => json(201, POSTED));
+    const { incident } = renderOs(<Probe />);
+    finishShift(incident);
+    await flush();
+    expect(calls[0]!.body).toMatchObject({ difficulty: "normal" });
+  });
+
+  it("posts hard when the shift was played on hard, and keeps it in the queue", async () => {
+    savePlayer(PLAYER);
+    serve(() => {
+      throw new TypeError("offline");
+    });
+    const { incident } = renderOs(<Probe />, { prefs: { difficulty: "hard" } });
+    finishShift(incident);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+    expect(calls[0]!.body).toMatchObject({ difficulty: "hard" });
+    expect(JSON.parse(localStorage.getItem("pitwall.pending")!)).toMatchObject([{ difficulty: "hard" }]);
+  });
+
+  it("sends a queued run from before hard mode as it was, without a difficulty", async () => {
+    savePlayer(PLAYER);
+    localStorage.setItem("pitwall.pending", JSON.stringify([{ scenarioId: "db-pool-exhaustion", seed: 1, mode: "practice", engineVersion: "1.1.0", runKey: "k-old", actions: [] }]));
+    serve(() => json(201, POSTED));
+    renderOs(<Probe />);
+    await flush();
+    expect(calls[0]!.body).not.toHaveProperty("difficulty");
+  });
+});
+
 describe("M3 review fixes", () => {
   it("the UTC rollover never posts a finished shift again (review 1)", async () => {
     savePlayer(PLAYER);
