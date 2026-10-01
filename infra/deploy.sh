@@ -47,9 +47,53 @@ smoke_test() {
   return 1
 }
 
+# Value of KEY in .env (last one wins), without surrounding spaces or quotes.
+env_value() {
+  grep -E "^$1=" .env | tail -1 | cut -d= -f2- | tr -d ' "' || true
+}
+
+analytics_enabled() {
+  [[ ",$(env_value COMPOSE_PROFILES)," == *,analytics,* ]]
+}
+
+# With the analytics profile on, UMAMI_DB_PASSWORD and UMAMI_APP_SECRET must be set,
+# and the password must be plain characters (it is written into a psql \set line).
+# Checked before anything changes, so a bad .env aborts the deploy cleanly.
+check_analytics_env() {
+  analytics_enabled || return 0
+  local pw
+  pw="$(env_value UMAMI_DB_PASSWORD)"
+  if [[ -z "$pw" || -z "$(env_value UMAMI_APP_SECRET)" ]]; then
+    echo "COMPOSE_PROFILES has analytics: set UMAMI_DB_PASSWORD and UMAMI_APP_SECRET in .env" >&2
+    return 1
+  fi
+  if [[ ! "$pw" =~ ^[A-Za-z0-9._~-]+$ ]]; then
+    echo "UMAMI_DB_PASSWORD may only contain letters, digits and . _ ~ -" >&2
+    return 1
+  fi
+}
+
+# Idempotent: creates role and database "umami" if missing and keeps the password in
+# sync with .env. The password travels on stdin only, never as an argument or in output.
+provision_umami() {
+  analytics_enabled || return 0
+  {
+    printf "\\\\set pw '%s'\n" "$(env_value UMAMI_DB_PASSWORD)"
+    cat <<'SQL'
+select format('create role umami login password %L', :'pw') where not exists (select from pg_roles where rolname = 'umami') \gexec
+select format('alter role umami login password %L', :'pw') \gexec
+select 'create database umami owner umami' where not exists (select from pg_database where datname = 'umami') \gexec
+SQL
+  } | docker compose exec -T postgres psql -q -v ON_ERROR_STOP=1 -U pitwall -d pitwall >/dev/null
+}
+
+check_analytics_env
+
 echo "deploying ${NEW_TAG} (previous: ${PREV_TAG:-none})"
 pull "$NEW_TAG"
 migrate "$NEW_TAG"
+# Postgres is running after the migration (it is the api's dependency).
+provision_umami
 
 # start is inside the condition so a failing "compose up" also triggers rollback
 # (under set -e it would otherwise exit with .env on a never-healthy tag).
