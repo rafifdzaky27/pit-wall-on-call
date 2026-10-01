@@ -40,6 +40,21 @@ describe("the next-step guide (M4.5 spec N3)", () => {
     expect(hint(os)).toBeUndefined();
   });
 
+  it("sends hint_shown once per shift, for the first hint only", () => {
+    const track = vi.fn();
+    (window as { umami?: unknown }).umami = { track };
+    const { os } = startActive();
+    track.mockClear();
+    ms(46_000);
+    expect(hint(os)).toBeDefined();
+    expect(track.mock.calls).toEqual([["hint_shown", undefined]]);
+    act(() => os().openApp("monitoring"));
+    ms(46_000);
+    expect(hint(os)?.body).toMatch(/red service on the map/);
+    expect(track).toHaveBeenCalledTimes(1);
+    delete (window as { umami?: unknown }).umami;
+  });
+
   it("moves to the next place after each milestone, clearing the old hint", () => {
     const { os } = startActive();
     ms(46_000);
