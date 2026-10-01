@@ -13,9 +13,10 @@
 #   RESTIC_OFFSITE_PASSWORD_FILE optional, defaults to RESTIC_PASSWORD_FILE
 #   COMPOSE_DIR                  directory holding docker-compose.yml and .env (default: infra/)
 #   PW_DB, PW_DB_USER, UMAMI_DB  default pitwall, pitwall, umami
+#   BACKUP_LOCK                  default /run/lock/pitwall-backup.lock (shared with restore-test.sh)
 #
-# restic's --stdin-from-command aborts the snapshot when pg_dump fails, so a broken
-# dump can never become a "good" snapshot (a plain pipe would still store it).
+# Each dump is written to a private temp file and handed to restic only if pg_dump exited 0,
+# so a broken dump can never become a "good" snapshot (a plain pipe would still store it).
 set -euo pipefail
 umask 077
 
@@ -31,10 +32,24 @@ pg() {
   docker compose exec -T postgres "$@"
 }
 
+# One backup or restore test at a time: the nightly timer and the weekly restore test
+# (which runs this script first) can both fire at boot after a night with the VM off.
+exec 9>"${BACKUP_LOCK:-/run/lock/pitwall-backup.lock}"
+flock -w 1800 9
+
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
+
 # dump_database <database> <tag>
+# The dump goes to a private temp file first and reaches restic only if pg_dump exited 0,
+# so a failed dump never becomes a (truncated) snapshot. Works with Ubuntu's restic 0.16,
+# which has no --stdin-from-command.
 dump_database() {
-  restic backup --quiet --stdin-from-command --stdin-filename "$2.dump" --tag "$2" -- \
-    docker compose exec -T postgres pg_dump -Fc -U "$PW_DB_USER" "$1"
+  local file="$scratch/$2.dump"
+  docker compose exec -T postgres pg_dump -Fc -U "$PW_DB_USER" "$1" >"$file"
+  [[ -s "$file" ]] || { echo "pg_dump of $1 produced no output" >&2; exit 1; }
+  restic backup --quiet --stdin --stdin-filename "$2.dump" --tag "$2" <"$file"
+  rm -f "$file"
   echo "backed up $1 (tag $2)"
 }
 

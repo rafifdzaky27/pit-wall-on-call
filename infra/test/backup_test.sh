@@ -22,6 +22,7 @@ export PW_DB_USER=pitwall
 export RESTIC_REPOSITORY="$work/repo"
 export RESTIC_PASSWORD_FILE="$work/password"
 export RESTIC_OFFSITE_REPOSITORY="$work/offsite"
+export BACKUP_LOCK="$work/lock"
 printf 'local-test-password\n' > "$RESTIC_PASSWORD_FILE"
 
 pg() {

@@ -32,9 +32,11 @@ restic -r "$RESTIC_OFFSITE_REPOSITORY" init \
 
 When `srv-backup-01` exists only `RESTIC_REPOSITORY` changes.
 
-## Why `--stdin-from-command`
+## Why a temp file and not a pipe
 
-A plain `pg_dump | restic backup --stdin` stores a snapshot even when `pg_dump` fails halfway. With `--stdin-from-command` restic aborts and stores nothing, so the newest snapshot is always a complete dump. `infra/test/backup_test.sh` checks this.
+A plain `pg_dump | restic backup --stdin` stores a snapshot even when `pg_dump` fails halfway. `backup.sh` writes each dump to a private temp file (umask 077, removed on exit) and hands it to restic only when `pg_dump` exited 0, so the newest snapshot is always a complete dump. restic's `--stdin-from-command` would do the same in one step, but it needs restic 0.17 and Ubuntu 24.04 ships 0.16. `infra/test/backup_test.sh` checks that a failing dump stores nothing.
+
+Both scripts take the same `flock` (`BACKUP_LOCK`), so the nightly backup and the weekly restore test never overlap.
 
 ## Tests
 

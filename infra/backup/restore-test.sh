@@ -29,6 +29,10 @@ TOLERANCE_PCT="${TOLERANCE_PCT:-0}"
 
 cd "${COMPOSE_DIR:-$(dirname "$0")/..}"
 
+# Never overlap with backup.sh (it prunes, which needs restic's exclusive lock).
+exec 9>"${BACKUP_LOCK:-/run/lock/pitwall-backup.lock}"
+flock -w 1800 9
+
 prod() {
   # </dev/null: docker would otherwise swallow the stdin of the table loop below.
   docker compose exec -T postgres psql -U "$PW_DB_USER" -v ON_ERROR_STOP=1 -Atq "$@" </dev/null | tr -d '\r'

@@ -615,6 +615,13 @@ ansible-playbook playbooks/pitwall.yml --ask-vault-pass
 - An offsite init failure that mentions `couldn't find root directory ID` or `invalid_grant` means the token is wrong. Fix the vault value, remove `/home/pitwall-deploy/.config/rclone/rclone.conf` on the VM, and run again.
 **ROLLBACK:** `sudo systemctl disable --now pitwall-backup.timer pitwall-restore-test.timer` stops all backup activity. Data in the repositories stays.
 
+**Commit** (Windows PowerShell, homelab-infra root). The vault values are encrypted, so they are safe to commit:
+```powershell
+git add ansible/group_vars/pitwall
+git commit -m "feat: pitwall backup and analytics secrets"
+git push
+```
+
 ### M5-4: First backup and first restore test (by hand)
 
 **RUN IN:** [Windows PowerShell]
@@ -629,7 +636,7 @@ ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo -u pitwall-deploy ba
 ```powershell
 ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo systemctl start pitwall-restore-test.service; sudo journalctl -u pitwall-restore-test.service -n 30 --no-pager; sudo systemctl list-timers 'pitwall-*' --no-pager"
 ```
-**EXPECTED:** every table is listed with matching counts, the unit ends with `status=0/SUCCESS`, and both timers show a NEXT time. No `pitwall-restore-*` container is left over: `docker ps -a` shows none.
+**EXPECTED:** every table is listed with matching counts, the unit ends with `status=0/SUCCESS`, and both timers show a NEXT time. No `pitwall-restore-*` container is left over: `sudo docker ps -a` shows none.
 **STOP:** a failed restore test means the backups cannot be trusted. Do not continue to launch; paste the journal here.
 
 ### M5-5: Turn Umami on
@@ -638,10 +645,10 @@ The Ansible run in M5-3 already wrote `COMPOSE_PROFILES=tunnel,analytics` and th
 
 **RUN IN:** [Windows PowerShell]
 ```powershell
-ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "cd /opt/pitwall && sudo -u pitwall-deploy ./deploy.sh `$(sudo grep -E '^TAG=' .env | cut -d= -f2)"
-ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "cd /opt/pitwall && sudo docker compose ps umami && sudo docker stats --no-stream --format '{{.Name}} {{.MemUsage}}'"
+ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo -u pitwall-deploy sh -c 'cd /opt/pitwall && ./deploy.sh `$(grep -E ^TAG= .env | cut -d= -f2)'"
+ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo docker compose --project-directory /opt/pitwall ps umami; sudo docker stats --no-stream --format '{{.Name}} {{.MemUsage}}'; free -m"
 ```
-**EXPECTED:** `deploy ok`; `umami` is `running` (healthy after about 30 s); its memory is under 384 MiB; total `available` RAM (`free -m`) is still above 400 MB.
+**EXPECTED:** `deploy ok`; `umami` is `running` (it has no healthcheck, so it never shows `healthy`); its memory is under 384 MiB; total `available` RAM (`free -m`) is still above 400 MB.
 **ERROR:**
 - `UMAMI_DB_PASSWORD ... unsafe` means the password has characters outside `[A-Za-z0-9._~-]`. The `openssl rand -hex` output never does, so check the vault value.
 - If `umami` restarts in a loop, run `sudo docker compose logs --tail 50 umami`. A Prisma `P1000` error means an authentication mismatch. Redeploy once; `deploy.sh` syncs the password on every run.
@@ -655,8 +662,8 @@ ssh -i ~/.ssh/id_ed25519_homelab -L 3001:127.0.0.1:3001 devops@192.168.18.25
 3. Set it as a repository variable (not a secret, because it is visible in the page source anyway), then rebuild:
 ```powershell
 gh variable set UMAMI_WEBSITE_ID --body "<website-id>" --repo rafifdzaky27/pit-wall-on-call
-gh workflow run deploy --repo rafifdzaky27/pit-wall-on-call --ref main
 ```
+Then tell Claude: the ID is built into the web image, so it takes effect with the **next merge to `main`** (Claude ships a small follow-up PR for this). Do **not** re-run the deploy workflow for the SHA that is already live: it rebuilds and overwrites that same image tag, so if its smoke test failed there would be nothing to roll back to.
 **VERIFY:**
 - Once `public-smoke` is green, open the site in a normal window with Do Not Track off.
 - `https://pitwall.rafifdzaky.com/stats/script.js` returns JavaScript.
@@ -664,7 +671,11 @@ gh workflow run deploy --repo rafifdzaky27/pit-wall-on-call --ref main
 - Umami's Realtime view shows you within a minute.
 - Play to the first ack; `ack` shows under Events.
 
-**ROLLBACK:** set `pitwall_analytics_enabled: false`, re-run the playbook, then redeploy. The container stops; the `umami` database stays, and backups keep including it.
+**ROLLBACK:** set `pitwall_analytics_enabled: false`, re-run the playbook, then remove the container (switching a profile off does not stop a running service):
+```powershell
+ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo docker compose --project-directory /opt/pitwall rm -sf umami"
+```
+The `umami` database stays, and backups keep including it.
 
 ### M5-6: External uptime monitor
 
@@ -674,15 +685,22 @@ gh workflow run deploy --repo rafifdzaky27/pit-wall-on-call --ref main
 - **Why outside the homelab:** a monitor inside the homelab dies with the power or ISP it is supposed to report on.
 **VERIFY:** the monitor shows Up. For a real test, stop the tunnel for six minutes, then start it again. The site is down for players during that window, so do it at a quiet time:
 ```powershell
-ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "cd /opt/pitwall && sudo docker compose stop cloudflared"
-ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "cd /opt/pitwall && sudo docker compose start cloudflared"
+ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo docker compose --project-directory /opt/pitwall stop cloudflared"
+ssh -i ~/.ssh/id_ed25519_homelab devops@192.168.18.25 "sudo docker compose --project-directory /opt/pitwall start cloudflared"
 ```
 Run the second command six minutes after the first. **EXPECTED:** a Down alert on your phone, then an Up alert.
 
-**Optional backup dead-man's switch:**
-- Create a healthchecks.io check (free) with period 1 day and grace 2 hours.
-- Put its ping URL in `group_vars/pitwall/main.yml` as `pitwall_backup_ping_url: "https://hc-ping.com/<uuid>"` and re-run the playbook.
-- From then on a backup that silently stops running alerts you.
+**Backup alerts (required, not optional):** a failed backup writes only to the journal, so without this you learn about it on the day you need a restore.
+- At healthchecks.io (free, your account) create two checks: `pitwall backup` (period 1 day, grace 2 hours) and `pitwall restore test` (period 7 days, grace 6 hours). Connect the same phone/email integration.
+- Add both ping URLs to `group_vars/pitwall/main.yml` (WSL, ansible directory):
+  ```bash
+  printf 'pitwall_backup_ping_url: "%s"
+pitwall_restore_test_ping_url: "%s"
+' "https://hc-ping.com/<backup-uuid>" "https://hc-ping.com/<restore-uuid>" >> group_vars/pitwall/main.yml
+  ansible-playbook playbooks/pitwall.yml --ask-vault-pass --tags backup
+  ```
+- The units ping only on success, so a failing **or** never-running job alerts by silence.
+- **VERIFY:** run the two services by hand again (the M5-4 commands). Both checks turn green on healthchecks.io.
 
 ### M5-7: Cloudflare rate-limit rule
 
@@ -690,7 +708,8 @@ Run the second command six minutes after the first. **EXPECTED:** a Down alert o
 The free plan allows one rule. It sits in front of the API's own limits (60 runs/min per IP, 120 leaderboard reads/min per IP), so it is looser than them. It only stops floods before they reach the homelab.
 - **Rule name:** `pitwall api flood`
 - **If incoming requests match** (Edit expression):
-  `(http.host eq "pitwall.rafifdzaky.com" and starts_with(http.request.uri.path, "/api/"))`
+  `(http.host eq "pitwall.rafifdzaky.com" and (starts_with(http.request.uri.path, "/api/") or http.request.uri.path eq "/stats/api/send"))`
+  The second half covers Umami's public collect endpoint, which has no rate limit of its own and writes into the same Postgres.
 - **Same characteristics:** IP
 - **When rate exceeds:** 50 requests per 10 seconds
 - **Then take action:** Block, for 10 seconds
@@ -723,8 +742,8 @@ This is not needed for launch.
 4. **Database first:** run `docker compose up -d postgres` and wait for it to be healthy.
 5. **Restore the dump:**
    - `restic -r rclone:gdrive:pitwall-backups snapshots --tag pitwall` and pick the newest.
-   - `restic -r rclone:gdrive:pitwall-backups dump <id> pitwall.dump | docker compose exec -T postgres pg_restore -U pitwall -d pitwall --clean --if-exists --no-owner`
-   - Do the same for `umami` (tag `umami`) if you use analytics. Create the role and database first, the same way `deploy.sh` does.
+   - `restic -r rclone:gdrive:pitwall-backups dump <id> pitwall.dump | docker compose exec -T postgres pg_restore -U pitwall -d pitwall --clean --if-exists --no-owner` (restic prompts for the repository password; or add `--password-file <file>`)
+   - For `umami` (tag `umami`), if you use analytics: create the role and database first, the same way `deploy.sh` does, then restore **as `umami`** so it owns its tables: `... dump <id> umami.dump | docker compose exec -T postgres pg_restore -U pitwall -d umami --clean --if-exists --no-owner --role=umami`.
 6. **Start everything:** `./deploy.sh <TAG>`.
    - The tunnel token is the same, so `pitwall-prod` connects from the new host. **Stop cloudflared on the homelab first** if it is still running, so the two connectors don't split traffic.
 7. **Verify:**

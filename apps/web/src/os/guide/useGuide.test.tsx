@@ -55,6 +55,25 @@ describe("the next-step guide (M4.5 spec N3)", () => {
     delete (window as { umami?: unknown }).umami;
   });
 
+  it("sends hint_shown again on the next shift (the desktop does not remount)", () => {
+    const track = vi.fn();
+    (window as { umami?: unknown }).umami = { track };
+    const { os, incident } = startActive();
+    ms(46_000);
+    act(() => incident().dispatch("checkout.rollback"));
+    for (let i = 0; i < 60; i++) ms(1000);
+    expect(incident().phase).toBe("ended");
+    act(() => prefsNow.update({ nextStepHints: true }));
+    act(() => incident().newShift());
+    act(() => incident().start());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    ms(46_000);
+    expect(hint(os)).toBeDefined();
+    expect(track.mock.calls.filter(([name]) => name === "hint_shown")).toHaveLength(2);
+    delete (window as { umami?: unknown }).umami;
+  });
+
   it("moves to the next place after each milestone, clearing the old hint", () => {
     const { os } = startActive();
     ms(46_000);
