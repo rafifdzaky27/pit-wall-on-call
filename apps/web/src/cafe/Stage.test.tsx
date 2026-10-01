@@ -81,6 +81,20 @@ describe("Stage", () => {
     expect(document.activeElement?.textContent).toBe("inside PitOS");
   });
 
+  it("a Terminal window gives its prompt the focus, not its title-bar buttons (M6 review)", () => {
+    const { incident } = renderOs(
+      <Stage>
+        <section className="window focused">
+          <button type="button">Close</button>
+          <input className="term-field" aria-label="Terminal command" />
+        </section>
+      </Stage>,
+    );
+    act(() => incident().start());
+    press("l");
+    expect(document.activeElement?.className).toBe("term-field");
+  });
+
   it("ignores L when single-key shortcuts are off", () => {
     const { incident } = renderOs(
       <Stage>

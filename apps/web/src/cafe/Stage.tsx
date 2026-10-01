@@ -52,7 +52,9 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
 function focusAfter(view: View): void {
   if (view === "desktop") {
     // A window's frame cannot take focus; its first control can.
-    const inWindow = document.querySelector<HTMLElement>(".stage-screen .window.focused")?.querySelector<HTMLElement>(FOCUSABLE);
+    // The Terminal's prompt comes before its title-bar buttons: it opens while the screen is inert, so it could not take focus then.
+    const win = document.querySelector<HTMLElement>(".stage-screen .window.focused");
+    const inWindow = win?.querySelector<HTMLElement>(".term-field") ?? win?.querySelector<HTMLElement>(FOCUSABLE);
     (inWindow ?? document.querySelector<HTMLElement>(".stage-screen .os-topbar button"))?.focus();
   } else {
     // The cold close's button first, when it is up; otherwise the laptop, ready to look back down.

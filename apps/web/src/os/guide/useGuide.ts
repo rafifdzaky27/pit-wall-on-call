@@ -92,7 +92,7 @@ export function useGuide(): void {
     {
       const crit = criticalIds(snapshot.health);
       const spoilers = INCIDENTS.flatMap((i) => i.variants).find((v) => v.scenario.id === scenario.id)?.spoilers ?? [];
-      const hint = hintFor(m, scenario.services.find((s) => crit.includes(s.id))?.label ?? null, spoilers);
+      const hint = hintFor(m, scenario.services.find((s) => crit.includes(s.id))?.label ?? null, spoilers, incident.difficulty === "hard");
       dispatch({ type: "hinted", milestone: m });
       if (!hint) return;
       const run = () => (hint.open === "monitoring" ? openApp("monitoring") : openTool(hint.open, crit[0] ?? null));

@@ -74,10 +74,24 @@ describe("the Terminal (M6 spec H3, H9)", () => {
     expect(incident().snapshot.busy).toBeNull();
   });
 
-  it("a known tool with arguments that match nothing reads the same", () => {
+  it("a known tool with arguments that match nothing reads the same, and never says a real service is missing", () => {
     shift();
-    run("kubectl rollout undo deployment/checkout --dry-run");
-    expect(log().textContent).toContain("Error from server (NotFound)");
+    run("kubectl rollout undo deployment/ghost");
+    expect(log().textContent).toContain("Error from server: the request could not be completed");
+    expect(log().textContent).not.toContain("not found");
+  });
+
+  it("incidentctl status-page posts whatever text was typed, apostrophes included", () => {
+    const { incident, os } = shift();
+    run("incidentctl status-page \"We're seeing checkout errors, rolling back\"");
+    expect(incident().snapshot.busy?.actionId).toBe("global.status_update");
+    expect(os().chatPosts.map((p) => p.text)).toContain("Status update: We're seeing checkout errors, rolling back");
+  });
+
+  it("a single-quoted status text is posted too", () => {
+    const { os } = shift();
+    run("incidentctl status-page 'second note'");
+    expect(os().chatPosts.map((p) => p.text)).toContain("Status update: second note");
   });
 
   it("unknown input says command not found", () => {

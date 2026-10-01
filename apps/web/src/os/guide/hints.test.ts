@@ -3,6 +3,19 @@ import { describe, expect, it } from "vitest";
 import { hintFor } from "./hints";
 import { MILESTONES } from "./milestones";
 
+describe("hard mode wording (M6 review)", () => {
+  it("points at the Terminal and runbook, never the Actions panel or buttons", () => {
+    for (const m of MILESTONES) {
+      const hint = hintFor(m, "shop-api", [], true);
+      if (!hint) continue;
+      expect(`${hint.body} ${hint.cta}`, m).not.toMatch(/Actions panel|button/i);
+    }
+    expect(hintFor("evidence", null, [], true)?.body).toContain("runbook");
+    expect(hintFor("fix", null, [], true)?.body).toContain("Terminal");
+    expect(hintFor("evidence", null)?.body).toContain("Actions panel");
+  });
+});
+
 describe("the hint texts", () => {
   it("say nothing spoilery for any variant of any incident, with any service as the critical one", () => {
     for (const incident of INCIDENTS) {

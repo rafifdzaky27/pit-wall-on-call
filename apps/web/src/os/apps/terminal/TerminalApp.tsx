@@ -15,7 +15,7 @@ import "./terminal.css";
 const PROMPT = "oncall@pitwall:~$";
 
 /** The words inside a command's quotes: what a status update says. */
-const quoted = (line: string) => /["']([^"']+)["']/.exec(line)?.[1];
+const quoted = (line: string) => /"([^"]+)"/.exec(line)?.[1] ?? /'([^']+)'/.exec(line)?.[1];
 
 /** Hard mode's Terminal: every action is a typed command (M6 spec H3, H9). */
 export function TerminalApp({ vocabulary }: { vocabulary?: readonly string[] } = {}) {
