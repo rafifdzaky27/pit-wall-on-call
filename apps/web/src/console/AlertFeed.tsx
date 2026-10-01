@@ -1,6 +1,5 @@
 import type { AlertState, ScenarioDef, State } from "@pitwall/engine";
 import { formatClock } from "../game/format";
-import { Term } from "../os/Term";
 
 export function AlertFeed({ scenario, alerts }: { scenario: ScenarioDef<State>; alerts: AlertState[] }) {
   const rules = new Map(scenario.alerts.map((a) => [a.id, a]));
@@ -21,7 +20,7 @@ export function AlertFeed({ scenario, alerts }: { scenario: ScenarioDef<State>; 
             return (
               <li key={`${a.alertId}-${a.firedAtTick}`} className={resolved ? "alert resolved" : "alert"}>
                 <div className="alert-h">
-                  <span className={`tag ${resolved ? "ok" : rule.severity}`}>{resolved ? "Resolved" : <Term id="alert-level">{rule.severity === "crit" ? "Crit" : "Warn"}</Term>}</span>
+                  <span className={`tag ${resolved ? "ok" : rule.severity}`}>{resolved ? "Resolved" : rule.severity === "crit" ? "Crit" : "Warn"}</span>
                   <b>{rule.title}</b>
                 </div>
                 <time className="mono">{formatClock(resolved ? a.clearedAtTick! : a.firedAtTick)}</time>

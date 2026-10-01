@@ -14,6 +14,8 @@ const reduce = (state: GuideState, a: Action): GuideState => (a.type === "observ
 
 export const GUIDE_NOTICE = "guide";
 
+const VETERAN_SHIFTS = 3;
+
 const criticalIds = (health: Record<string, Health>) =>
   Object.entries(health)
     .filter(([, h]) => h === "crit")
@@ -109,4 +111,17 @@ export function useGuide(): void {
     recorded.current = true;
     update({ resolvedOnce: true, nextStepHints: false });
   }, [phase, result, training, prefs.resolvedOnce, update]);
+
+  // Three finished real shifts, resolved or not, make a veteran: the hints step aside once, at the third.
+  const counted = useRef(false);
+  useEffect(() => {
+    if (phase !== "ended") {
+      counted.current = false;
+      return;
+    }
+    if (counted.current || training) return;
+    counted.current = true;
+    const shiftsDone = prefs.shiftsDone + 1;
+    update(shiftsDone === VETERAN_SHIFTS ? { shiftsDone, nextStepHints: false } : { shiftsDone });
+  }, [phase, training]);
 }

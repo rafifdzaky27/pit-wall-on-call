@@ -92,6 +92,7 @@ export function MonitoringApp() {
         onPause={incident.pause}
         shortcuts={prefs.singleKeyShortcuts}
         active={active}
+        offers={incident.offers}
         onSelect={(id) => signal(`service:${id}`)}
         onOpen={(app, serviceId) => (app === "incident" ? openApp("incident") : openTool(app, serviceId))}
       />

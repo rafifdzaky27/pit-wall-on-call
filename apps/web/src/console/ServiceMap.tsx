@@ -1,4 +1,5 @@
 import type { Health, ScenarioDef, State } from "@pitwall/engine";
+import { Term } from "../os/Term";
 
 export const HEALTH_LABEL: Record<Health, string> = { ok: "Healthy", warn: "Degraded", crit: "Critical" };
 
@@ -32,7 +33,8 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
           {LEGEND.map((l) => (
             <li key={l.level}>
               <span className={`legend-dot ${l.level}`} aria-hidden="true" />
-              <b className={`node-health ${l.level}`}>{l.name}</b>
+              {/* The one place Warn and Critical are explained, so the Crit and Warn tags add no tab stops of their own (M5 C5). */}
+              <b className={`node-health ${l.level}`}>{l.level === "warn" ? <Term id="alert-level">{l.name}</Term> : l.name}</b>
               <span className="muted">{l.meaning}</span>
             </li>
           ))}

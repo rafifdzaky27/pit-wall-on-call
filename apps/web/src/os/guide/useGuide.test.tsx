@@ -147,4 +147,30 @@ describe("the next-step guide (M4.5 spec N3)", () => {
     ms(120_000);
     expect(hint(os)).toBeUndefined();
   });
+
+  it("steps aside after three finished shifts, even when none was resolved (M5 C4)", () => {
+    const { incident } = startActive({ prefs: { shiftsDone: 2 } });
+    for (let i = 0; i < 20; i++) ms(30_000);
+    expect(incident().result?.outcome).toBe("dnf");
+    expect(prefsNow.prefs.shiftsDone).toBe(3);
+    expect(prefsNow.prefs.nextStepHints).toBe(false);
+    expect(prefsNow.prefs.resolvedOnce).toBe(false);
+  });
+
+  it("keeps the hints for the first two unresolved shifts", () => {
+    const { incident } = startActive({ prefs: { shiftsDone: 1 } });
+    for (let i = 0; i < 20; i++) ms(30_000);
+    expect(incident().result?.outcome).toBe("dnf");
+    expect(prefsNow.prefs.shiftsDone).toBe(2);
+    expect(prefsNow.prefs.nextStepHints).toBe(true);
+  });
+
+  it("does not count the training shift", () => {
+    const { incident } = renderOs(<Guide />);
+    act(() => incident().startTraining());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    for (let i = 0; i < 10; i++) ms(30_000);
+    expect(prefsNow.prefs.shiftsDone).toBe(0);
+  });
 });
