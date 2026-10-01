@@ -28,7 +28,7 @@ export const confirmations: Variant = {
   stuckLine: (n) => `order-confirmations: ${n} messages ready, 0 acknowledged in the last 60 s, consumers reconnecting`,
   okLine: (n) => `order-confirmations: ${n} messages ready, consumers connected`,
   peekCommand: "rabbitmqadmin get queue=order-confirmations ackmode=ack_requeue_true count=1",
-  moveCommand: "rabbitmqadmin dead-letter --queue order-confirmations --message-id <id from the crash log>",
+  moveCommand: "rabbitmqadmin move message --queue order-confirmations --to order-confirmations.dlq --message-id <id from the crash log>",
   purgeCommand: "rabbitmqctl purge_queue order-confirmations",
   filler: {
     sev3: "SEV3 resolved: search-api p99 above 800 ms. Duration 14 min. Postmortem PM-261.",
@@ -106,7 +106,7 @@ export const reservations: Variant = {
       return `group inventory-worker: partitions 0, 1, 2, 4 and 5 have LAG under 40 and their offsets move. Partition 3: CURRENT-OFFSET ${at}, LOG-END-OFFSET ${at + s.backlog}, LAG ${s.backlog}, and the committed offset has not moved in 40 minutes`;
     },
     readCommand: "kafka-console-consumer.sh --bootstrap-server kafka-1:9092 --topic inventory.reservations --partition 3 --offset <the stuck offset> --max-messages 1",
-    readReveal: (s) => `partition 3, offset ${1_842_000 + (s.msgId % 9000)}: {"sku": "SKU-71310", "quantity": -1, "source": "bulk-import"}. The validator rejects the negative quantity every time; the records behind it look normal`,
+    readReveal: (s) => `partition 3, offset ${1_842_000 + (s.msgId % 9000)}: {"sku": "SKU-71310", "quantity": -1, "source": "bulk-import"}. The validator rejects the negative quantity every time; the records behind it look normal. The group is committed at this offset, so the first offset after the bad record is ${1_842_001 + (s.msgId % 9000)}`,
     skipLabel: "Skip the bad offset for the consumer group",
     skipCommand: "kafka-consumer-groups.sh --bootstrap-server kafka-1:9092 --group inventory-worker --topic inventory.reservations:3 --reset-offsets --to-offset <stuck offset + 1> --execute",
     skipReveal: (s) => `workers paused, group inventory-worker on partition 3 moved from offset ${1_842_000 + (s.msgId % 9000)} to ${1_842_001 + (s.msgId % 9000)}, workers resumed: one record skipped, the rest of the partition is being consumed`,
