@@ -12,7 +12,7 @@ export function normaliseCli(input: string): string {
     if (quote) {
       if (ch === quote) {
         // A statement's own trailing semicolon is optional: "SELECT 1;" and "SELECT 1" match.
-        out = out.replace(/[\s;]+$/, "") + '"';
+        out = trimNoise(out) + '"';
         quote = null;
       } else out += ch === "'" || ch === '"' ? '"' : ch.toLowerCase();
       continue;
@@ -33,7 +33,14 @@ export function normaliseCli(input: string): string {
     out += ch.toLowerCase();
   }
   // Trailing semicolons (and the spaces between them) outside quotes are noise.
-  return quote ? out : out.replace(/[\s;]+$/, "");
+  return quote ? out : trimNoise(out);
+}
+
+/** Drops trailing whitespace and semicolons, in linear time (a regex like /[\s;]+$/ is quadratic). */
+function trimNoise(s: string): string {
+  let end = s.length;
+  while (end > 0 && (s[end - 1] === ";" || /\s/.test(s[end - 1]!))) end--;
+  return s.slice(0, end);
 }
 
 /** The command word, lowercased: what Tab completes and what "command not found" names. */

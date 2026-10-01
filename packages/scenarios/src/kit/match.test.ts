@@ -111,3 +111,15 @@ describe("second review fixes", () => {
     expect(matchCli(k, "kubectl apply -f ./checkout-mtls-client.yaml", {}, services)?.id).toBe("apply");
   });
 });
+
+describe("long hostile input (CodeQL js/polynomial-redos)", () => {
+  it("normalises 50k spaces, tabs and semicolons quickly", () => {
+    const junk = `psql -c "${" \t".repeat(25_000)}x${" ;".repeat(25_000)}`;
+    // eslint-disable-next-line no-restricted-globals -- times hostile input in a test; not game time
+    const started = performance.now();
+    canonicalCli(junk + " a" + " ".repeat(50_000) + "b", services);
+    canonicalCli(`kubectl ${"\t".repeat(50_000)}x`, services);
+    // eslint-disable-next-line no-restricted-globals -- times hostile input in a test; not game time
+    expect(performance.now() - started).toBeLessThan(200);
+  });
+});

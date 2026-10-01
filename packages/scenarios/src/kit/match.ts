@@ -24,7 +24,9 @@ export function canonicalCli(input: string, services: readonly ServiceName[]): s
     byName.set(s.id.toLowerCase(), s.id.toLowerCase());
   }
   return normaliseCli(input)
-    .replace(/\s*=\s*/g, "=")
+    .split("=")
+    .map((part, i, all) => (i === 0 ? part.trimEnd() : i === all.length - 1 ? part.trimStart() : part.trim()))
+    .join("=")
     .replace(/(^|[^a-z0-9_.-])(?:deploy|deployments)\//g, "$1deployment/")
     .replace(/(^|[\s"=])\.\//g, "$1")
     .replace(/(deployment\/|app=)([a-z0-9._-]+)/g, (whole, prefix: string, name: string) => {
