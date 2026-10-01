@@ -77,7 +77,7 @@ const CFGS: Record<"" | "mesh", Cfg> = {
       "If restarting quiets it for a while, did you renew what expired?",
     ],
     errLabel: "Search checkout-api for payment errors",
-    errReveal: "checkout-api: every failing charge dies in the TLS handshake with the payment provider: remote error: tls: expired certificate, so the provider rejects our client certificate. The certificate is checkout-api's own client cert (CN=checkout-api.mtls). checkout-api env: CALL_RETRIES=2, TLS_VERIFY=on",
+    errReveal: "checkout-api: every failing charge dies in the TLS handshake with the payment provider: remote error: tls: expired certificate, so the provider rejects our client certificate. The certificate is checkout-api's own client cert (CN=checkout-api.mtls). checkout-api env: CALL_RETRIES=2, TLS_VERIFY=on (TLS_VERIFY=off would skip certificate checks)",
     certReveal: [
       "secret checkout-mtls-client: issued 90 days ago, expired 34 minutes ago; the renew job has failed since day 60 (its DNS challenge was rejected)",
       "a renewed certificate valid for 90 days is already in the vault as the manifest checkout-mtls-client.yaml, not yet applied",
@@ -244,7 +244,7 @@ export function makeScenario(v: Variant): ScenarioDef<CertState> {
       reveals: () => ["retries 2 to 5 rolled out; every retry fails the same way and p99 latency doubled"] },
     { id: `${c.herring.service === "checkout-api" ? "checkout" : "stock"}.rollback_deploy`, cliKeys: ["rollout", "undo", `deployment/${c.herring.service === "checkout-api" ? "checkout" : "stock"}`], cli: `kubectl rollout undo deployment/${c.herring.service === "checkout-api" ? "checkout" : "stock"}`, tool: "deploys", label: `Roll back to ${c.herring.rollbackTo}`, serviceId: c.herring.service === "checkout-api" ? "checkout" : "stock", category: "mitigate", durationS: 30, verdict: "wasted",
       reveals: () => [`rollback to ${c.herring.rollbackTo} complete; the errors are unchanged`] },
-    { id: bypassId, cliKeys: mesh ? ["disable", "stock_check"] : ["set", "env", "deployment/checkout", "tls_verify"], cli: mesh ? "flagctl disable stock_check" : "kubectl set env deployment/checkout TLS_VERIFY=off", tool: "deploys", label: c.bypassLabel, serviceId: "checkout", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4000,
+    { id: bypassId, cliKeys: mesh ? ["disable", "stock_check"] : ["set", "env", "deployment/checkout", "tls_verify=off"], cli: mesh ? "flagctl disable stock_check" : "kubectl set env deployment/checkout TLS_VERIFY=off", tool: "deploys", label: c.bypassLabel, serviceId: "checkout", category: "mitigate", durationS: 15, verdict: "harmful", sideEffectBp: 4000,
       available: (s) => s.insecure === 0,
       effect: (s) => ({ ...s, insecure: 1 }),
       reveals: () => [c.bypassReveal] },

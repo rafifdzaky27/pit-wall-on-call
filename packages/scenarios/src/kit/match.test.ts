@@ -59,3 +59,11 @@ describe("matchCli (M6 review C1)", () => {
     expect(both).toBeUndefined();
   });
 });
+
+describe("a key with a value", () => {
+  it("matches only that value, so the safe setting never triggers the unsafe action", () => {
+    const tls: MatchableAction[] = [{ id: "bypass", cli: "kubectl set env deployment/checkout TLS_VERIFY=off", cliKeys: ["set", "env", "deployment/checkout", "tls_verify=off"] }];
+    expect(matchCli(tls, "kubectl set env deployment/checkout TLS_VERIFY=off", {}, services)?.id).toBe("bypass");
+    expect(matchCli(tls, "kubectl set env deployment/checkout TLS_VERIFY=on", {}, services)).toBeUndefined();
+  });
+});
