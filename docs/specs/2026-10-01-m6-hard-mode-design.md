@@ -31,3 +31,19 @@
 ## Out of scope
 
 Accounts, per-command partial credit, a real shell, editing commands in other apps, mobile layout for the terminal.
+
+## Amendments after review (2026-10-01)
+
+Two fresh reviews changed H4, H5 and H7:
+
+- **H5 matching is by intent, not verbatim text.**
+  - A check (investigate) is matched on its whole command and is listed by the new `runbook` builtin, like normal mode's check buttons.
+  - A fix or mitigation is matched on its command word plus its `cliKeys`. Keys are whole words, `a|b` alternatives, or `setting=value` pairs given exactly one value. Flags, hosts, quoting and order don't matter.
+  - Two keyed matches with the same number of keys mean the input is ambiguous, and nothing runs.
+  - A dry run never counts. Words inside an `incidentctl` message are free text, never keys.
+- **Service names.** After `deployment/` or `app=`, either a service's map id or its label works (`deploy/` and `deployments/` too).
+- **Learnability is tested.** Every key must appear, as a whole word, in what the shift shows (desktop, map, metrics, alerts, logs, check reveals) or in `help`. A pair's value must be stated next to its setting. `packages/scenarios/src/cli.learnable.test.ts` enforces this.
+- **Per-run values** (a pid, an offset, a message id) are `{name}` placeholders filled from `cliVars(state)` via the engine's read-only `Run.state()`.
+- **`help` lists every command family** the content uses (`CLI_HELP`, shared with the harness).
+- **The same reply for any vocabulary line** while another action runs or before the ack, except an async teammate page, which runs beside other work as its button does.
+- **The fairness test covers runbook commands too.**
