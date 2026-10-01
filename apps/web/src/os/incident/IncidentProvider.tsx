@@ -48,6 +48,8 @@ export interface IncidentApi {
   check: (actionId: string) => RejectReason | null;
   /** Whether a tool lists the action now (its target found), before and after the ack alike. */
   offers: (actionId: string) => boolean;
+  /** A copy of the scenario state now, for hard-mode commands that name per-run values (M6). */
+  runState: () => State;
   start: () => void;
   skipPrepage: () => void;
   acknowledge: () => void;
@@ -233,6 +235,7 @@ const Session = memo(function Session({ onApi, shiftId, daily, onStartDaily, onS
       paused: loop.paused,
       check: (actionId) => run.check(actionId),
       offers: (actionId) => run.offers(actionId),
+      runState: () => run.state(),
       start: () => setPhase((p) => (p === "idle" ? "prepage" : p)),
       skipPrepage: () => setPhase((p) => (p === "prepage" ? "paging" : p)),
       acknowledge: () => {

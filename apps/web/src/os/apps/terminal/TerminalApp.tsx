@@ -56,6 +56,7 @@ export function TerminalApp({ vocabulary }: { vocabulary?: readonly string[] } =
       phase: incident.phase,
       offers: incident.offers,
       check: incident.check,
+      state: incident.runState,
       history,
       vocabulary,
       status: () => [

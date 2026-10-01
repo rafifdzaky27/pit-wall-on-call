@@ -13,7 +13,8 @@ const steps = variant.golden.perfect.flatMap((r) => {
 });
 
 // Workstreams A1 and A2 write the `cli` values; the integration step removes this guard.
-test.skip(steps.length === 0 || steps.some((a) => !a.cli), "needs M6 content");
+// The pinned incident has commands for every golden action (content harness), so this always runs.
+if (steps.length === 0 || steps.some((a) => !a.cli)) throw new Error("hard-mode e2e: the pinned incident lost its commands");
 
 test("hard mode: set Hard in Settings, then solve the Slow Leak by typing its commands in the Terminal (M6)", async ({ page }) => {
   await page.clock.install();

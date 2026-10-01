@@ -31,3 +31,11 @@ describe("a shift's difficulty (M6 spec H1)", () => {
     expect(incident().difficulty).toBe("normal");
   });
 });
+
+describe("the run's state for hard-mode commands", () => {
+  it("is a readable copy of the current scenario state", () => {
+    const { incident } = renderOs(<Prefs />);
+    act(() => incident().start());
+    expect(typeof incident().runState()).toBe("object");
+  });
+});

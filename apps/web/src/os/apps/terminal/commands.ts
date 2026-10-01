@@ -1,5 +1,5 @@
 import type { RejectReason, ScenarioDef, State } from "@pitwall/engine";
-import { CLI_VOCABULARY, cliFirstWord, normaliseCli } from "@pitwall/scenarios";
+import { CLI_VOCABULARY, cliFirstWord, cliFor, normaliseCli } from "@pitwall/scenarios";
 import type { IncidentPhase } from "../../incident/IncidentProvider";
 
 /** One line of terminal output. `err` is for refusals, `muted` for hints. */
@@ -20,6 +20,8 @@ export interface TerminalCtx {
   status: () => string[];
   /** The global command vocabulary (defaults to every scenario's first words). */
   vocabulary?: readonly string[];
+  /** The run's current scenario state, for commands that name per-run values (`cliVars`). */
+  state?: () => State;
 }
 
 export interface TerminalResult {
@@ -144,7 +146,11 @@ export function runLine(line: string, ctx: TerminalCtx): TerminalResult {
   }
 
   const wanted = normaliseCli(typed);
-  const action = ctx.scenario.actions.find((a) => a.cli !== undefined && normaliseCli(a.cli) === wanted);
+  const state = ctx.state?.() ?? ({} as State);
+  const action = ctx.scenario.actions.find((a) => {
+    const cli = a.cliVars && !ctx.state ? undefined : cliFor(a, state);
+    return cli !== undefined && normaliseCli(cli) === wanted;
+  });
   if (action && ctx.offers(action.id)) {
     const reason = ctx.check(action.id);
     return reason ? { lines: [err(refusal(reason))] } : { lines: [], dispatch: action.id };

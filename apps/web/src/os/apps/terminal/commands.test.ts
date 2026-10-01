@@ -170,3 +170,23 @@ describe("complete (M6 spec H8)", () => {
     }
   });
 });
+
+describe("runLine: per-run values (cliVars)", () => {
+  const withPid = {
+    ...fixtureScenario,
+    actions: [
+      ...fixtureScenario.actions,
+      { id: "db.kill", label: "Kill it", serviceId: null, category: "fix", durationS: 5, verdict: "useful", cli: `psql -c "SELECT pg_terminate_backend({pid});"`, cliVars: () => ({ pid: 24117 }) },
+    ],
+  } as TerminalCtx["scenario"];
+  const state = { pid: 24117 };
+
+  it("matches the command with this run's value filled in", () => {
+    expect(runLine(`psql -c "select pg_terminate_backend(24117)"`, ctx({ scenario: withPid, state: () => state })).dispatch).toBe("db.kill");
+  });
+
+  it("does not match the placeholder or another value", () => {
+    expect(runLine(`psql -c "SELECT pg_terminate_backend({pid});"`, ctx({ scenario: withPid, state: () => state })).dispatch).toBeUndefined();
+    expect(runLine(`psql -c "SELECT pg_terminate_backend(24118);"`, ctx({ scenario: withPid, state: () => state })).dispatch).toBeUndefined();
+  });
+});
