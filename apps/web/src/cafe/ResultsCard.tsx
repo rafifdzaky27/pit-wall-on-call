@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { track } from "../analytics/analytics";
 import { formatBp, formatClock } from "../game/format";
 import { shareText } from "../game/share";
 import { useIncident } from "../os/incident/IncidentProvider";
@@ -51,6 +52,7 @@ export function ResultsCard() {
   const told = result.timeline.some((e) => e.kind === "action_start" && e.actionId === "global.status_update");
 
   const share = async () => {
+    track("share_click");
     const text = shareText(scenario, result, window.location.origin, daily);
     try {
       await navigator.clipboard.writeText(text);

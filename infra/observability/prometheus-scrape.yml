@@ -1,0 +1,23 @@
+# Prometheus scrape job for the Pit Wall API. PREPARED, NOT DEPLOYED (M5 spec L5-6).
+# Paste this under `scrape_configs:` in the Observability project's prometheus.yml.
+#
+# /metrics is private: Caddy proxies /api/* only, and production publishes no host ports.
+# To scrape it, the Observability project must (then, not now):
+#   1. bind the api's port to the tailnet address of srv-pitwall-01 only, in a compose override:
+#        api:
+#          ports:
+#            - "<TAILNET_IP_OF_SRV_PITWALL_01>:8787:8787"
+#      (srv-pitwall-01 runs no Tailscale today; the Observability host reaches it over the LAN
+#      or the subnet router, so the address may be 192.168.18.25 instead. Never 0.0.0.0.)
+#   2. allow that port from the Prometheus host only.
+# Until then, look at it by hand:
+#   docker compose exec -T api wget -qO- http://127.0.0.1:8787/metrics | head
+scrape_configs:
+  - job_name: pitwall-api
+    metrics_path: /metrics
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["<TAILNET_IP_OF_SRV_PITWALL_01>:8787"]
+        labels:
+          app: pitwall
+          env: production

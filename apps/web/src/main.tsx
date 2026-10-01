@@ -13,10 +13,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { getScenario } from "@pitwall/scenarios";
 import { App } from "./App";
+import { initAnalytics } from "./analytics/analytics";
 import { applyPrefs, loadPrefs } from "./os/prefs";
 
 // Apply before the first paint so a light-theme player never sees a dark flash.
 applyPrefs(loadPrefs());
+initAnalytics();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root element missing");

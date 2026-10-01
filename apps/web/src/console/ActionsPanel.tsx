@@ -8,7 +8,7 @@ import {
   type Snapshot,
   type State,
 } from "@pitwall/engine";
-import { actionsIn, TOOL_LABEL, type ToolAppId } from "../os/apps/tools/toolActions";
+import { actionsIn, offered, TOOL_LABEL, type ToolAppId } from "../os/apps/tools/toolActions";
 import { ActionButton } from "./ActionButton";
 import { HEALTH_LABEL } from "./ServiceMap";
 
@@ -30,15 +30,17 @@ interface Props {
   check: (actionId: string) => RejectReason | null;
   onAction: (actionId: string) => void;
   onOpen?: OpenIn;
+  /** Whether an action is on offer now; a tool with none for this service gets no Open in link. Everything, when omitted. */
+  offers?: (actionId: string) => boolean;
 }
 
-export function ActionsPanel({ scenario, service, snapshot, check, onAction, onOpen }: Props) {
+export function ActionsPanel({ scenario, service, snapshot, check, onAction, onOpen, offers = () => true }: Props) {
   // Monitoring holds the dashboard checks; every other action lives in its tool (M2.5 plan B4).
   const local = actionsIn(scenario, "dashboards", service.id);
   const busy = snapshot.busy;
   const busyDef = busy ? scenario.actions.find((a) => a.id === busy.actionId) : undefined;
   const health = snapshot.health[service.id] ?? "ok";
-  const tools = (["logs", "deploys", "db"] as const).filter((t) => t === "logs" || actionsIn(scenario, t, service.id).length > 0);
+  const tools = (["logs", "deploys", "db"] as const).filter((t) => t === "logs" || offered(actionsIn(scenario, t, service.id), offers).length > 0);
 
   const renderAction = (a: ActionDef<State>) => (
     <li key={a.id}>

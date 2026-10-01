@@ -172,6 +172,23 @@ describe("Deploys", () => {
   });
 });
 
+describe("Deploys, a service with nothing to show (M5 C2)", () => {
+  it("says so in one muted line instead of an empty card", () => {
+    // Every deploy action of the gateway is hidden for now, and it has no deploy card.
+    const quiet = slowLeak.services.find((s) => s.id === "edge")!;
+    const scenario: ScenarioDef<State> = {
+      ...slowLeak,
+      actions: slowLeak.actions.map((a) => (a.tool === "deploys" && a.serviceId === quiet.id ? { ...a, available: () => false } : a)),
+    };
+    paged(<DeploysApp />, { scenario });
+    const card = screen.getByRole("region", { name: quiet.label });
+    expect(within(card).getByText("No changes in the last 24 hours").className).toContain("muted");
+    expect(within(card).queryByRole("list")).toBeNull();
+    const checkout = screen.getByRole("region", { name: "checkout-api" });
+    expect(within(checkout).queryByText("No changes in the last 24 hours")).toBeNull();
+  });
+});
+
 describe("DB console", () => {
   it("shows actions as the commands they stand for, and their output", () => {
     paged(<DbApp />);

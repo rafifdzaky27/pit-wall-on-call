@@ -3,6 +3,7 @@ import { fillWorld, resolveWorld } from "@pitwall/world";
 import { useDaily } from "../../net/daily";
 import { useEffect, useRef } from "react";
 import { authorName, visibleFor } from "../apps/chat/unread";
+import { PITCH } from "../brand/pitch";
 import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useStartDaily, useStartTraining } from "../useStartShift";
@@ -46,8 +47,8 @@ export function useNoticeFeed(startShift: () => void): void {
           app: "Shift",
           title: `Daily #${daily.number} · ${city}`,
           body: prefs.trainingDone
-            ? "Today's incident, the same for everyone. Your first attempt counts on the daily board."
-            : "New here? Start with the training shift: a coach walks you through it. Then try today's daily.",
+            ? `${PITCH} Today's incident is the same for everyone, and your first attempt counts on the daily board.`
+            : `${PITCH} New here? Start with the training shift: a coach walks you through it. Then try today's daily.`,
           actions: prefs.trainingDone ? [today, practice, drill] : [drill, today, practice],
         });
       }

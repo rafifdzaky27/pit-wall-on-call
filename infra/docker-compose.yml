@@ -42,6 +42,29 @@ services:
     depends_on:
       - api
 
+  # Self-hosted, cookieless analytics (M5 L5-3). Off until COMPOSE_PROFILES in .env
+  # includes "analytics". It has its own database and role in the same Postgres,
+  # created by deploy.sh. Caddy serves it at /stats/ (same origin, no third party).
+  # Version tag verified to exist on ghcr.io on 2026-10-01; bump deliberately.
+  umami:
+    logging: *logging
+    image: ghcr.io/umami-software/umami:postgresql-v2.19.0
+    restart: unless-stopped
+    mem_limit: 384m
+    environment:
+      # Compose interpolates inactive services too, so these must not use ":?" (it would
+      # break every deploy with the profile off). deploy.sh requires them when it is on.
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:-}@postgres:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:-}
+      DISABLE_TELEMETRY: "1"
+    # The admin UI is never public: loopback only, reached with `ssh -L 3001:127.0.0.1:3001`.
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["analytics"]
+
   cloudflared:
     logging: *logging
     image: cloudflare/cloudflared:latest

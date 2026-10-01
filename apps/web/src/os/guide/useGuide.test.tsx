@@ -40,6 +40,40 @@ describe("the next-step guide (M4.5 spec N3)", () => {
     expect(hint(os)).toBeUndefined();
   });
 
+  it("sends hint_shown once per shift, for the first hint only", () => {
+    const track = vi.fn();
+    (window as { umami?: unknown }).umami = { track };
+    const { os } = startActive();
+    track.mockClear();
+    ms(46_000);
+    expect(hint(os)).toBeDefined();
+    expect(track.mock.calls).toEqual([["hint_shown", undefined]]);
+    act(() => os().openApp("monitoring"));
+    ms(46_000);
+    expect(hint(os)?.body).toMatch(/red service on the map/);
+    expect(track).toHaveBeenCalledTimes(1);
+    delete (window as { umami?: unknown }).umami;
+  });
+
+  it("sends hint_shown again on the next shift (the desktop does not remount)", () => {
+    const track = vi.fn();
+    (window as { umami?: unknown }).umami = { track };
+    const { os, incident } = startActive();
+    ms(46_000);
+    act(() => incident().dispatch("checkout.rollback"));
+    for (let i = 0; i < 60; i++) ms(1000);
+    expect(incident().phase).toBe("ended");
+    act(() => prefsNow.update({ nextStepHints: true }));
+    act(() => incident().newShift());
+    act(() => incident().start());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    ms(46_000);
+    expect(hint(os)).toBeDefined();
+    expect(track.mock.calls.filter(([name]) => name === "hint_shown")).toHaveLength(2);
+    delete (window as { umami?: unknown }).umami;
+  });
+
   it("moves to the next place after each milestone, clearing the old hint", () => {
     const { os } = startActive();
     ms(46_000);
@@ -131,5 +165,31 @@ describe("the next-step guide (M4.5 spec N3)", () => {
     act(() => incident().dispatch("checkout.restart"));
     ms(120_000);
     expect(hint(os)).toBeUndefined();
+  });
+
+  it("steps aside after three finished shifts, even when none was resolved (M5 C4)", () => {
+    const { incident } = startActive({ prefs: { shiftsDone: 2 } });
+    for (let i = 0; i < 20; i++) ms(30_000);
+    expect(incident().result?.outcome).toBe("dnf");
+    expect(prefsNow.prefs.shiftsDone).toBe(3);
+    expect(prefsNow.prefs.nextStepHints).toBe(false);
+    expect(prefsNow.prefs.resolvedOnce).toBe(false);
+  });
+
+  it("keeps the hints for the first two unresolved shifts", () => {
+    const { incident } = startActive({ prefs: { shiftsDone: 1 } });
+    for (let i = 0; i < 20; i++) ms(30_000);
+    expect(incident().result?.outcome).toBe("dnf");
+    expect(prefsNow.prefs.shiftsDone).toBe(2);
+    expect(prefsNow.prefs.nextStepHints).toBe(true);
+  });
+
+  it("does not count the training shift", () => {
+    const { incident } = renderOs(<Guide />);
+    act(() => incident().startTraining());
+    act(() => incident().skipPrepage());
+    act(() => incident().acknowledge());
+    for (let i = 0; i < 10; i++) ms(30_000);
+    expect(prefsNow.prefs.shiftsDone).toBe(0);
   });
 });

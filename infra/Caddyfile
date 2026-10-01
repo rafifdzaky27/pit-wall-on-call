@@ -18,6 +18,20 @@
 		reverse_proxy api:8787
 	}
 
+	# Self-hosted analytics (compose profile "analytics"). The prebuilt Umami image ignores a
+	# runtime BASE_PATH (it is a build arg), so Umami serves at its root and Caddy strips
+	# /stats. Only the tracker script and its collect endpoint are public; the admin UI is
+	# reached over an SSH tunnel (runbook). While the profile is off the upstream does not
+	# resolve; handle_errors below turns that 502 into a plain 404 (never the SPA).
+	@tracker path /stats/script.js /stats/api/send
+	handle @tracker {
+		uri strip_prefix /stats
+		reverse_proxy umami:3000
+	}
+	handle /stats/* {
+		respond "Not found" 404
+	}
+
 	# Hashed assets: cached forever, and a missing one is a real 404 (never the SPA
 	# fallback, or HTML would be cached for a year under a .js URL).
 	handle /assets/* {
@@ -27,11 +41,30 @@
 		file_server
 	}
 
+	# A path that looks like a file (has an extension) is served if it exists and is a
+	# real 404 otherwise, e.g. /wp-login.php or /robots.txt typos. It is never index.html.
+	@filelike path_regexp \.[A-Za-z0-9]+$
+	handle @filelike {
+		root * /srv
+		header Cache-Control "no-cache"
+		file_server
+	}
+
 	# Everything else is the SPA: always revalidated so a deploy is picked up.
 	handle {
 		root * /srv
 		header Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server
+	}
+
+	handle_errors {
+		@stats path /stats/*
+		handle @stats {
+			respond "Not found" 404
+		}
+		handle {
+			respond "{err.status_code} {err.status_text}" {err.status_code}
+		}
 	}
 }

@@ -7,6 +7,9 @@ COPY . .
 RUN pnpm install --offline --frozen-lockfile
 ARG GIT_SHA=dev
 ENV VITE_GIT_SHA=$GIT_SHA
+# Empty means analytics off (the tracker script is never loaded).
+ARG UMAMI_WEBSITE_ID=
+ENV VITE_UMAMI_WEBSITE_ID=$UMAMI_WEBSITE_ID
 RUN pnpm --filter @pitwall/web build
 
 FROM caddy:2-alpine

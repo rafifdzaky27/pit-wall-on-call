@@ -54,6 +54,7 @@ export function DeploysApp() {
                 <h3>{s.label}</h3>
                 <span className="mono muted">{snapshot.details[s.id]}</span>
               </header>
+              {past.length === 0 && actions.length === 0 && outputs.length === 0 && <p className="muted">No changes in the last 24 hours</p>}
               {past.length > 0 && (
                 <ol className="tool-history" aria-label="Deploy history">
                   {past.map((m) => (

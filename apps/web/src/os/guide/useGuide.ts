@@ -5,6 +5,7 @@ import { useIncident } from "../incident/IncidentProvider";
 import { usePrefs } from "../PrefsProvider";
 import { useOs } from "../shell/OsContext";
 import { INCIDENTS } from "@pitwall/scenarios";
+import { track } from "../../analytics/analytics";
 import { hintFor } from "./hints";
 import { due, markHinted, nextMilestone, observe, startGuide, type Facts, type GuideState, type Milestone } from "./milestones";
 
@@ -12,6 +13,8 @@ type Action = { type: "observe"; facts: Facts; at: number } | { type: "hinted"; 
 const reduce = (state: GuideState, a: Action): GuideState => (a.type === "observe" ? observe(state, a.facts, a.at) : markHinted(state, a.milestone));
 
 export const GUIDE_NOTICE = "guide";
+
+const VETERAN_SHIFTS = 3;
 
 const criticalIds = (health: Record<string, Health>) =>
   Object.entries(health)
@@ -65,6 +68,7 @@ export function useGuide(): void {
     fix: did(["mitigate", "fix"]),
   };
   const key = JSON.stringify(facts);
+  const hintTracked = useRef(false);
 
   useEffect(() => {
     if (phase === "active") dispatch({ type: "observe", facts, at: gameMs });
@@ -93,6 +97,10 @@ export function useGuide(): void {
       if (!hint) return;
       const run = () => (hint.open === "monitoring" ? openApp("monitoring") : openTool(hint.open, crit[0] ?? null));
       pushNotice({ id: GUIDE_NOTICE, app: "Guide", title: hint.title, body: hint.body, actions: [{ label: hint.cta, run, primary: true }] });
+      if (!hintTracked.current) {
+        hintTracked.current = true;
+        track("hint_shown");
+      }
     }
   }, [active, state, gameMs]);
 
@@ -103,4 +111,17 @@ export function useGuide(): void {
     recorded.current = true;
     update({ resolvedOnce: true, nextStepHints: false });
   }, [phase, result, training, prefs.resolvedOnce, update]);
+
+  // Three finished real shifts, resolved or not, make a veteran: the hints step aside once, at the third.
+  const counted = useRef(false);
+  useEffect(() => {
+    if (phase !== "ended") {
+      counted.current = false;
+      return;
+    }
+    if (counted.current || training) return;
+    counted.current = true;
+    const shiftsDone = prefs.shiftsDone + 1;
+    update(shiftsDone === VETERAN_SHIFTS ? { shiftsDone, nextStepHints: false } : { shiftsDone });
+  }, [phase, training]);
 }

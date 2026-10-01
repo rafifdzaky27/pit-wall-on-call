@@ -16,6 +16,23 @@ describe("GET /healthz", () => {
   });
 });
 
+describe("GET /api/healthz", () => {
+  it("is public, returns ok, and never touches the database", async () => {
+    let pings = 0;
+    const app = createApp({
+      version: "abc123",
+      pingDb: async () => {
+        pings += 1;
+        throw new Error("connection refused");
+      },
+    });
+    const res = await app.request("/api/healthz");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ status: "ok" });
+    expect(pings).toBe(0);
+  });
+});
+
 describe("GET /readyz", () => {
   it("returns ready when the database answers", async () => {
     const app = createApp({ version: "abc123", pingDb: dbUp });
