@@ -148,9 +148,9 @@ describe("Console", () => {
     expect(tags.length).toBeGreaterThan(1);
     for (const tag of tags) expect(tag.querySelector("[tabindex]")).toBeNull();
     const stops = [...document.querySelectorAll<HTMLElement>(".term")].filter((t) => t.getAttribute("aria-describedby") && t.tabIndex === 0);
-    const levels = stops.filter((t) => t.textContent === "Alert levels");
+    const levels = stops.filter((t) => t.textContent === "Warn");
     expect(levels).toHaveLength(1);
-    expect(within(screen.getByRole("list", { name: "Legend" }).parentElement!).getByText("Alert levels")).toBe(levels[0]);
+    expect(within(screen.getByRole("list", { name: "Legend" })).getByText("Warn")).toBe(levels[0]);
     fireEvent.focus(levels[0]!);
     expect((await screen.findByRole("tooltip")).textContent).toContain("Critical means");
   });

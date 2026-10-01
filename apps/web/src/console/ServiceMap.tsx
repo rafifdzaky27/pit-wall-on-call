@@ -29,15 +29,12 @@ export function ServiceMap({ scenario, health, details, selected, onSelect }: Pr
       {/* One header row holds the legend and the count, so the map keeps its height on short screens (layout.spec). */}
       <div className="ph map-ph">
         <h2 id="map-h">Service map</h2>
-        {/* The one place the Crit and Warn tags are explained, so they add no tab stops of their own (M5 C5). */}
-        <span className="map-legend-term">
-          <Term id="alert-level">Alert levels</Term>
-        </span>
         <ul className="map-legend" aria-label="Legend">
           {LEGEND.map((l) => (
             <li key={l.level}>
               <span className={`legend-dot ${l.level}`} aria-hidden="true" />
-              <b className={`node-health ${l.level}`}>{l.name}</b>
+              {/* The one place Warn and Critical are explained, so the Crit and Warn tags add no tab stops of their own (M5 C5). */}
+              <b className={`node-health ${l.level}`}>{l.level === "warn" ? <Term id="alert-level">{l.name}</Term> : l.name}</b>
               <span className="muted">{l.meaning}</span>
             </li>
           ))}
