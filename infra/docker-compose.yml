@@ -48,7 +48,7 @@ services:
   # Version tag verified to exist on ghcr.io on 2026-10-01; bump deliberately.
   umami:
     logging: *logging
-    image: ghcr.io/umami-software/umami:postgresql-v2.19.0
+    image: ghcr.io/umami-software/umami:postgresql-3.0.0
     restart: unless-stopped
     mem_limit: 384m
     environment:
