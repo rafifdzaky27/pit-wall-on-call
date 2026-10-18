@@ -15,8 +15,8 @@
     "@pitwall/engine": "workspace:*",
     "@pitwall/scenarios": "workspace:*",
     "@pitwall/world": "workspace:*",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",
