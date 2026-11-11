@@ -1,8 +1,9 @@
 /* The café scene (cold-open spec §6, M2.5 spec §12). Only transform and opacity animate. */
 .cafe { position: absolute; inset: 0; overflow: hidden; background: #1d1512; }
-/* The art is its own layer (will-change): a camera zoom then scales it rather than rastering it again at every scale.
-   It holds no café UI, so its stacking context traps nothing (the hotspots are its siblings, at z 2). */
-.cafe-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; will-change: transform; }
+/* No will-change on the art: it pinned the layer's raster scale at the camera's first scale, the laptop close-up
+   (about 4x the screen), so a full-screen café rastered ~8000 px wide with every loop invalidating it, and the
+   GPU dropped tiles: walls and windows flickered out (2026-11-11 demo bug). Chrome now rasters it at the scale shown. */
+.cafe-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* The grain sits out camera moves: a full-frame bitmap is the costliest thing to raster at a zoom's scale. */
 .cafe.moving .cafe-grain { display: none; }
 

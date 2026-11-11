@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { dailyFor, utcDate } from "@pitwall/scenarios";
-import { renderOs } from "../os/testing";
+import { pinToSlowLeakDaily, renderOs } from "../os/testing";
 import { RESULTS_DELAY_MS } from "./ResultsCard";
 import { COLD_CLOSE_DELAY_MS, loadResults, Stage } from "./Stage";
 
@@ -89,6 +89,7 @@ describe("the shift report (M2.5 spec §6)", () => {
   });
 
   it("a daily says which one, shows today's board, and shares as the daily (M3 spec Y11, Y12)", async () => {
+    pinToSlowLeakDaily();
     const today = dailyFor(utcDate(Date.now()));
     const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });

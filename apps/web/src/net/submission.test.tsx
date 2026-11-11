@@ -2,7 +2,7 @@ import { ENGINE_VERSION } from "@pitwall/engine";
 import { dailyFor, dayStartMs, utcDate } from "@pitwall/scenarios";
 import { act, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderOs } from "../os/testing";
+import { pinToSlowLeakDaily, renderOs } from "../os/testing";
 import { ROLLOVER_CHECK_MS } from "./daily";
 import { loadPlayer, savePlayer } from "./player";
 import { useSubmission, type Submission } from "./SubmissionProvider";
@@ -185,6 +185,8 @@ describe("posting a finished shift", () => {
 
 describe("the daily and the queue (M3 spec Y6, Y10)", () => {
   const today = () => utcDate(Date.now());
+  // Before any render, so the daily provider starts on the pinned day.
+  beforeEach(() => pinToSlowLeakDaily());
 
   function finishDaily(incident: ReturnType<typeof renderOs>["incident"]) {
     act(() => incident().startDaily(dailyFor(today())));
