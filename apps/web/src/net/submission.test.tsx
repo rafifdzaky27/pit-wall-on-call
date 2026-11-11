@@ -185,9 +185,10 @@ describe("posting a finished shift", () => {
 
 describe("the daily and the queue (M3 spec Y6, Y10)", () => {
   const today = () => utcDate(Date.now());
+  // Before any render, so the daily provider starts on the pinned day.
+  beforeEach(() => pinToSlowLeakDaily());
 
   function finishDaily(incident: ReturnType<typeof renderOs>["incident"]) {
-    pinToSlowLeakDaily();
     act(() => incident().startDaily(dailyFor(today())));
     act(() => incident().skipPrepage());
     act(() => incident().acknowledge());

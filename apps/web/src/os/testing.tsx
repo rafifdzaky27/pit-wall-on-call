@@ -48,5 +48,6 @@ export function renderOs(
 export function pinToSlowLeakDaily(): void {
   let ms = dayStartMs(utcDate(Date.now())) + 12 * 3_600_000;
   for (let i = 0; i < 400 && dailyFor(utcDate(ms)).scenarioId !== slowLeak.id; i++) ms += 86_400_000;
+  if (dailyFor(utcDate(ms)).scenarioId !== slowLeak.id) throw new Error("no Slow Leak daily in the next 400 days");
   vi.setSystemTime(ms);
 }
