@@ -2,7 +2,7 @@ import { ENGINE_VERSION } from "@pitwall/engine";
 import { dailyFor, dayStartMs, utcDate } from "@pitwall/scenarios";
 import { act, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderOs } from "../os/testing";
+import { pinToSlowLeakDaily, renderOs } from "../os/testing";
 import { ROLLOVER_CHECK_MS } from "./daily";
 import { loadPlayer, savePlayer } from "./player";
 import { useSubmission, type Submission } from "./SubmissionProvider";
@@ -187,6 +187,7 @@ describe("the daily and the queue (M3 spec Y6, Y10)", () => {
   const today = () => utcDate(Date.now());
 
   function finishDaily(incident: ReturnType<typeof renderOs>["incident"]) {
+    pinToSlowLeakDaily();
     act(() => incident().startDaily(dailyFor(today())));
     act(() => incident().skipPrepage());
     act(() => incident().acknowledge());

@@ -2,7 +2,8 @@ import type { ScenarioDef, State } from "@pitwall/engine";
 import { render, type RenderResult } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { DailyProvider } from "../net/daily";
-import { slowLeak } from "@pitwall/scenarios";
+import { dailyFor, dayStartMs, slowLeak, utcDate } from "@pitwall/scenarios";
+import { vi } from "vitest";
 import { SubmissionProvider } from "../net/SubmissionProvider";
 import { IncidentProvider, ShiftScope, useIncident, type IncidentApi } from "./incident/IncidentProvider";
 import { DEFAULT_PREFS, type Prefs } from "./prefs";
@@ -38,4 +39,14 @@ export function renderOs(
     </PrefsProvider>,
   );
   return { ...result, incident: () => refs.incident!, os: () => refs.os! };
+}
+
+/**
+ * Moves the (fake) clock to midday on the next day whose daily is the Slow Leak, the incident these tests play.
+ * The daily rotates through every incident, so a test that plays "today's daily" otherwise breaks on most days.
+ */
+export function pinToSlowLeakDaily(): void {
+  let ms = dayStartMs(utcDate(Date.now())) + 12 * 3_600_000;
+  for (let i = 0; i < 400 && dailyFor(utcDate(ms)).scenarioId !== slowLeak.id; i++) ms += 86_400_000;
+  vi.setSystemTime(ms);
 }
